@@ -1,5 +1,11 @@
 /* WP List Table */
 
+.newsletters .wp-filter {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+}
+
 .newsletters .wp-list-table .column-id {
 	width: 5%;
 }

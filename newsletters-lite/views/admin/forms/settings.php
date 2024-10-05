@@ -214,7 +214,7 @@ $styling = maybe_unserialize($form -> styling);
 														$settings = array(
 															'media_buttons'		=>	true,
 															'textarea_name'		=>	'confirmation_message[' . $language . ']',
-															'textarea_rows'		=>	5,
+															'textarea_rows'		=>	10,
 															'quicktags'			=>	true,
 															'teeny'				=>	false,
 														);
@@ -241,7 +241,7 @@ $styling = maybe_unserialize($form -> styling);
 										$settings = array(
 											'media_buttons'		=>	true,
 											'textarea_name'		=>	'confirmation_message',
-											'textarea_rows'		=>	5,
+											'textarea_rows'		=>	10,
 											'quicktags'			=>	true,
 											'teeny'				=>	false,
 										);
@@ -370,6 +370,13 @@ $styling = maybe_unserialize($form -> styling);
                                 <th><label for="styling_background"><?php esc_html_e('Background Color', 'wp-mailinglist'); ?></label></th>
                                 <td>
                                     <input type="text" class="color-picker" name="styling[background]" value="<?php echo esc_attr(wp_unslash($styling['background'])); ?>" id="styling_background" />
+                                </td>
+                            </tr>
+							<tr>
+                                <th><label for="styling_formborderradius"><?php _e('Border Radius', 'wp-mailinglist'); ?></label>
+                                <td>
+                                    <input type="hidden" style="width:45px;" name="styling[formborderradius]" value="<?php echo esc_attr(wp_unslash($styling['formborderradius'])); ?>" id="styling_formborderradius" />
+                                    <div class="slider" data-input="styling_formborderradius" data-min="0" data-max="100" data-meas="px" data-value="<?php echo esc_attr(wp_unslash($styling['formborderradius'])); ?>"></div>
                                 </td>
                             </tr>
                             <tr>
@@ -663,7 +670,7 @@ $styling = maybe_unserialize($form -> styling);
 															$settings = array(
 																'media_buttons'		=>	true,
 																'textarea_name'		=>	'styling_beforeform[' . $language . ']',
-																'textarea_rows'		=>	5,
+																'textarea_rows'		=>	10,
 																'quicktags'			=>	true,
 																'teeny'				=>	false,
 															);
@@ -690,7 +697,7 @@ $styling = maybe_unserialize($form -> styling);
 											$settings = array(
 												'media_buttons'		=>	true,
 												'textarea_name'		=>	'styling_beforeform',
-												'textarea_rows'		=>	5,
+												'textarea_rows'		=>	10,
 												'quicktags'			=>	true,
 												'teeny'				=>	false,
 											);
@@ -723,7 +730,7 @@ $styling = maybe_unserialize($form -> styling);
 															$settings = array(
 																'media_buttons'		=>	true,
 																'textarea_name'		=>	'styling_afterform[' . $language . ']',
-																'textarea_rows'		=>	5,
+																'textarea_rows'		=>	10,
 																'quicktags'			=>	true,
 																'teeny'				=>	false,
 															);
@@ -750,7 +757,7 @@ $styling = maybe_unserialize($form -> styling);
 											$settings = array(
 												'media_buttons'		=>	true,
 												'textarea_name'		=>	'styling_afterform',
-												'textarea_rows'		=>	5,
+												'textarea_rows'		=>	10,
 												'quicktags'			=>	true,
 												'teeny'				=>	false,
 											);
@@ -862,7 +869,8 @@ var warnMessage = "<?php echo addslashes(__('You have unsaved changes on this pa
 			minLines: 4,
 			maxLines: Infinity
 		});
-		
+
+		editor.getSession().setUseWorker(false);
 		var textarea = $('#styling_customcss').hide();
 		editor.getSession().setValue(textarea.val());
 		

@@ -100,6 +100,8 @@
 						if ($('.newsletters-subscribe-form', $('<div/>').html(response)).length > 0) {			
 							$wrapper.html($(response).find('.newsletters-subscribe-form'));
 						} else {
+							$wrapper.parent().find('.newsletters-form-styling_beforeform').remove();
+							$wrapper.parent().find('.newsletters-form-styling_afterform').remove();
 							$wrapper.html(response);
 						}
 						

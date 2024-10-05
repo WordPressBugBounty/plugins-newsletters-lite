@@ -44,12 +44,14 @@ if (!class_exists('Newsletters_Widget')) {
 						   $flWidgetClass = str_replace('fl_builder_widget_', 'fl-node-', $widget_id);
 						   echo '.' . $flWidgetClass . ' .widget_newsletters { ' ; 
 								echo (!empty($form_styling['background'])) ? 'background-color: ' . $form_styling['background'] . ';' : ''; 
-								echo (!empty($form_styling['formpadding'])) ? 'padding: ' . $form_styling['formpadding'] . 'px;' : ''; 
 								echo (!empty($form_styling['formtextcolor'])) ? 'color: ' . $form_styling['formtextcolor'] . ';' : ''; 
+								echo (!empty($form_styling['formborderradius'])) ? 'border-radius: ' . $form_styling['formborderradius'] . 'px;' : '';
 							echo ' } '; 
 
 					     	echo '.' . $flWidgetClass . ' .widgettitle {' ; 
 								 echo (!empty($form_styling['formttitlecolor'])) ? 'color: ' . $form_styling['formttitlecolor'] . ';' : '';
+								 echo (!empty($form_styling['formpadding'])) ? 'padding: ' . $form_styling['formpadding'] . 'px ' . $form_styling['formpadding'] . 'px 0 ' . $form_styling['formpadding'] . 'px;' : '';
+								 echo (!empty($form_styling['formpadding'])) ? 'margin-bottom:  0;' : ''; 
 			            	echo '}';
 						}
             	 	}

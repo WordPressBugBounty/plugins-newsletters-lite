@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.9.9.3
+Version: 4.9.9.4
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -8321,7 +8321,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     case 'batchbulk'			:
                         $action = sanitize_text_field(wp_unslash($_POST['action']));
                         $batch = sanitize_text_field(wp_unslash($_POST['batch']));
-                        $emails = map_deep(wp_unslash($_POST['emails']), 'sanitize_text_field');
+                        $emails = isset($_POST['emails']) && is_array($_POST['emails']) ? array_map('sanitize_text_field', $_POST['emails']) : [];
 
                         if (!empty($action)) {
                             if (!empty($emails)) {

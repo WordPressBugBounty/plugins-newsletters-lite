@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.6.1
-Stable tag: 4.9.9.3
+Tested up to: 6.6.2
+Stable tag: 4.9.9.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -223,6 +223,20 @@ Installing the WordPress Newsletter plugin is simple. Follow these steps:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.9.9.4 =
+* ADD: Subscribe Forms > Settings > Styling > Form Styling: Border Radius field.
+* IMPROVE: Some text and link improvements in submit serial and view serial modal.
+* IMPROVE: Subscription form before and after included in the shortcode main wrapper.
+* IMPROVE: Subscription form styling is now applied to before and after custom HTML too and to the confirmation message.
+* IMPROVE: Disable syntax error check in the Subscribe Forms editor to increase usability.
+* IMPROVE: Button alignment in Configuration and Subscribe Forms.
+* FIX: Critical error on admin queue page.
+* FIX: Total Control and Total MS Control extensions were showing the unassigned lists on admin subscription loop page.
+* FIX: Compatibility issue with Beaver Builder widgets > Newsletters.
+* FIX: Subscription form before and after inline styling and formatting was not working.
+* FIX: Subscription form submission losing the form styling.
+* FIX: Subscribe Forms > Settings > Styling > Custom CSS code now works properly.
 
 = 4.9.9.3 =
 * FIX: Vulnerability authenticated privilege escalation.

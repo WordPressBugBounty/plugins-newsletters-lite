@@ -4,6 +4,18 @@
 $paidsubscriptions = $this -> get_option('subscriptions');
 $saveipaddress = $this -> get_option('saveipaddress');
 
+$newslettersControlIsActive = false;
+$listOfListsUserCanSee  = array();
+if(class_exists('newsletterscontrol'))
+{
+	global $user_ID, $newsletterscontrol;
+	$newslettersControlIsActive = true;
+	if ($newsletterscontrol -> is_control_user($user_ID)) {
+		$listOfListsUserCanSee = $newsletterscontrol->get_control_lists($user_ID);
+	}
+					
+}
+
 ?>
 
 <?php /*<?php if (!empty($subscribers)) : ?>*/ ?>
@@ -53,6 +65,17 @@ $saveipaddress = $this -> get_option('saveipaddress');
 				<p>
 					<label style="font-weight:bold;"><input type="checkbox" name="checkboxall" value="1" id="checkboxall" onclick="jqCheckAll(this, false, 'lists');" /> <?php esc_html_e('Select all', 'wp-mailinglist'); ?></label><br/>
 					<?php foreach ($lists as $lid => $lval) : ?>
+						<?php 
+
+						if ($newslettersControlIsActive )
+						{
+							//error_log($lid);
+							if(!in_array($lid, $listOfListsUserCanSee ))
+							{
+								continue;
+							}
+						}
+						?>
 						<label><input type="checkbox" name="lists[]" value="<?php echo esc_html( $lid); ?>" /> <?php echo esc_html($lval); ?> (<?php echo esc_html( $SubscribersList -> count(array('list_id' => $lid))); ?> <?php esc_html_e('subscribers', 'wp-mailinglist'); ?>)</label><br/>
 					<?php endforeach; ?>
 				</p>
@@ -706,6 +729,17 @@ $saveipaddress = $this -> get_option('saveipaddress');
 										<td>
 											<?php if (!empty($subscriber -> Mailinglist)) : ?>
 												<?php $m = 1; ?>
+												<?php
+												// Assuming $listOfListsUserCanSee is an array of allowed list IDs
+
+												if ($newslettersControlIsActive) {
+												    // Iterate through the mailing lists and filter out those not in $listOfListsUserCanSee
+												    $subscriber->Mailinglist = array_filter($subscriber->Mailinglist, function($list) use ($listOfListsUserCanSee) {
+												        // Return true if the $list->id is in the $listOfListsUserCanSee array, otherwise false to remove it
+												        return in_array($list->id, $listOfListsUserCanSee);
+												    });
+												}
+												?>
 												<?php foreach ($subscriber -> Mailinglist as $list) : ?>
 													<?php echo ( $Html -> link(esc_html($list -> title), '?page=' . $this -> sections -> lists . '&amp;method=view&amp;id=' . $list -> id)); ?> <?php echo ($SubscribersList -> field('active', array('subscriber_id' => $subscriber -> id, 'list_id' => $list -> id)) == "Y") ? '<span class="newsletters_success">' . $Html -> help(__('Active', 'wp-mailinglist'), '<i class="fa fa-check"></i>') : '<span class="newsletters_error">' . $Html -> help(__('Inactive', 'wp-mailinglist'), '<i class="fa fa-times"></i>'); ?></span>
 													<?php 

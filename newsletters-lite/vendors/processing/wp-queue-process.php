@@ -67,8 +67,8 @@ if (!class_exists('WPML_WP_Queue_Process')) {
 		    
 		    return false;
 	    }
-	    
-	    function get_batches($onlykeys = false, $onlyerrors = false, $number = false) {
+
+        function get_batches($onlykeys = false, $onlyerrors = false, $number = false, $key = null) {
 		    global $wpdb;
 
 			$table        = $wpdb -> options;
@@ -128,8 +128,64 @@ if (!class_exists('WPML_WP_Queue_Process')) {
 
 			return $batches;
 	    }
-	    
-	    function get_queued_count($key = null) {
+
+        function get_batches_show($onlykeys = false, $onlyerrors = false, $number = false, $key = null) {
+            global $wpdb;
+
+            $table        = $wpdb -> options;
+            $column       = 'option_name';
+            $key_column   = 'option_id';
+            $value_column = 'option_value';
+
+            $query = "SELECT *
+			FROM {$table}
+			WHERE {$column} = '%s'  ";
+
+            $query = $wpdb -> prepare($query, $key);
+
+            $results = $wpdb -> get_results($query);
+
+            $batches = array();
+
+            if (!empty($results)) {
+                foreach ($results as $result) {
+                    $batch = new stdClass();
+                    $batch -> key = $result -> {$column};
+
+                    if (empty($onlykeys)) {
+                        $data = maybe_unserialize($result -> {$value_column});
+
+                        if (empty($onlyerrors)) {
+                            $batch -> data = $data;
+                        } else {
+                            foreach ($data as $dkey => $dval) {
+                                if (empty($dval['error'])) {
+                                    unset($data[$dkey]);
+                                }
+                            }
+
+                            $batch -> data = $data;
+                        }
+
+                        if (!empty($batch -> data)) {
+                            $batches[] = $batch;
+                        }
+                    } else {
+                        $batches[] = $batch;
+                    }
+
+                    if ($this -> memory_exceeded()) {
+                        $this -> memory_exceeded = true;
+                        return $batches;
+                    }
+                }
+            }
+
+            return $batches;
+        }
+
+
+        function get_queued_count($key = null) {
 		    global $wpdb, $wpMail;
 		    
 		    $count = 0;
@@ -276,13 +332,12 @@ if (!class_exists('WPML_WP_Queue_Process')) {
 			
 			if (!empty($schedules[$scheduleinterval])) {
 				$schedules[$this -> identifier . '_cron_interval'] = $schedules[$scheduleinterval];
-			} else {				
-				// Adds every 2 minutes to the existing schedules.
-				$schedules[$this -> identifier . '_cron_interval'] = array(
-					'interval' => MINUTE_IN_SECONDS * $interval,
-					'display'  => sprintf( __( 'Every %d Minutes' ), $interval ),
-				);
-			}
+			} else {
+                $seconds = $this->translate_scheule_interval($scheduleinterval);
+                // Adds every 2 minutes to the existing schedules.
+                $schedules[$this -> identifier . '_cron_interval'] = $seconds;
+
+            }
 
 			return $schedules;
 		}

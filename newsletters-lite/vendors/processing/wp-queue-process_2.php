@@ -66,8 +66,8 @@ if (!class_exists('WPML_WP_Queue_Process_2')) {
 		    
 		    return false;
 	    }
-	    
-	    function get_batches($onlykeys = false, $onlyerrors = false, $number = false) {
+
+        function get_batches($onlykeys = false, $onlyerrors = false, $number = false, $key = null) {
 		    global $wpdb;
 
 			$table        = $wpdb -> options;
@@ -275,12 +275,11 @@ if (!class_exists('WPML_WP_Queue_Process_2')) {
 			if (!empty($schedules[$scheduleinterval])) {
 				$schedules[$this -> identifier . '_cron_interval'] = $schedules[$scheduleinterval];
 			} else {				
-				// Adds every 2 minutes to the existing schedules.
-				$schedules[$this -> identifier . '_cron_interval'] = array(
-					'interval' => MINUTE_IN_SECONDS * $interval,
-					'display'  => sprintf( __( 'Every %d Minutes' ), $interval ),
-				);
-			}
+                $seconds = $this->translate_scheule_interval($scheduleinterval);
+
+                // Adds every 2 minutes to the existing schedules.
+                $schedules[$this -> identifier . '_cron_interval'] = $seconds;
+            }
 
 			return $schedules;
 		}

@@ -212,6 +212,11 @@ if (!class_exists('wpmlShortcodeHelper')) {
 				'height'		=>	false,
 			);
 
+            // Escape all attributes
+            foreach ($atts as $key => $value) {
+                $atts[$key] = esc_attr($value);
+            }
+			
 			extract(shortcode_atts($defaults, $atts));
 
 			if (!empty($url)) {
@@ -697,7 +702,7 @@ if (!class_exists('wpmlShortcodeHelper')) {
 				case 'post_link'				:
 				case 'newsletters_post_link'	:
 					if (!empty($shortcode_post)) {
-						return do_shortcode($this -> direct_post_permalink(esc_html($shortcode_post -> ID)));
+						return do_shortcode($this -> direct_post_permalink($shortcode_post -> ID));
 					}
 					break;
 				case 'post_date_wrapper'				:

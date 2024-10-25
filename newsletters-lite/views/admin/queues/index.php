@@ -163,9 +163,9 @@
 	$batchescount = count($batches);
 		
 	?>
-	
-	<?php if ($batches = $this -> qp_get_batches(false, false, $batchnumber)) : ?>
-		<br class="clear" />
+
+    <?php if ($batches = $this -> qp_get_batches_show(false, false, $batchnumber, $batches[$batchnumber-1]->key)) : ?>
+        <br class="clear" />
 		<h2><?php esc_html_e('Batches and Emails', 'wp-mailinglist'); ?></h2>
 		<p>
 			<?php esc_html_e('One batch is displayed at a time with the emails in the batch.', 'wp-mailinglist'); ?><br/>

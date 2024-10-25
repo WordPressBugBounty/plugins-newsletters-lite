@@ -130,3 +130,10 @@ var wpmlUrl = '<?php echo esc_url_raw($this -> url()); ?>';
 	}
 <?php endif; ?>
 </script>
+
+
+<style id="classic-editor-safari-18-temp-fix">
+	_::-webkit-full-page-media, _:future, :root #post-body #postbox-container-2 {
+		clear: left;
+	}
+</style>

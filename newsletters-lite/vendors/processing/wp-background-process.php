@@ -498,5 +498,74 @@ if ( ! class_exists( 'WPML_WP_Background_Process' ) ) {
 		    echo '<pre>' . print_r($var, true) . '</pre>';
 	    }
 
+        public function translate_scheule_interval ($schedule2 = null)
+        {
+            if(empty($schedule2))
+            {
+                return  array(
+                    "interval" => 0,
+                    "display" => "Invalid interval. Please set  through Newsletters configurations."
+                );
+            }
+
+            $schedules = array(
+                "1minutes" => array(
+                    "interval" => 60,
+                    "display" => "Every Minute"
+                ),
+                "2minutes" => array(
+                    "interval" => 120,
+                    "display" => "Every 2 Minutes"
+                ),
+                "5minutes" => array(
+                    "interval" => 300,
+                    "display" => "Every 5 Minutes"
+                ),
+                "10minutes" => array(
+                    "interval" => 600,
+                    "display" => "Every 10 Minutes"
+                ),
+                "20minutes" => array(
+                    "interval" => 1200,
+                    "display" => "Every 20 Minutes"
+                ),
+                "30minutes" => array(
+                    "interval" => 1800,
+                    "display" => "Every 30 Minutes"
+                ),
+                "40minutes" => array(
+                    "interval" => 2400,
+                    "display" => "Every 40 Minutes"
+                ),
+                "50minutes" => array(
+                    "interval" => 3000,
+                    "display" => "Every 50 minutes"
+                ),
+                "hourly" => array(
+                    "interval" => 3600,
+                    "display" => "Once Hourly"
+                ),
+                "twicedaily" => array(
+                    "interval" => 43200,
+                    "display" => "Twice Daily"
+                ),
+                "daily" => array(
+                    "interval" => 86400,
+                    "display" => "Once Daily"
+                ),
+                "weekly" => array(
+                    "interval" => 604800,
+                    "display" => "Once Weekly"
+                ),
+                "monthly" => array(
+                    "interval" => 2664000,
+                    "display" => "Once Monthly"
+                )
+
+            );
+
+            return $schedules[$schedule2];
+        }
+
 	}
 }

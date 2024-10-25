@@ -78,6 +78,75 @@ if (!class_exists('wpmlClick')) {
 			return $defaults;
 		}
 		
+		public function count($conditions = [], $sum = false, $sumcol = null){
+            $count = 0;
+
+            if (!empty($this -> model)) {
+                global $wpdb, ${$this -> model};
+
+                $object = $this -> getobject($this -> model);
+
+                if (!empty($sum) && !empty($sumcol)) {
+                    $query = "SELECT SUM(`" . $sumcol . "`) FROM `" . $wpdb -> prefix . $object -> table . "`";
+                } else {
+                    $query = "SELECT COUNT(DISTINCT CASE 
+                                    WHEN user_id != 0 THEN user_id
+                                    ELSE subscriber_id
+                                END) AS unique_clicks FROM `" . $wpdb -> prefix . $object -> table . "`";
+                }
+
+                $conditions = apply_filters('newsletters_db_count_conditions', $conditions, $object -> model);
+
+                if (!empty($conditions) && is_array($conditions)) {
+                    $query .= " WHERE";
+                    $c = 1;
+
+                    foreach ($conditions as $ckey => $cval) {
+                        if (preg_match("/[>]\s?(.*)?/si", $cval, $cmatches)) {
+                            if (!empty($cmatches[1]) || $cmatches[1] == "0") {
+                                $query .= " `" . $ckey . "` > " . esc_sql($cmatches[1]) . "";
+                            }
+                        } elseif (preg_match("/[<]\s?(.*)?/si", $cval, $cmatches)) {
+                            if (!empty($cmatches[1]) || $cmatches[1] == "0") {
+                                $query .= " `" . $ckey . "` < " . esc_sql($cmatches[1]) . "";
+                            }
+                        } elseif (preg_match("/^(!=)\s?(.*)?/si", $cval, $cmatches)) {
+                            if (!empty($cmatches[2]) || $cmatches[2] == 0) {
+                                $query .= " `" . $ckey . "` != " . esc_sql($cmatches[2]) . "";
+                            }
+                        } elseif (preg_match("/(NOT IN)/si", $cval)) {
+                            $query .= " " . $ckey . " " . ($cval) . "";
+                            $countquery .= " " . $ckey . " " . esc_sql($cval) . "";
+                        } elseif (preg_match("/(IN \()/si", $cval)) {
+                            $query .= " " . $ckey . " " . ($cval) . "";
+                            $countquery .= " " . $ckey . " " . esc_sql($cval);
+                        } elseif (preg_match("/(LIKE)/", $cval, $cmatches)) {
+                            $query .= " `" . $ckey . "` " . ($cval);
+                        } else {
+                            $query .= " `" . $ckey . "` = '" . esc_sql($cval) . "'";
+                        }
+
+                        if ($c < count($conditions)) {
+                            $query .= " AND";
+                        }
+
+                        $c++;
+                    }
+                }
+                $query_hash = md5($query);
+                if ($ob_count = $this -> get_cache($query_hash)) {
+                    return $ob_count;
+                } else {
+                    $count = $wpdb -> get_var($query);
+                    $this -> set_cache($query_hash, $count);
+                    return $count;
+                }
+            }
+
+            return $count;
+        }
+
+
 		function validate($data = array())
         {
 			global $Html;

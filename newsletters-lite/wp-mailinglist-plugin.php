@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.9.9.4';
+		var $version = '4.9.9.5';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -346,18 +346,28 @@ if (!class_exists('wpMailPlugin')) {
 			    $this -> {'queue_process_' . $q} -> cancel_all_processes();
 		    }
 	    }
-	    
-	    function qp_get_batches($onlykeys = false, $onlyerrors = false, $number = false) {
+
+        function qp_get_batches($onlykeys = false, $onlyerrors = false, $number = false, $key = null) {
 		    $batches = array();
 		    for ($q = 1; $q <= 3; $q++) {
-			    $newbatches = $this -> {'queue_process_' . $q} -> get_batches($onlykeys, $onlyerrors, $number);			    
+                $newbatches = $this -> {'queue_process_' . $q} -> get_batches($onlykeys, $onlyerrors, $number, $key);
 			    $batches = array_merge($batches, $newbatches);
 		    }
 		    
 		    return $batches;
 	    }
-	    
-	    function qp_scheduling() {
+
+        function qp_get_batches_show($onlykeys = false, $onlyerrors = false, $number = false, $key = null) {
+            $batches = array();
+
+            $newbatches = $this -> {'queue_process_1'} -> get_batches_show($onlykeys, $onlyerrors, $number, $key);
+            $batches = array_merge($batches, $newbatches);
+
+            return $batches;
+        }
+
+
+function qp_scheduling() {
 		    for ($q = 1; $q <= 3; $q++) {
 			    $this -> {'queue_process_' . $q} -> scheduling();
 		    }
@@ -1333,7 +1343,7 @@ if (!class_exists('wpMailPlugin')) {
 				    }
 
 				    // Clicks
-				    $query = "SELECT COUNT(`id`) as `clickscount`, DATE(`created`) as `date` FROM `" . $wpdb -> prefix . $this -> Click() -> table . "` WHERE" . $history_condition . " CAST(`created` AS DATE) BETWEEN '" . $fromdate . "' AND '" . $todate . "' GROUP BY DATE(`created`)";
+				    $query = "SELECT COUNT(DISTINCT CASE WHEN user_id != 0 THEN user_id ELSE subscriber_id END) as `clickscount`, DATE(`created`) as `date` FROM `" . $wpdb -> prefix . $this -> Click() -> table . "` WHERE" . $history_condition . " CAST(`created` AS DATE) BETWEEN '" . $fromdate . "' AND '" . $todate . "' GROUP BY DATE(`created`)";
 					$records = $wpdb -> get_results($query);
 
 				    $clicks_array = array();
@@ -1494,7 +1504,7 @@ if (!class_exists('wpMailPlugin')) {
 				    }
 
 				    // Clicks
-				    $query = "SELECT COUNT(`id`) as `clickscount`, DATE(`created`) as `date` FROM `" . $wpdb -> prefix . $this -> Click() -> table . "` WHERE" . $history_condition . " CAST(`created` AS DATE) BETWEEN '" . $fromdate . "' AND '" . $todate . "' GROUP BY DATE(`created`)";
+				    $query = "SELECT COUNT(DISTINCT CASE WHEN user_id != 0 THEN user_id ELSE subscriber_id END) as `clickscount`, DATE(`created`) as `date` FROM `" . $wpdb -> prefix . $this -> Click() -> table . "` WHERE" . $history_condition . " CAST(`created` AS DATE) BETWEEN '" . $fromdate . "' AND '" . $todate . "' GROUP BY DATE(`created`)";
 					$records = $wpdb -> get_results($query);
 
 				    $clicks_array = array();
@@ -1659,7 +1669,7 @@ if (!class_exists('wpMailPlugin')) {
 				    }
 
 				    // Clicks
-				    $query = "SELECT COUNT(`id`) as `clickscount`, DATE(`created`) as `date` FROM `" . $wpdb -> prefix . $this -> Click() -> table . "` WHERE " . $clicks_condition . " " . $history_condition . " CAST(`created` AS DATE) BETWEEN '" . $fromdate . "' AND '" . $todate . "' GROUP BY DATE(`created`)";
+				    $query = "SELECT COUNT(DISTINCT CASE WHEN user_id != 0 THEN user_id ELSE subscriber_id END) as `clickscount`, DATE(`created`) as `date` FROM `" . $wpdb -> prefix . $this -> Click() -> table . "` WHERE " . $clicks_condition . " " . $history_condition . " CAST(`created` AS DATE) BETWEEN '" . $fromdate . "' AND '" . $todate . "' GROUP BY DATE(`created`)";
 					$records = $wpdb -> get_results($query);
 
 				    $clicks_array = array();
@@ -9365,8 +9375,7 @@ if (!class_exists('wpMailPlugin')) {
 				if (!empty($atts['name'])) {
 					
 					$namesplit = explode("|", $atts['name']);
-                   // error_log('hahaha');
-                   // error_log(json_encode($namesplit));
+                
 					//if(is_array())
 					
                     $atts['name'] = (is_array($namesplit) && count($namesplit) >= 1) ? $namesplit[0] : $namesplit;
@@ -12942,14 +12951,14 @@ if (!class_exists('wpMailPlugin')) {
 						if (!empty($language) && $this -> language_do()) {
 							$message = $this -> language_use($language, $template, false);
 						} else {
-							$message = esc_html($template);
+							$message = $template;
 						}
 						break;
 					default 					:
 						if (!empty($language) && $this -> language_do()) {
 							$message = wpautop($this -> language_use($language, $template, false));
 						} else {
-							$message = wpautop(esc_html($template));
+							$message = wpautop($template);
 						}
 
 						// Should variables be processed? Shortcodes, etc.
@@ -13403,7 +13412,6 @@ if (!class_exists('wpMailPlugin')) {
 				//$body = do_shortcode(wp_unslash($body));
 				$body = str_replace("$", "&#36;", $body);
 				$body = preg_replace('/\$(\d)/', '\\\$$1', $body);
-
 				$themeintextversion = $this -> get_option('themeintextversion');
 				if (empty($themeintextversion)) {
 					global $wpml_textmessage;
@@ -13457,7 +13465,6 @@ if (!class_exists('wpMailPlugin')) {
 						// No theme, load default
 						$body = do_shortcode(wp_unslash($head)) . wp_unslash($body) . do_shortcode(wp_unslash($foot));
 					}
-
 					// Parse the content areas
 					$pattern = "/\[(\[?)(newsletters_content)(?![\w-])([^\]\/]*(?:\/(?!\])[^\]\/]*)*?)(?:(\/)\]|\](?:([^\[]*+(?:\[(?!\/\2\])[^\[]*+)*+)\[\/\2\])?)(\]?)/s";
 					$body = preg_replace_callback($pattern, array($this, 'newsletters_content'), $body);
@@ -13470,7 +13477,6 @@ if (!class_exists('wpMailPlugin')) {
 
 					// Convert Relative urls to Absolute
 					$body = $this -> convert_relative_urls_to_absolute($body);
-
 					/*$preheader = 'This is my custom preheader text that will show up in the auto preview on the email client to capture the attention of the reader reading the email.';
 
 					$doc = new DOMDocument();
@@ -13546,7 +13552,6 @@ if (!class_exists('wpMailPlugin')) {
 		                    // Convert non-empty relative URL to absolute URL
 		                    $absolute_url = WP_Http::make_absolute_url($href, $base_url);
 		                    $a->setAttribute('href', $absolute_url);
-		                    error_log('test . ' . $absolute_url);
 		                }
 		            }
 

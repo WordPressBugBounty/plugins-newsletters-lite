@@ -4,7 +4,7 @@ Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
 Tested up to: 6.6.2
-Stable tag: 4.9.9.4
+Stable tag: 4.9.9.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -223,6 +223,14 @@ Installing the WordPress Newsletter plugin is simple. Follow these steps:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.9.9.5 =
+* IMPROVE: Changed the number of clicks to number of unique clicks everywhere.
+* FIX: Safari 18+ classic editor post box move to right issue.
+* FIX: Schedule interval by more than 50 minutes was not working.
+* FIX: Batches display in the queue issue.
+* FIX: XSS vulnerability on newsletters_video shortcode.
+* FIX: newsletters_post_link escaping issue (always wrapped in HTML special characters).
 
 = 4.9.9.4 =
 * ADD: Subscribe Forms > Settings > Styling > Form Styling: Border Radius field.

@@ -16,7 +16,7 @@
 </div>
 
 <h3><?php esc_html_e('Permanent Options', 'wp-mailinglist'); ?></h3>
-<p class="howto"><?php esc_html_e('These options are used everytime the template is used.', 'wp-mailinglist'); ?></p>
+<p class="howto"><?php esc_html_e('These options are used every time the template is used.', 'wp-mailinglist'); ?></p>
 <table class="form-table">
 	<tbody>
 		<tr>
@@ -42,7 +42,7 @@
 	<tbody>
     	<tr>
     		<th><label for="Theme_imgprependurl"><?php esc_html_e('Image Prepend URL', 'wp-mailinglist'); ?></label>
-    		<?php echo ( $Html -> help(__('If your template has relative image paths in the source, this image prepend URL setting is very useful to automatically add an absolute URL to the source attribute of all images. Eg. <code>src="images/myimage.jpg"</code> and you fill in a prepend URL of <code>http://domain.com/</code>, it will become <code>src="http://domain.com/images/myimage.jpg"</code>', 'wp-mailinglist'))); ?></th>
+    		<?php echo ( $Html -> help(__('If your template has relative image paths in the source, this image prepend URL setting is very useful to automatically add an absolute URL to the source attribute of all images. E.g., <code>src="images/myimage.jpg"</code> and you fill in a prepend URL of <code>https://example.com/</code>, it will become <code>src="https://example.com/images/myimage.jpg"</code>', 'wp-mailinglist'))); ?></th>
     		<td>
             <input type="text" class="widefat" name="Theme[imgprependurl]" value="<?php echo  isset($Theme -> data -> imgprependurl) ? esc_attr(wp_unslash($Theme -> data -> imgprependurl)) : ''; ?>" id="Theme_imgprependurl" />
     			<span class="howto">

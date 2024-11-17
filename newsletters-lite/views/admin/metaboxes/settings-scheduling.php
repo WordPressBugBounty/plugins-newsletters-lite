@@ -96,14 +96,14 @@ $notifyqueuecomplete = $this -> get_option('notifyqueuecomplete');
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
-                <span class="howto"><?php esc_html_e('How often the queue runs to send emails out. Keep as low as possible, eg. Every 2 Minutes', 'wp-mailinglist'); ?></span>
+                <span class="howto"><?php esc_html_e('How often the queue runs to send emails out. Keep as low as possible, e.g., Every 2 Minutes', 'wp-mailinglist'); ?></span>
 			</td>
 		</tr>
 		<tr>
 			<th><label for="emailsperinterval"><?php esc_html_e('Emails Per Interval', 'wp-mailinglist'); ?></label></th>
 			<td>
 				<input onkeyup="totalemails_calculate();" class="widefat" style="width:45px;" type="text" value="<?php echo esc_attr(wp_unslash($emailsperinterval)); ?>" id="emailsperinterval" name="emailsperinterval" />
-				<span class="howto"><?php esc_html_e('The number of emails to send per schedule interval above, eg. 50.', 'wp-mailinglist'); ?>
+				<span class="howto"><?php esc_html_e('The number of emails to send per schedule interval above, e.g., 50.', 'wp-mailinglist'); ?>
 			</td>
 		</tr>
 		<tr>

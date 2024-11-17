@@ -129,11 +129,11 @@ if (!class_exists('DOMDocument')) {
             </td>
         </tr>
         <tr>
-        	<th><label for="shortlinks_Y"><?php esc_html_e('Bit.ly Shortlinks', 'wp-mailinglist'); ?></label></th>
+        	<th><label for="shortlinks_Y"><?php esc_html_e('Bitly Shortlinks', 'wp-mailinglist'); ?></label></th>
             <td>
             	<label><input <?php echo ($this -> get_option('shortlinks') == "Y") ? 'checked="checked"' : ''; ?> onclick="jQuery('#shortlinksdiv').show();" type="radio" name="shortlinks" value="Y" id="shortlinks_Y" /> <?php esc_html_e('Yes', 'wp-mailinglist'); ?></label>
                 <label><input <?php echo ($this -> get_option('shortlinks') == "N") ? 'checked="checked"' : ''; ?> onclick="jQuery('#shortlinksdiv').hide();" type="radio" name="shortlinks" value="N" id="shortlinks_N" /> <?php esc_html_e('No', 'wp-mailinglist'); ?></label>
-				<span class="howto"><?php esc_html_e('Turn On to replace all links with Bit.ly shortlinks for tracking purposes.', 'wp-mailinglist'); ?></span>
+				<span class="howto"><?php esc_html_e('Turn On to replace all links with Bitly shortlinks for tracking purposes.', 'wp-mailinglist'); ?></span>
             </td>
         </tr>
     </tbody>
@@ -141,7 +141,7 @@ if (!class_exists('DOMDocument')) {
 
 <?php $div_display = ($this -> get_option('shortlinks') == "Y") ? 'block' : 'none'; ?>
 <div class="newsletters_indented" id="shortlinksdiv" style="display:<?php echo esc_html( $div_display); ?>;">
-	<p><?php esc_html_e('You need a <a href="https://bit.ly" target="_blank">Bit.ly</a> account in order to use this feature. Get your username/login and API key <a href="https://bit.ly/a/your_api_key" target="_blank">here</a>.', 'wp-mailinglist'); ?></p>
+	<p><?php _e('You need a <a href="https://bitly.com/" target="_blank">Bitly</a> account in order to use this feature. Get your username/login and Access token (API key) from your <a href="https://app.bitly.com/settings/api" target="_blank">account</a>.', 'wp-mailinglist'); ?></p>
 
 	<table class="form-table">
 		<tbody>
@@ -149,14 +149,14 @@ if (!class_exists('DOMDocument')) {
 				<th><label for="<?php echo esc_html($this -> pre); ?>shorlinkLogin"><?php esc_html_e('Login', 'wp-mailinglist'); ?></label></th>
 				<td>
                 	<input class="widefat" type="text" id="<?php echo esc_html($this -> pre); ?>shortlinkLogin" name="shortlinkLogin" value="<?php echo esc_attr(wp_unslash($this -> get_option('shortlinkLogin'))); ?>" />
-                    <span class="howto"><?php esc_html_e('your registered Bit.ly username/login', 'wp-mailinglist'); ?></span>
+                    <span class="howto"><?php esc_html_e('Your registered Bitly username/login.', 'wp-mailinglist'); ?></span>
                 </td>
 			</tr>
 			<tr>
-				<th><label for="<?php echo esc_html($this -> pre); ?>shorlinkAPI"><?php esc_html_e('API Key', 'wp-mailinglist'); ?></label></th>
+				<th><label for="<?php echo esc_html($this -> pre); ?>shorlinkAPI"><?php esc_html_e('Access token (API key)', 'wp-mailinglist'); ?></label></th>
 				<td>
                 	<input class="widefat" type="text" id="<?php echo esc_html($this -> pre); ?>shortlinkAPI" name="shortlinkAPI" value="<?php echo esc_attr(wp_unslash($this -> get_option('shortlinkAPI'))); ?>" />
-                    <span class="howto"><?php esc_html_e('you can obtain your Bit.ly API key from your account settings', 'wp-mailinglist'); ?></span>
+                    <span class="howto"><?php esc_html_e('Obtain your Bitly Access token (API key) from your account settings.', 'wp-mailinglist'); ?></span>
                 </td>
 			</tr>
 		</tbody>
@@ -178,7 +178,7 @@ $embedimagesdir = $this -> get_option('embedimagesdir');
 				<label><input onclick="jQuery('#embedimagesdiv').show();" <?php if ($embedimagesdisabled == true) : ?>disabled="disabled"<?php endif; ?> <?php echo ($embedimagesdisabled == false && $embedimages == "Y") ? 'checked="checked"' : ''; ?> type="radio" name="embedimages" value="Y" id="embedimages_Y" /> <?php esc_html_e('Yes', 'wp-mailinglist'); ?></label>
 				<label><input onclick="jQuery('#embedimagesdiv').hide();" <?php if ($embedimagesdisabled == true) : ?>disabled="disabled"<?php endif; ?> <?php echo ($embedimagesdisabled == true || $embedimages == "N") ? 'checked="checked"' : ''; ?> type="radio" name="embedimages" value="N" id="embedimages_N" /> <?php esc_html_e('No', 'wp-mailinglist'); ?></label>
 				<?php if ($embedimagesdisabled == true) : ?>
-					<span class="newsletters_error howto"><?php esc_html_e('You do not have the Embedded Images extension installed or it is not active.', 'wp-mailinglist'); ?></span>
+					<span class="newsletters_error howto"><?php echo sprintf(__('You do not have the %s installed or it is not active.', 'wp-mailinglist'), '<a href="https://tribulant.com/extensions/view/6/embedded-images" target="_blank" >Embedded Images extension</a>'); ?></span>
 				<?php endif; ?>
 				<span class="howto"><?php esc_html_e('Embed/attach images into emails instead of loading them remotely from their absolute URL.', 'wp-mailinglist'); ?></span>
 			</td>

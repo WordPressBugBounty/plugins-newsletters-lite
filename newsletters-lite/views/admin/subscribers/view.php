@@ -76,7 +76,7 @@
 			<?php if (!empty($subscriber -> ip_address) && !empty($saveipaddress)) : ?>
 				<tr class="<?php echo $class = (empty($class)) ? 'alternate' : ''; ?>">
 					<th><?php esc_html_e('IP Address', 'wp-mailinglist'); ?></th>
-					<td><?php echo esc_html( $subscriber -> ip_address); ?> <span id="newsletters_subscriber_<?php echo esc_html( $subscriber -> id); ?>_country"><?php echo esc_html($Html -> flag_by_country($subscriber -> country)); ?></span>
+					<td><?php echo esc_html( $subscriber -> ip_address); ?> <span id="newsletters_subscriber_<?php echo esc_html( $subscriber -> id); ?>_country"><?php echo wp_kses_post($Html -> flag_by_country($subscriber -> country)); ?></span>
 					
 					<?php if (empty($subscriber -> country)) : ?>
 						<a href="" onclick="newsletters_get_country(this); return false;" data-subscriber-id="<?php echo esc_html( $subscriber -> id); ?>" id="newsletters_subscriber_<?php echo esc_html( $subscriber -> id); ?>_get_country"><i class="fa fa-question fa-fw"></i></a>

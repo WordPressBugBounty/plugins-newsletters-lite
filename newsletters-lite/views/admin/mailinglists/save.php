@@ -124,7 +124,7 @@ if (is_array($serial_validation_status)  && empty($errors) ) {
 								</ul>
 								<?php foreach ($languages as $language) : ?>
 									<div id="mailinglist-subredirect-tabs-<?php echo esc_html( $language); ?>">
-										<input placeholder="<?php echo esc_attr(wp_unslash(__('https://domain.com/custom/url/to/go/to/', 'wp-mailinglist'))); ?>" type="text" class="widefat" name="Mailinglist[subredirect][<?php echo esc_html( $language); ?>]" value="<?php echo esc_attr(wp_unslash($this -> language_use($language, $Mailinglist -> data -> subredirect))); ?>" id="Mailinglist_subredirect_<?php echo esc_html( $language); ?>" />
+										<input placeholder="<?php echo esc_attr(wp_unslash(__('https://example.com/custom/url/to/go/to/', 'wp-mailinglist'))); ?>" type="text" class="widefat" name="Mailinglist[subredirect][<?php echo esc_html( $language); ?>]" value="<?php echo esc_attr(wp_unslash($this -> language_use($language, $Mailinglist -> data -> subredirect))); ?>" id="Mailinglist_subredirect_<?php echo esc_html( $language); ?>" />
 									</div>
 								<?php endforeach; ?>
 							</div>
@@ -137,9 +137,9 @@ if (is_array($serial_validation_status)  && empty($errors) ) {
 							});
 							</script>
 						<?php else : ?>
-		                	<?php echo ( $Form -> text('Mailinglist[subredirect]', array('placeholder' => __('https://domain.com/custom/url/to/go/to/', 'wp-mailinglist')))); ?>
+		                	<?php echo ( $Form -> text('Mailinglist[subredirect]', array('placeholder' => __('https://example.com/custom/url/to/go/to/', 'wp-mailinglist')))); ?>
 		                <?php endif; ?>
-		                <span class="howto"><small><?php esc_html_e('(optional)', 'wp-mailinglist'); ?></small> <?php esc_html_e('Leave empty for default, global behaviour. Else fill in a subscribe redirect URL for this list', 'wp-mailinglist'); ?></span>
+		                <span class="howto"><small><?php esc_html_e('(optional)', 'wp-mailinglist'); ?></small> <?php esc_html_e('Leave empty for default, global behaviour. Else fill in a subscribe redirect URL for this list.', 'wp-mailinglist'); ?></span>
 	                </td>
                 </tr>
                 <tr>
@@ -154,7 +154,7 @@ if (is_array($serial_validation_status)  && empty($errors) ) {
 								</ul>
 								<?php foreach ($languages as $language) : ?>
 									<div id="mailinglist-redirect-tabs-<?php echo esc_html( $language); ?>">
-										<input placeholder="<?php echo esc_attr(wp_unslash(__('https://domain.com/custom/url/to/go/to/', 'wp-mailinglist'))); ?>" type="text" class="widefat" name="Mailinglist[redirect][<?php echo esc_html( $language); ?>]" value="<?php echo esc_attr(wp_unslash($this -> language_use($language, $Mailinglist -> data -> redirect))); ?>" id="Mailinglist_redirect_<?php echo esc_html( $language); ?>" />
+										<input placeholder="<?php echo esc_attr(wp_unslash(__('https://example.com/custom/url/to/go/to/', 'wp-mailinglist'))); ?>" type="text" class="widefat" name="Mailinglist[redirect][<?php echo esc_html( $language); ?>]" value="<?php echo esc_attr(wp_unslash($this -> language_use($language, $Mailinglist -> data -> redirect))); ?>" id="Mailinglist_redirect_<?php echo esc_html( $language); ?>" />
 									</div>
 								<?php endforeach; ?>
 							</div>
@@ -167,7 +167,7 @@ if (is_array($serial_validation_status)  && empty($errors) ) {
 							});
 							</script>
 						<?php else : ?>
-                			<?php echo ( $Form -> text('Mailinglist[redirect]', array('placeholder' => __('https://domain.com/custom/url/to/go/to/', 'wp-mailinglist')))); ?>
+                			<?php echo ( $Form -> text('Mailinglist[redirect]', array('placeholder' => __('https://example.com/custom/url/to/go/to/', 'wp-mailinglist')))); ?>
                 		<?php endif; ?>
                 		<span class="howto"><small><?php esc_html_e('(optional)', 'wp-mailinglist'); ?></small> <?php esc_html_e('Leave empty for default, global behaviour, else fill in a confirmation redirect URL location for this list.', 'wp-mailinglist'); ?></span>
                 	</td>

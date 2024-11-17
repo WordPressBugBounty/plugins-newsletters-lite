@@ -33,7 +33,7 @@ $captcha_type = $this -> get_option('captcha_type');
 					<?php endif; ?>
 				</span>
 				
-				<span class="howto"><?php esc_html_e('Choose the type of CAPTCHA you want to use as a security image on subscribe forms or turn off by choosing "None"', 'wp-mailinglist'); ?></span>
+				<span class="howto"><?php _e('Choose the type of CAPTCHA you want to use to secure your subscribe forms or turn it off by choosing "None".', 'wp-mailinglist'); ?> <a class="" target="_blank" href="https://tribulant.com/docs/wordpress-mailing-list-plugin/8592/" class=""><?php _e('Documentation', 'wp-mailinglist'); ?></a></span>
 			</td>
 		</tr>
 	</tbody>
@@ -87,7 +87,7 @@ $recaptcha_customcss = $this -> get_option('recaptcha_customcss');
 			<tr>
 				<th></th>
 				<td>
-					<p><?php echo sprintf(__('In order to use reCAPTCHA, the public and private keys below are required.<br/>Go to the reCAPTCHA sign up and %screate a set of keys%s for this domain.', 'wp-mailinglist'), '<a href="https://www.google.com/recaptcha/admin/create" target="_blank">', '</a>'); ?></p>
+					<p><?php echo sprintf(__('In order to use reCAPTCHA, the public and private keys below are required.<br/>Go to the %sreCAPTCHA sign up%s and %screate a set of keys%s for this domain.', 'wp-mailinglist'),'<a href="https://www.google.com/recaptcha/" target="_blank">', '</a>',  '<a href="https://www.google.com/recaptcha/admin/create" target="_blank">', '</a>'); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -116,7 +116,7 @@ $recaptcha_customcss = $this -> get_option('recaptcha_customcss');
 				<th><label for="recaptcha_language"><?php esc_html_e('Language', 'wp-mailinglist'); ?></label></th>
 				<td>
 					<input type="text" class="widefat" style="width:65px;" name="recaptcha_language" value="<?php echo esc_attr(wp_unslash($recaptcha_language)); ?>" id="recaptcha_language" />
-					<span class="howto"><?php echo sprintf(__('Language in which to display the CAPTCHA. See the %s', 'wp-mailinglist'), '<a href="https://developers.google.com/recaptcha/docs/language" target="_blank">' . __('language codes', 'wp-mailinglist') . '</a>'); ?></span>
+					<span class="howto"><?php echo sprintf(__('Language in which to display the CAPTCHA. See the %s.', 'wp-mailinglist'), '<a href="https://developers.google.com/recaptcha/docs/language" target="_blank">' . __('language codes', 'wp-mailinglist') . '</a>'); ?></span>
 				</td>
 			</tr>
 			<tr class="advanced-setting">

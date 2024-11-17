@@ -13,7 +13,7 @@
                         <?php endforeach; ?>
                     </select>
                     <span id="change_themefolder_loading" style="display:none;"><i class="fa fa-spin fa-fw fa-refresh"></i></span>
-                    <span class="howto"><?php echo sprintf(__('Select the folder inside "%s" from which to render template files. E.g.: "default"', 'wp-mailinglist'), $this -> plugin_name . '/views/'); ?></span>
+                    <span class="howto"><?php echo sprintf(__('Select the folder inside "%s" from which to render template files.', 'wp-mailinglist'), $this -> plugin_name . '/views/'); ?></span>
                 <?php else : ?>
                 	<p class="newsletters_error"><?php esc_html_e('No theme folders could be found inside the "' . $this -> plugin_name . '/views/" folder.', 'wp-mailinglist'); ?>
                 <?php endif; ?>

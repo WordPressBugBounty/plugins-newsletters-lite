@@ -676,7 +676,7 @@ if(class_exists('newsletterscontrol'))
 										?>
 										<?php if (!empty($screen_custom) && in_array('country', $screen_custom)) : ?>
 											<td>
-												<span id="newsletters_subscriber_<?php echo esc_html( $subscriber -> id); ?>_country"><?php echo esc_html($Html -> flag_by_country($subscriber -> country)); ?></span>
+												<span id="newsletters_subscriber_<?php echo esc_html( $subscriber -> id); ?>_country"><?php echo wp_kses_post($Html -> flag_by_country($subscriber -> country)); ?></span>
 														
 												<?php if (empty($subscriber -> country)) : ?>
 													<a href="" onclick="newsletters_get_country(this); return false;" data-subscriber-id="<?php echo esc_html( $subscriber -> id); ?>" id="newsletters_subscriber_<?php echo esc_html( $subscriber -> id); ?>_get_country"><i class="fa fa-question fa-fw"></i></a>

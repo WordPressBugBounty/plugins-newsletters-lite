@@ -198,7 +198,7 @@ if (!class_exists('wpmlField')) {
                         $this -> model =>	array(
                             'title' 		=> 	__('Email Address', 'wp-mailinglist'),
                             'slug'			=> 	"email",
-                            'watermark'		=>	"email@domain.com",
+                            'watermark'		=>	"email@example.com",
                             'type'			=>	"text",
                             'required'		=>	"Y",
                             'errormessage'	=>	__('Please fill in your email address', 'wp-mailinglist'),

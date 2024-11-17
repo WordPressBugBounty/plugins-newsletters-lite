@@ -574,7 +574,10 @@ if(!empty($form-> buttontext)) {
 				<?php foreach ($form -> form_fields as $field) : ?>
 					<?php $this -> render_field($field -> field_id, true, $form -> id, false, false, false, false, $errors, $form -> id, $field); ?>
 				<?php endforeach; ?>
-				
+                <?php
+                if (!class_exists('FLBuilderModel') || (class_exists('FLBuilderModel') && !FLBuilderModel::is_builder_enabled())) {
+
+                    ?>
 				<?php if (!empty($form -> captcha)) : ?>
 					<?php if ($captcha_type = $this -> use_captcha()) : ?>		
 						<?php if ($captcha_type == "rsc") : ?>
@@ -615,7 +618,7 @@ if(!empty($form-> buttontext)) {
 						<?php endif; ?>
 				    <?php endif; ?>
 				<?php endif; ?>
-				
+				<?php } ?>
 				<div class="newslettername-wrapper" style="display:none;">
 			    	<input type="text" name="newslettername" value="" id="newsletters-<?php echo esc_html($form -> id); ?>newslettername" class="newslettername" />
 			    </div>

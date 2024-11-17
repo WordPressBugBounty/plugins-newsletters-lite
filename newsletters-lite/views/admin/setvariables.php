@@ -1,5 +1,5 @@
 <?php // phpcs:ignoreFile ?>
-<p><?php $moreInfoLink = sprintf('<a target="_blank" href="%s">%s</a>', esc_url('https://tribulant.com/docs/wordpress-mailing-list-plugin/95/'), esc_html__('View all shortcodes', 'wp-mailinglist')); echo wp_kses_post(sprintf(__('Each of these shortcodes below can be used inside the content of a newsletter to be replaced with an appropriate value automatically. %s.', 'wp-mailinglist'), $moreInfoLink)); ?></p>
+<p><?php $moreInfoLink = sprintf('<a target="_blank" href="%s">%s</a>', esc_url('https://tribulant.com/docs/wordpress-mailing-list-plugin/95/'), esc_html__('View all shortcodes', 'wp-mailinglist')); echo wp_kses_post(sprintf(__('View shortcodes. Each of these shortcodes below can be used inside the content of a newsletter to be replaced with an appropriate value automatically. %s.', 'wp-mailinglist'), $moreInfoLink)); ?></p>
 
 <div class="scroll-list" style="max-height: 400px;">
     <table class="form-table">
@@ -154,7 +154,7 @@
                     <?php if (empty($noinsert) || $noinsert == false) : ?><br/><small><a href="javascript:wpml_tinymcetag('[newsletters_subscriberscount]');"><?php esc_html_e('Insert into Editor', 'wp-mailinglist'); ?></a></small><?php endif; ?>
                 </td>
                 <td><?php esc_html_e('Display the total number of subscribers in the database.', 'wp-mailinglist'); ?>
-                <?php esc_html_e('Optional, <code>list</code> parameter to specify the mailing list ID', 'wp-mailinglist'); ?></td>
+                <?php _e('Optional, <code>list</code> parameter to specify the mailing list ID', 'wp-mailinglist'); ?></td>
             </tr>
             <?php $Db -> model = $Field -> model; ?>
             <?php $fields = $Db -> find_all(false, array('id', 'title', 'slug'), array('title', "ASC")); ?>

@@ -21,7 +21,7 @@ $postswpautop = $this -> get_option('postswpautop');
 			<th><label for="excerpt_settings"><?php esc_html_e('Custom Excerpt Settings', 'wp-mailinglist'); ?></label>
 			<?php echo ( $Html -> help(__('By turning this on, you can specify your own excerpt length and more text. If you leave it off, the default excerpt length and more text defined by the system, a template or the plugin will be used.', 'wp-mailinglist'))); ?></th>
 			<td>
-				<label><input onclick="if (jQuery(this).is(':checked')) { jQuery('#excerpt_settings_div').show(); } else { jQuery('#excerpt_settings_div').hide(); }" <?php echo (!empty($excerpt_settings)) ? 'checked="checked"' : ''; ?> type="checkbox" name="excerpt_settings" value="1" id="excerpt_settings" /> <?php esc_html_e('Yes, use custom excerpt length and more text', 'wp-mailinglist'); ?></label>
+				<label><input onclick="if (jQuery(this).is(':checked')) { jQuery('#excerpt_settings_div').show(); } else { jQuery('#excerpt_settings_div').hide(); }" <?php echo (!empty($excerpt_settings)) ? 'checked="checked"' : ''; ?> type="checkbox" name="excerpt_settings" value="1" id="excerpt_settings" /> <?php esc_html_e('Yes, use custom excerpt length and more text.', 'wp-mailinglist'); ?></label>
 			</td>
 		</tr>
 	</tbody>
@@ -86,7 +86,7 @@ $postswpautop = $this -> get_option('postswpautop');
 	</table>
 </div>
 
-<p class="howto"><?php esc_html_e('When writing a WordPress post, you will see a panel named "Send to Mailing List" which allows you to send a post as a newsletter', 'wp-mailinglist'); ?></p>
+<p class="howto"><?php esc_html_e('When writing a WordPress post, you will see a panel named "Send as Newsletter" which allows you to send a post as a newsletter.', 'wp-mailinglist'); ?></p>
 
 <table class="form-table">
 	<tbody>
@@ -96,14 +96,14 @@ $postswpautop = $this -> get_option('postswpautop');
 				<label><input <?php echo ($this -> get_option('sendonpublishef') == "fp") ? 'checked="checked"' : ''; ?> type="radio" name="sendonpublishef" value="fp" /> <?php esc_html_e('Full Post', 'wp-mailinglist'); ?></label>
 				<label><input <?php echo ($this -> get_option('sendonpublishef') == "ep") ? 'checked="checked"' : '';; ?> type="radio" name="sendonpublishef" value="ep" /> <?php esc_html_e('Excerpt of Post', 'wp-mailinglist'); ?></label>
                 
-                <span class="howto"><?php esc_html_e('Excerpt will be the content before <code>&#60;!--more--&#62;</code>. if it is not available, an excerpt will be automatically generated.', 'wp-mailinglist'); ?></span>
+                <span class="howto"><?php _e('Excerpt will be the content before <code>&#60;!--more--&#62;</code>. If it is not available, an excerpt will be automatically generated.', 'wp-mailinglist'); ?></span>
 			</td>
 		</tr>
 		<tr>
 			<th><label for="postswpautop"><?php esc_html_e('Apply Paragraphs to Posts', 'wp-mailinglist'); ?></label></th>
 			<td>
 				<label><input <?php echo (!empty($postswpautop)) ? 'checked="checked"' : ''; ?> type="checkbox" name="postswpautop" value="1" id="postswpautop" /> <?php esc_html_e('Yes, apply paragraphs to posts.', 'wp-mailinglist'); ?></label>
-				<span class="howto"><?php esc_html_e('Turning this on will apply wpautop() to [newsletters_post_excerpt] and [newsletters_post_content] shortcodes output.', 'wp-mailinglist'); ?></span>
+				<span class="howto"><?php esc_html_e('Turning this on will apply <code>wpautop()</code> to <code>[newsletters_post_excerpt]</code> and <code>[newsletters_post_content]</code> shortcodes output.', 'wp-mailinglist'); ?></span>
 			</td>
 		</tr>
 	</tbody>

@@ -54,7 +54,7 @@ $bouncepop_prot = $this -> get_option('bouncepop_prot');
 			<th><label for="bounceemail"><?php esc_html_e('Bounce Receival Email', 'wp-mailinglist'); ?></label></th>
 			<td>
 				<input class="widefat" type="text" size="25" id="bounceemail" name="bounceemail" value="<?php echo esc_attr(wp_unslash($this -> get_option('bounceemail'))); ?>" />
-				<span class="howto"><?php _e('Email address to receive bounce notifications on. The Return-Path header on all emails is set to this value. <br/> See our important note in our documentation about why you should enter a unique email used only for bounce emails: <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/382/bounce-management/">https://tribulant.com/docs/wordpress-mailing-list-plugin/382/bounce-management/</a> ', 'wp-mailinglist'); ?></span>
+				<span class="howto"><?php _e('Email address to receive bounce notifications. The Return-Path header on all emails is set to this value. <br/> See our important note in our documentation about why you should enter a unique email used only for bounce emails: <a target="_blank" href="https://tribulant.com/docs/wordpress-mailing-list-plugin/382/bounce-management/">View documentation</a>', 'wp-mailinglist'); ?></span>
 			</td>
 		</tr>
         <tr>

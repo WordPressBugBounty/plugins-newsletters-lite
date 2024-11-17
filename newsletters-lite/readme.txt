@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.6.2
-Stable tag: 4.9.9.5
+Tested up to: 6.7
+Stable tag: 4.9.9.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -131,12 +131,12 @@ Thank you for these wonderful people who contributed in translating the plugin:
 = API Example =
 
 <?php
-$url = 'http://domain.com/wp-admin/admin-ajax.php?action=newsletters_api';
+$url = 'https://example.com/wp-admin/admin-ajax.php?action=newsletters_api';
 $data = array(
     'api_method'        =>   'subscriber_add',
     'api_key'           =>   '37C1D6053E817212348E507D29CCCE49',
     'api_data'          =>   array(
-        'email'             => "email@domain.com",
+        'email'             => "email@example.com",
         'list_id'           =>   array(1,2,3),
     )
 );
@@ -223,6 +223,16 @@ Installing the WordPress Newsletter plugin is simple. Follow these steps:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.9.9.6 =
+* IMPROVE: Set Variable texts in the create newsletter page editor.
+* IMPROVE: Add the API call example in the API section as found in the PRO version.
+* IMPROVE: Links in the admin area to provide more information and link updates.
+* IMPROVE: Text updates.
+* FIX: Some code not being rendered and RSS feed not displaying URL in Configuration due to escaping.
+* FIX: Bitly new API integration, link, and text updates.
+* FIX: reCAPTCHA was not working for some websites due to our previous update.
+* FIX: RSS feed display. 
 
 = 4.9.9.5 =
 * IMPROVE: Changed the number of clicks to number of unique clicks everywhere.

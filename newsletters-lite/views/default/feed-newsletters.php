@@ -9,11 +9,11 @@
 		<?php if (!empty($emails)) : ?>
 			<?php foreach ($emails as $email) : ?>
 				<item>
-					<title><?php echo esc_attr(wp_unslash($email -> subject)); ?></title>
-					<link><?php echo esc_url_raw($Html -> retainquery('newsletters_method=newsletter&id=' . $email -> id . '&fromfeed=1', home_url())); ?></link>
-					<guid><?php echo esc_url_raw($Html -> retainquery('newsletters_method=newsletter&id=' . $email -> id . '&fromfeed=1', home_url())); ?></guid>
-					<pubDate><?php echo esc_html($Html -> gen_date("r", strtotime($email -> modified))); ?></pubDate>
-					<description><![CDATA[ <?php echo esc_attr(strip_tags(apply_filters('the_content', $this -> strip_set_variables($email -> message)))); ?> ]]></description>
+					<title><![CDATA[<?php echo esc_attr(wp_unslash($email -> subject)); ?>]]></title>
+					<link><![CDATA[<?php echo esc_url_raw($Html -> retainquery('newsletters_method=newsletter&id=' . $email -> id . '&fromfeed=1', home_url())); ?>]]></link>
+					<guid><![CDATA[<?php echo esc_url_raw($Html -> retainquery('newsletters_method=newsletter&id=' . $email -> id . '&fromfeed=1', home_url())); ?>]]></guid>
+					<pubDate><![CDATA[<?php echo esc_html($Html -> gen_date("r", strtotime($email -> modified))); ?>]]></pubDate>
+					<description><![CDATA[<?php echo esc_attr(strip_tags(apply_filters('the_content', $this -> strip_set_variables($email -> message)))); ?>]]></description>
 				</item>
 			<?php endforeach; ?>
 		<?php endif; ?>

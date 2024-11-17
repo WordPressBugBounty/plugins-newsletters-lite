@@ -38,7 +38,7 @@ $disable_drag_and_drop_builder = $this -> get_option('disable_drag_drop_builder'
     <tbody>
     <tr>
         <th><label for="<?php echo esc_html($this -> pre); ?>adminemail"><?php esc_html_e('Administrator Email', 'wp-mailinglist'); ?></label>
-            <?php echo ( $Html -> help(__('This email address is used for general notification purposes throughout the plugin. You may use multiple, comma separated email addresses for multiple administrators. E.g.: email1@domain.com,email2@domain.com,email3@domain.com,etc.', 'wp-mailinglist'))); ?></th>
+            <?php echo ( $Html -> help(__('This email address is used for general notification purposes throughout the plugin. You may use multiple, comma separated email addresses for multiple administrators. E.g.: email1@example.com,email2@example.com,email3@example.com,etc.', 'wp-mailinglist'))); ?></th>
         <td>
             <input type="text" class="widefat" id="<?php echo esc_html($this -> pre); ?>adminemail" name="adminemail" value="<?php echo esc_attr(wp_unslash($this -> get_option('adminemail'))); ?>" />
             <span class="howto"><?php esc_html_e('Email address of the administrator for notification purposes.', 'wp-mailinglist'); ?></span>

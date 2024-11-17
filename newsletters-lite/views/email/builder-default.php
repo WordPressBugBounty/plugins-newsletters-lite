@@ -312,7 +312,7 @@ ul.sidebar li a h1,ul.sidebar li a h2,ul.sidebar li a h3,ul.sidebar li a h4,ul.s
 												<h5>Contact Info:</h5>
 
 												<p>Phone: <strong>123.456.0600</strong><br />
-												Email: <strong><a href="emailto:email@domain.com">email@domain.com</a></strong></p>
+												Email: <strong><a href="emailto:email@example.com">email@example.com</a></strong></p>
 												</td>
 											</tr>
 										</tbody>

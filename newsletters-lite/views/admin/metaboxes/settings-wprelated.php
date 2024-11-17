@@ -89,7 +89,7 @@ $timezone_set = $this -> get_option('timezone_set');
 				<label><input <?php echo ($this -> get_option('rssfeed') == "Y") ? 'checked="checked"' : ''; ?> type="radio" name="rssfeed" value="Y" id="rssfeedY" /> <?php esc_html_e('On', 'wp-mailinglist'); ?></label>
 				<label><input <?php echo ($this -> get_option('rssfeed') == "N") ? 'checked="checked"' : ''; ?> type="radio" name="rssfeed" value="N" id="rssfeedN" /> <?php esc_html_e('Off', 'wp-mailinglist'); ?></label>
 				<?php $rssurl = add_query_arg(array('feed' => "newsletters"), home_url()); ?>
-				<span class="howto"><?php echo sprintf(__('Turn On to show an RSS feed of newsletters at %s', 'wp-mailinglist'), esc_url_raw( $Html -> link($rssurl, $rssurl, array('style' => "font-weight:bold;")))); ?></span>
+				<span class="howto"><?php echo sprintf(__('Turn On to show an RSS feed of newsletters at %s', 'wp-mailinglist'),  wp_kses_post($Html -> link($rssurl, $rssurl, array('style' => "font-weight:bold;")))); ?></span>
 			</td>
 		</tr>
 		<tr class="advanced-setting">

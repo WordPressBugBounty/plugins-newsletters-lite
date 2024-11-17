@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.9.9.5';
+		var $version = '4.9.9.6';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -12048,7 +12048,7 @@ function qp_scheduling() {
 			$options['multimime'] = "N"; //should multi mime (text/html) emails be sent?
 			$options['videoembed'] = true;
 			$options['mailtype'] = 'mail';
-			$options['smtphost'] = 'mail.domain.com';
+			$options['smtphost'] = 'mail.example.com';
 			$options['smtpport'] = 25;
 			$options['smtpsecure'] = "N";
 			$options['smtpauth'] = 'N';
@@ -12059,7 +12059,7 @@ function qp_scheduling() {
 			$options['smtpreply'] = get_option('admin_email');
 			$options['smtpfromname'] = get_option('blogname');
 			$options['dkim'] = "N";
-			$options['dkim_domain'] = "domain.com";
+			$options['dkim_domain'] = "example.com";
 			$options['dkim_selector'] = "newsletters";
 			$options['tracking'] = "Y";
 			$options['tracking_image'] = "invisible";
@@ -12115,7 +12115,7 @@ function qp_scheduling() {
 	        $options['bouncepop_interval'] = "3600";
 	        $options['bouncepop_type'] = "imap";
 	        $options['bouncepop_host'] = "localhost";
-	        $options['bouncepop_user'] = "bounce@domain.com";
+	        $options['bouncepop_user'] = "bounce@example.com";
 	        $options['bouncepop_pass'] = "mailboxpassword";
 	        $options['bouncepop_port'] = "110";
 	        $options['bouncepop_prot'] = "normal";
@@ -13191,32 +13191,64 @@ function qp_scheduling() {
 			return $theme_id;
 		}
 
-		function make_bitly_url($url = null, $format = 'txt') {
-			//if (!preg_match("/(manage\-subscriptions|loginauth|wpml|wpmlmethod|jpg|png|gif|jpeg|bmp|wpmltrack|wpmllink)/si", $url)) {
-			$management_post_id = $this -> get_managementpost();
-			$management_post = get_post($management_post_id);
-				
-			if (!preg_match("/(" . $management_post -> post_name . "|newsletters_method)/si", $url)) {
-				if (preg_match("/^http\:\/\//si", $url) || preg_match("/^https\:\/\//si", $url)) {
-					$login = $this -> get_option('shortlinkLogin');
-					$appkey = $this -> get_option('shortlinkAPI');
-					$bitly = 'https://api.bit.ly/v3/shorten?longUrl=' . urlencode($url) . '&login=' . $login . '&apiKey=' . $appkey . '&format=' . $format;
-					$bitly = apply_filters('newsletters_bitly_url', $bitly);
+		
+	    function make_bitly_url($url = null) {
+		    // Check if wp_remote_post function exists
+		    if (function_exists('wp_remote_post')) {
+			    // Exclude certain URLs
+			    $management_post_id = $this->get_managementpost();
+			    $management_post = get_post($management_post_id);
 
-					$result = wp_remote_get($bitly, array('timeout' => 120));
-					if (!is_wp_error($result)) {
-						$body = trim($result['body']);
+			    if (!preg_match("/(" . $management_post->post_name . "|newsletters_method)/si", $url)) {
+				    if (preg_match("/^http(s)?:\/\//si", $url)) {
+					    // Get the access token
+					    $access_token = $this->get_option('shortlinkAPI'); // Assuming the access token is stored here
 
-						if (filter_var($body, FILTER_VALIDATE_URL) !== FALSE) {
-							$bitlink = $body;
-							return $bitlink;
-						}
-					}
-				}
-			}
+					    $endpoint = 'https://api-ssl.bitly.com/v4/shorten';
 
-			return $url;
-		}
+					    // Build the request headers
+					    $headers = array(
+						    'Authorization' => 'Bearer ' . $access_token,
+						    'Content-Type'  => 'application/json',
+					    );
+
+					    // Build the request body
+					    $body = array(
+						    'long_url' => $url,
+						    'domain'   => 'bit.ly', // Optional, can be omitted if default domain is acceptable
+					    );
+
+					    // Build the request arguments
+					    $args = array(
+						    'headers' => $headers,
+						    'body'    => json_encode($body),
+						    'timeout' => 120,
+					    );
+
+					    // Allow filtering of the request arguments
+					    $args = apply_filters('newsletters_bitly_args', $args);
+
+					    // Send the request
+					    $response = wp_remote_post($endpoint, $args);
+
+					    if (!is_wp_error($response)) {
+						    $response_code = wp_remote_retrieve_response_code($response);
+						    $response_body = wp_remote_retrieve_body($response);
+
+						    if ($response_code == 200) {
+							    $data = json_decode($response_body, true);
+							    if (isset($data['link']) && filter_var($data['link'], FILTER_VALIDATE_URL)) {
+								    $bitlink = $data['link'];
+								    return $bitlink;
+							    }
+						    }
+					    }
+				    }
+			    }
+		    }
+
+		    return $url;
+	    }
 
 		function hashlink($link = null, $history_id = null, $subscriber_id = null, $user_id = null) {
 			global $Html, $wpmlLink;
@@ -13821,7 +13853,7 @@ function qp_scheduling() {
 
             if (is_array($serial_validation_status) || !$serial_validation_status) {
                 if(isset($link) && $link) {
-                    $badge_text = '<a href="' . admin_url('admin.php?page=' . $this -> sections -> lite_upgrade) . '" >';
+                    $badge_text = '<a target="_blank" href="' . admin_url('admin.php?page=' . $this -> sections -> lite_upgrade) . '" >';
                 }
 
                 $badge_text .= __('(PRO only)', 'wp-mailinglist');

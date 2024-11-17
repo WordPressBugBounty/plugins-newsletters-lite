@@ -50,7 +50,7 @@ if (!isset($post))
                         <?php if ($isSerialKeyValid) { ?>
                             <label <?php echo ($Html -> field_value('Theme[type]') == "builder" || $Html -> field_value('Theme[type]') == "") ? 'class="active"' : ''; ?>><input <?php echo ($Html -> field_value('Theme[type]') == "builder" || $Html -> field_value('Theme[type]') == "") ? 'checked="checked"' : ''; ?> onclick="newsletters_theme_change_type(this.value);" type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & drop builder (Beta)', 'wp-mailinglist'); ?></label>
                         <?php } else { ?>
-                            <label><input  type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & drop builder (Beta)', 'wp-mailinglist'); ?> <a href="<?php echo admin_url('admin.php?page=' . $this -> sections -> lite_upgrade); ?>"  ><?php echo __('(PRO only)', 'wp-mailinglist'); ?></a></label>
+                            <label><input  type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & drop builder (Beta)', 'wp-mailinglist'); ?> <a target="_blank" href="<?php echo admin_url('admin.php?page=' . $this -> sections -> lite_upgrade); ?>"  ><?php echo __('(PRO only)', 'wp-mailinglist'); ?></a></label>
                         <?php } ?>
                     </p>
                     

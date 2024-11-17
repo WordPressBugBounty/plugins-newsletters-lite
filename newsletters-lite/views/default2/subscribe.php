@@ -593,8 +593,8 @@ if(!isset($errors)) {$errors = array();}
 				<?php endforeach; ?>
 				
                 <?php
-                if (class_exists('FLBuilderModel')) {
-                    if ( !FLBuilderModel::is_builder_enabled() ) {
+                if (!class_exists('FLBuilderModel') || (class_exists('FLBuilderModel') && !FLBuilderModel::is_builder_enabled())) {
+
                     ?>
                         <?php if (!empty($form -> captcha)) : ?>
                             <?php if ($captcha_type = $this -> use_captcha()) : ?>		
@@ -642,7 +642,7 @@ if(!isset($errors)) {$errors = array();}
                                 <?php endif; ?>
                             <?php endif; ?>
                         <?php endif; ?>
-                <?php }
+                <?php 
                 }?>
 				<div class="newslettername-wrapper" style="display:none;">
 			    	<input type="text" name="newslettername" value="" id="newsletters-<?php echo esc_html($form -> id); ?>newslettername" class="newslettername" />

@@ -80,7 +80,32 @@ $api_hosts = $this -> get_option('api_hosts');
 	<p><?php esc_html_e('Below is an example of making a JSON API call', 'wp-mailinglist'); ?></p>
 	
 <div id="apicall">
-    Please, check README file for more ingormation.
+
+&lt;?php
+$url = 'https://example.com/wp-admin/admin-ajax.php?action=newsletters_api';
+$data = array(
+    'api_method'        =>   'subscriber_add', 
+    'api_key'           =>   '37C1D6053E817212348E507D29CCCE49',
+    'api_data'          =>   array(
+        'email'             => "email@example.com",
+        'list_id'           =>   array(1,2,3),
+    )
+);                                                   
+ 
+$data_string = json_encode($data);                                                                                 
+  
+$ch = curl_init($url);                                                                      
+curl_setopt($ch, CURLOPT_POST, true);                                                                 
+curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);                                                                  
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);                                                                      
+curl_setopt($ch, CURLOPT_HTTPHEADER, array(                                                                          
+    'Content-Type: application/json',                                                                                
+    'Content-Length: ' . strlen($data_string))                                                                       
+);
+  
+$result = json_decode(curl_exec($ch));
+curl_close($ch);
+?&gt;
 </div>
 
 	<h2><?php esc_html_e('API Methods', 'wp-mailinglist'); ?></h2>
@@ -95,7 +120,7 @@ $data = array(
     'api_method'        =>   'subscriber_add', 
     'api_key'           =>   '37C1D6053E817258848E507D29CCCE49',
     'api_data'          =>   array(
-        'email'             => "email@domain.com",
+        'email'             => "email@example.com",
         'list_id'           =>   array(1,2,3),
     )
 ); 
@@ -148,7 +173,7 @@ $data = array(
     'api_method'        =>   'send_email', 
     'api_key'           =>   '37C1D6053E817258848E507D29CCCE49',
     'api_data'          =>   array(
-        'email'             	=> 	"antonie@tribulant.com",
+        'email'             	=> 	"example@example.com",
         'subject'               =>	"Test Email",
         'message'				=>	'Test Message',
     )

@@ -77,7 +77,7 @@
                 <td>
                 	<label><input <?php echo ($this -> get_option('commentformautocheck') == "Y") ? 'checked="checked"' : ''; ?> type="radio" name="commentformautocheck" value="Y" id="commentformautocheck_Y" /> <?php esc_html_e('Yes', 'wp-mailinglist'); ?></label>
                     <label><input <?php echo ($this -> get_option('commentformautocheck') == "N") ? 'checked="checked"' : ''; ?> type="radio" name="commentformautocheck" value="N" id="commentformautocheck_N" /> <?php esc_html_e('No', 'wp-mailinglist'); ?></label>
-                    <span class="howto"><?php esc_html_e('automatically check the checkbox on the comment form.', 'wp-mailinglist'); ?></span>
+                    <span class="howto"><?php esc_html_e('Automatically check the checkbox on the comment form.', 'wp-mailinglist'); ?></span>
                 </td>
             </tr>
         </tbody>

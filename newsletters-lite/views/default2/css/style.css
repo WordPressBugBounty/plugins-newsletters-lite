@@ -145,3 +145,8 @@ input.newslettername {
 }
 
 .newsletters .unsubscribe-x-button-modal {transition: 0.3s all;}
+
+
+.form-group.newsletters-fieldholder.newsletters-fieldholder-hidden.hidden {
+    display: none;
+}

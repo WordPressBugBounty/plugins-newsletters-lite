@@ -70,7 +70,7 @@ if (!empty($newsletters_lite_subscriberlimit) && $newsletters_lite_subscriberlim
 							<div class="scroll-list" id="newsletters-mailinglists-checkboxes">
 								<?php foreach ($mailinglists as $list_id => $list_title) : ?>
 									<?php $mailinglist = $Mailinglist -> get($list_id); ?>
-									<label><input onclick="jQuery('#mailinglist_<?php echo esc_html( $list_id); ?>_expiration').toggle();" <?php echo (!empty($Subscriber -> data -> mailinglists) && in_array($list_id, $Subscriber -> data -> mailinglists)) ? 'checked="checked"' : ''; ?> type="checkbox" class="Mailinglist_checklist" name="Subscriber[mailinglists][]" value="<?php echo esc_html( $list_id); ?>" id="Subscriber_mailinglists_<?php echo esc_html( $list_id); ?>" /> <?php echo esc_html($list_title); ?> (<?php echo esc_html( $SubscribersList -> count(array('list_id' => $list_id))); ?> <?php esc_html_e('subscribers', 'wp-mailinglist'); ?>)</label><br/>
+									<label><input onclick="jQuery('#mailinglist_<?php echo esc_html( $list_id); ?>_expiration').toggle();" <?php echo (!empty($Subscriber -> data -> mailinglists) && in_array($list_id, $Subscriber -> data -> mailinglists)) ? 'checked="checked"' : ''; ?> type="checkbox" class="Mailinglist_checklist" name="Subscriber[mailinglists][]" value="<?php echo esc_html( $list_id); ?>" id="Subscriber_mailinglists_<?php echo esc_html( $list_id); ?>" /> <?php echo esc_html($this->language_useordefault($list_title)); ?> (<?php echo esc_html( $SubscribersList -> count(array('list_id' => $list_id))); ?> <?php esc_html_e('subscribers', 'wp-mailinglist'); ?>)</label><br/>
 									<?php if (!empty($mailinglist -> paid) && $mailinglist -> paid == "Y") : ?>
 										<div id="mailinglist_<?php echo esc_html( $list_id); ?>_expiration" style="display:<?php echo (!empty($Subscriber -> data -> mailinglists) && in_array($list_id, $Subscriber -> data -> mailinglists)) ? 'block' : 'none'; ?>;">
 											<?php esc_html_e('Expires: ', 'wp-mailinglist'); ?>
@@ -161,7 +161,7 @@ if (!empty($newsletters_lite_subscriberlimit) && $newsletters_lite_subscriberlim
                     	<?php $optinid = rand(1, 999); ?>
 						<?php foreach ($fields as $field) : ?>
 							<tr>
-								<th><label for="<?php echo esc_html( $field -> slug); ?>"><?php echo esc_html($field -> title); ?></label></th>
+								<th><label for="<?php echo esc_html( $field -> slug); ?>"><?php echo esc_html($this->language_useordefault($field -> title)); ?></label></th>
 								<td><?php $this -> render_field($field -> id, true, $optinid); ?></td>
 							</tr>
 						<?php endforeach; ?>

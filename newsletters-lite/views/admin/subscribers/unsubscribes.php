@@ -16,7 +16,7 @@
             </ul>
         <?php endif; ?>
 		<p class="search-box">
-			<input id="post-search-input" class="search-input" type="text" name="searchterm" value="<?php echo (!empty($_POST['searchterm'])) ? sanitize_text_field(wp_unslash($_POST['searchterm'])) : sanitize_text_field(wp_unslash($_GET[$this -> pre . 'searchterm'])); ?>" />
+			<input id="post-search-input" class="search-input" type="text" name="searchterm" value="<?php echo (!empty($_POST['searchterm'])) ? esc_html_e(sanitize_text_field(wp_unslash($_POST['searchterm']))) : esc_html_e(sanitize_text_field(wp_unslash($_GET[$this -> pre . 'searchterm']))); ?>" />
 			<button value="1" type="submit" class="button">
 				<?php esc_html_e('Search Unsubscribes', 'wp-mailinglist'); ?>
 			</button>

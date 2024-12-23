@@ -41,7 +41,7 @@ $Html -> field_value('Autoresponder[lists]');
 		                	<div><label style="font-weight:bold;"><input type="checkbox" name="formsall" onclick="jqCheckAll(this, false, 'Autoresponder[forms]');" value="formsall" id="formsall" /> <?php esc_html_e('Select all', 'wp-mailinglist'); ?></label></div>
                         	<div id="newsletters-forms-checkboxes" class="scroll-list">
 				                <?php foreach ($forms as $form_id => $form_title) : ?>
-				                	<div><label><input <?php echo (!empty($this -> Autoresponder() -> data -> forms) && in_array($form_id, $this -> Autoresponder() -> data -> forms)) ? 'checked="checked"' : ''; ?> type="checkbox" name="Autoresponder[forms][]" value="<?php echo esc_html( $form_id); ?>" id="Autoresponder_forms_<?php echo esc_html( $form_id); ?>" /> <?php echo esc_html( $form_title); ?></label></div>
+				                	<div><label><input <?php echo (!empty($this -> Autoresponder() -> data -> forms) && in_array($form_id, $this -> Autoresponder() -> data -> forms)) ? 'checked="checked"' : ''; ?> type="checkbox" name="Autoresponder[forms][]" value="<?php echo esc_html( $form_id); ?>" id="Autoresponder_forms_<?php echo esc_html( $form_id); ?>" /> <?php echo esc_html( $this->language_useordefault($form_title)); ?></label></div>
 				                <?php endforeach; ?>
 			                </div>
 			                <span class="howto"><?php esc_html_e('Subscriptions on these subscribe forms will send this autoresponder.', 'wp-mailinglist'); ?></span>
@@ -65,7 +65,7 @@ $Html -> field_value('Autoresponder[lists]');
                         	<!-- loop of mailing lists -->
                         	<div id="newsletters-mailinglists-checkboxes" class="scroll-list">
                             	<?php foreach ($mailinglists as $list_id => $list_title) : ?>
-                                	<div><label><input <?php echo (!empty($this -> Autoresponder() -> data -> lists) && in_array($list_id, $this -> Autoresponder() -> data -> lists)) ? 'checked="checked"' : ''; ?> type="checkbox" name="Autoresponder[lists][]" value="<?php echo esc_html( $list_id); ?>" id="checklist<?php echo esc_html( $list_id); ?>" /> <?php echo esc_html( $list_title); ?></label></div>
+                                	<div><label><input <?php echo (!empty($this -> Autoresponder() -> data -> lists) && in_array($list_id, $this -> Autoresponder() -> data -> lists)) ? 'checked="checked"' : ''; ?> type="checkbox" name="Autoresponder[lists][]" value="<?php echo esc_html( $list_id); ?>" id="checklist<?php echo esc_html( $list_id); ?>" /> <?php echo esc_html( $this->language_useordefault($list_title)); ?></label></div>
                                 <?php endforeach; ?>
                             </div>
                             

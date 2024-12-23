@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.9.9.6
+Version: 4.9.9.7
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -423,13 +423,18 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     }
                 }
 
-                $phpmailer -> SMTPAutoTLS = false;
+               
+                if(!empty($phpmailer)) {
+                    $phpmailer->SMTPAutoTLS = false;
 
-                if (empty($phpmailer -> Sender)) {
-                    $phpmailer -> Sender = $phpmailer -> From;
+                    if ( empty( $phpmailer->Sender ) ) {
+                        $phpmailer->Sender = $phpmailer->From;
+                    }
+
+                    return apply_filters( 'newsletters_phpmailer_init', $phpmailer );
                 }
 
-                return apply_filters('newsletters_phpmailer_init', $phpmailer);
+                return false;
             }
 
             //update existing subscriber's email
@@ -6744,12 +6749,26 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                         } else {
                             $data = $this -> paginate($this -> Group() -> model, null, $this -> sections -> groups, $conditions, $searchterm, $perpage, $order);
                         }
-                        if(!empty($data)) {
-                        $this -> render('groups' . DS . 'index', array('groups' => $data[$this -> Group() -> model], 'paginate' => $data['Paginate']), true, 'admin');
-                        }
-                        else {
-                            $this -> render('groups' . DS . 'index', array( ), true, 'admin');
-                        }
+                        
+	                    if(!empty($data)) {
+
+		                    if (WPMAIL()->language_do()) {
+			                    $language_live = WPMAIL()->language_current();
+
+			                    foreach($data[$this -> Group() -> model] as $fields_custom) {
+				                    foreach ($fields_custom as $ikey => $ival) {
+					                    if (!is_array($ival) && !empty($ival)) {
+						                    $fields_custom->$ikey = WPMAIL()->language_use($language_live, $ival);
+					                    }
+				                    }
+			                    }
+
+		                    }
+		                    $this->render('groups' . DS . 'index', array('groups' => $data[$this -> Group() -> model], 'paginate' => $data['Paginate']), true, 'admin');
+	                    }
+	                    else {
+		                    $this -> render('groups' . DS . 'index', array('groups' => array(), 'paginate' => array()), true, 'admin');
+	                    }
 
                         break;
                 }
@@ -9802,7 +9821,26 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             $data = $this -> paginate($Field -> model, null, $this -> sections -> fields, $conditions, $searchterm, $perpage, $order);
                         }
 
-                        $this -> render('fields' . DS . 'index', array('fields' => $data[$Field -> model], 'paginate' => $data['Paginate']), true, 'admin');
+                        if(!empty($data)) {
+
+		                    if (WPMAIL()->language_do()) {
+			                    $language_live = WPMAIL()->language_current();
+
+			                    foreach($data[$Field->model] as $fields_custom) {
+				                    foreach ($fields_custom as $ikey => $ival) {
+					                    if (!is_array($ival) && !empty($ival)) {
+						                    $fields_custom->$ikey = WPMAIL()->language_use($language_live, $ival);
+					                    }
+				                    }
+			                    }
+
+		                    }
+		                    $this->render('fields' . DS . 'index', array('fields' => $data[$Field->model], 'paginate' => $data['Paginate']), true, 'admin');
+	                    }
+	                    else {
+		                    $this -> render('fields' . DS . 'index', array('fields' => array(), 'paginate' => array()), true, 'admin');
+
+	                    }
                         break;
                 }
             }

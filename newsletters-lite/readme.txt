@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.7
-Stable tag: 4.9.9.6
+Tested up to: 6.7.1
+Stable tag: 4.9.9.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -49,7 +49,7 @@ Some of the features in the WordPress Newsletter plugin include (see PRO Version
 * POP/IMAP Bounce Handling 
 * Latest Posts Subscriptions 
 * Single/Multiple Posts into Emails 
-* Bit.ly click tracking 
+* Bitly click tracking 
 * Autoresponders 
 * Newsletters by conditions 
 * Multilingual (qTranslate & WPML) 
@@ -223,6 +223,13 @@ Installing the WordPress Newsletter plugin is simple. Follow these steps:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.9.9.7 =
+* IMPROVE: Hidden field conflict with Tailwind library (third-party plugins and themes).
+* FIX: XSS vulnerability fix on unsubscribers search box.
+* FIX: BuddyBoss PHPMailer compatibility issue (reported by Wijnand Hörcner).
+* FIX: WPML and other supported multilingual plugins issues in multiple places of the admin area.
+* FIX: Post excerpt not working in newsletters posts.
 
 = 4.9.9.6 =
 * IMPROVE: Set Variable texts in the create newsletter page editor.

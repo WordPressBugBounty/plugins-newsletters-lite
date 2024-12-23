@@ -152,7 +152,7 @@ if ($this -> language_do()) {
 										
 										<label><input <?php echo (empty($settings[$language]['listchoice_user_type']) || (!empty($settings[$language]['listchoice_user_type']) && $settings[$language]['listchoice_user_type'] == "select")) ? 'checked="checked"' : ''; ?> type="radio" name="form_fields[<?php echo esc_html( $field -> id); ?>][settings][<?php echo esc_html( $language); ?>][listchoice_user_type]" value="select" id="form_fields_<?php echo esc_html( $field -> id); ?>_listchoice_user_type_select_<?php echo esc_html( $language); ?>" /> <?php esc_html_e('Single (Select)', 'wp-mailinglist'); ?></label>
 										<label><input <?php echo (!empty($settings[$language]['listchoice_user_type']) && $settings[$language]['listchoice_user_type'] == "checkboxes") ? 'checked="checked"' : ''; ?> type="radio" name="form_fields[<?php echo esc_html( $field -> id); ?>][settings][<?php echo esc_html( $language); ?>][listchoice_user_type]" value="checkboxes" id="form_fields_<?php echo esc_html( $field -> id); ?>_listchoice_user_type_checkboxes_<?php echo esc_html( $language); ?>" /> <?php esc_html_e('Multiple (Checkbox)', 'wp-mailinglist'); ?></label>
-										<span class="howto"><?php esc_html_e('Specify the selection type, select drop down or checkboxes list.', 'wp-mailinglist'); ?></span>
+										<span class="howto"><?php esc_html_e('Specify the selection type. Drop-down (Single Select) or a list of checkboxes (Multiple).', 'wp-mailinglist'); ?></span>
 													
 
 										<?php if ($lists = $Mailinglist -> select(true)) : ?>
@@ -227,7 +227,7 @@ if ($this -> language_do()) {
 						<td>
 							<label><input <?php echo (empty($settings['listchoice_user_type']) || (!empty($settings['listchoice_user_type']) && $settings['listchoice_user_type'] == "select")) ? 'checked="checked"' : ''; ?> type="radio" name="form_fields[<?php echo esc_html( $field -> id); ?>][settings][listchoice_user_type]" value="select" id="form_fields_<?php echo esc_html( $field -> id); ?>_listchoice_user_type_select" /> <?php esc_html_e('Single (Select)', 'wp-mailinglist'); ?></label>
 							<label><input <?php echo (!empty($settings['listchoice_user_type']) && $settings['listchoice_user_type'] == "checkboxes") ? 'checked="checked"' : ''; ?> type="radio" name="form_fields[<?php echo esc_html( $field -> id); ?>][settings][listchoice_user_type]" value="checkboxes" id="form_fields_<?php echo esc_html( $field -> id); ?>_listchoice_user_type_checkboxes" /> <?php esc_html_e('Multiple (Checkbox)', 'wp-mailinglist'); ?></label>
-							<span class="howto"><?php esc_html_e('Specify the selection type, select drop down or checkboxes list.', 'wp-mailinglist'); ?></span>
+							<span class="howto"><?php esc_html_e('Specify the selection type. Drop-down (Single Select) or a list of checkboxes (Multiple).', 'wp-mailinglist'); ?></span>
 						</td>
 					</tr>
 					<tr>

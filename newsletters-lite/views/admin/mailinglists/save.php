@@ -105,11 +105,11 @@ if (is_array($serial_validation_status)  && empty($errors) ) {
                 </tr>
                 <tr>
                 	<th><label for="doubleopt_Y"><?php esc_html_e('Double Opt-In', 'wp-mailinglist'); ?></label>
-                	<?php echo ( $Html -> help(__('With "Require Activation?" setting turned on in configuration, this is effective. You can then specify for this specific list whether double opt-in is required or not. If you specify Yes, a subscriber will need to activate/confirm via an email with confirmation link.', 'wp-mailinglist'))); ?></th>
+                	<?php echo ( $Html -> help(__('With "Require Confirmation?" setting turned on in Configuration > Subscribers, this is effective. For this specific list, you can then specify whether double opt-in is required or not. If you select Yes, a subscriber will need to confirm his subscription via an email with a confirmation link.', 'wp-mailinglist'))); ?></th>
                 	<td>
                 		<label><input <?php echo (empty($doubleopt) || (!empty($doubleopt) && $doubleopt == "Y")) ? 'checked="checked"' : ''; ?> type="radio" name="Mailinglist[doubleopt]" value="Y" id="doubleopt_Y" /> <?php esc_html_e('Yes, require activation', 'wp-mailinglist'); ?></label>
                 		<label><input <?php echo (!empty($doubleopt) && $doubleopt == "N") ? 'checked="checked"' : ''; ?> type="radio" name="Mailinglist[doubleopt]" value="N" id="doubleopt_N" /> <?php esc_html_e('No, activate immediately', 'wp-mailinglist'); ?></label>
-                		<span class="howto"><?php esc_html_e('This is only effective when "Require Activation?" is turned on in configuration', 'wp-mailinglist'); ?></span>
+                		<span class="howto"><?php esc_html_e('This is only effective when "Require Confirmation?" is turned on in Configuration > Subscribers.', 'wp-mailinglist'); ?></span>
                 	</td>
                 </tr>
                 <tr>

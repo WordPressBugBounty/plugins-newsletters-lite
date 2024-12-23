@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.9.9.6';
+		var $version = '4.9.9.7';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -9219,7 +9219,7 @@ function qp_scheduling() {
 				$return = $message;
 			}
 
-			//** Bit.ly and Click tracking
+			//** Bitly and Click tracking
 			$pattern = '/<a[^>]*?href=[\'"](.*?)[\'"][^>]*?>(.*?)<\/a>/si';
 			if (preg_match_all($pattern, $return, $regs)) {												
 				$return = apply_filters('newsletters_emailbody_links', $return, $history_id, $regs);
@@ -9227,7 +9227,7 @@ function qp_scheduling() {
 				
 				$shortlinks = $this -> get_option('shortlinks');
 
-				/* Bit.ly if shortlinks are enabled */
+				/* Bitly if shortlinks are enabled */
 				if (!empty($shortlinks) && $shortlinks == "Y") {
 					if (!empty($regs[1])) {
 						$results = $regs[1];

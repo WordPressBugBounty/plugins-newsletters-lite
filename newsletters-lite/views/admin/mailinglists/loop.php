@@ -204,7 +204,7 @@
 							<?php if (apply_filters($this -> pre . '_admin_mailinglists_groupcolumn', true)) : ?>
 			                    <td>
 			                    	<?php if (!empty($list -> group_id)) : ?>
-			                        	<?php echo ( $Html -> link(esc_html($this -> Group() -> field('title', array('id' => $list -> group_id))), '?page=' . $this -> sections -> groups . '&amp;method=view&amp;id=' . $list -> group_id)); ?>
+			                        	<?php echo ( $Html -> link(esc_html($this->language_useordefault($this -> Group() -> field('title', array('id' => $list -> group_id)))), '?page=' . $this -> sections -> groups . '&amp;method=view&amp;id=' . $list -> group_id)); ?>
 			                        <?php else : ?>
 			                        	<?php esc_html_e('none', 'wp-mailinglist'); ?>
 			                        <?php endif; ?>

@@ -909,6 +909,12 @@ if (!class_exists('wpmlShortcodeHelper')) {
 
 		function get_the_excerpt($excerpt = null)
 		{
+
+			if(!empty(get_the_excerpt()))
+            {
+                return get_the_excerpt();
+            }
+			
 			$excerpt_settings = $this -> get_option('excerpt_settings');
 			if (!empty($excerpt_settings)) {
 		    	$excerpt = do_shortcode(wp_trim_words(get_the_content(), $this -> excerpt_length()));

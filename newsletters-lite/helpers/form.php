@@ -157,7 +157,7 @@ class wpmlFormHelper extends wpMailPlugin
 			<option value=""><?php esc_html_e('- Select -', 'wp-mailinglist'); ?></option>
 			<?php if (!empty($selects)) : ?>
 				<?php foreach ($selects as $skey => $sval) : ?>
-					<option <?php echo ($Html -> field_value($name) == $skey) ? 'selected="selected"' : ''; ?> value="<?php echo esc_attr(wp_unslash($skey)); ?>"><?php echo esc_html($sval); ?></option>
+					<option <?php echo ($Html -> field_value($name) == $skey) ? 'selected="selected"' : ''; ?> value="<?php echo esc_attr(wp_unslash($skey)); ?>"><?php echo esc_html($this -> language_useordefault($sval)); ?></option>
 				<?php endforeach; ?>
 			<?php endif; ?>
 		</select>

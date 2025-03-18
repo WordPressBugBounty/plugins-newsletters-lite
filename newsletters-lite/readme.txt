@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.7.1
-Stable tag: 4.9.9.7
+Tested up to: 6.7.2
+Stable tag: 4.9.9.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -22,7 +22,7 @@ The software works the way you do so you can focus on creating newsletters and g
 
 = Features =
 
-Some of the features in the WordPress Newsletter plugin include (see PRO Version section below to view the limitations in this LITE version):
+Some of the features in the WordPress Newsletter plugin include (see PRO Version section below to view the limitations of this LITE version):
 
 * Mailing Lists 
 * Bounce Email Management 
@@ -67,7 +67,7 @@ https://www.youtube.com/watch?v=ZHbXN72eqmU
 
 = Demo and Support =
 
-See the <a href="https://tribulant.net/newsletter/">online demonstration</a> and view the <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31">online documentation</a> for tips, tricks, guides, and more.
+See the <a href="https://tribulant.net/newsletter/">online demonstration</a> and view the <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/">online documentation</a> for tips, tricks, guides, and more.
 
 
 = Extensions =
@@ -121,15 +121,15 @@ Thank you for these wonderful people who contributed in translating the plugin:
 
 
 = Offsite HTML Code =
-
+`
 <script type="text/javascript"> var wpmlAjax = "' . $this -> url() . '/' . $this -> plugin_name . '-ajax.php"; </script>
 <script type="text/javascript" src="' . $this -> url() . '/js/wp-mailinglist.js"></script>
 <script type="text/javascript" src="' . get_option('siteurl') . '/wp-includes/js/scriptaculous/prototype.js"></script>
 <script type="text/javascript" src="' . get_option('siteurl') . '/wp-includes/js/scriptaculous/scriptaculous.js?load=effects"></script>'
-
+`
 
 = API Example =
-
+`
 <?php
 $url = 'https://example.com/wp-admin/admin-ajax.php?action=newsletters_api';
 $data = array(
@@ -155,7 +155,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 $result = json_decode(curl_exec($ch));
 curl_close($ch);
 ?>
-
+`
 
 = PRO Version =
 
@@ -178,26 +178,32 @@ In addition to the limits being removed, you will receive <a href="https://tribu
 <a href="https://tribulant.com/plugins/view/1/wordpress-newsletter-plugin">Visit the Newsletters PRO page</a>
 
 
-= 3rd Party Services =
+= 3rd-Party Services =
 
-Our plugin makes use of some 3rd party services or APIs to provide you with the latest technology and functionality. Here is a list of the services:
+Our plugin makes use of some 3rd-party services or APIs to provide you with the latest technology and functionality. Here is a list of the services:
 
-* SpamScore (https://www.spamscore.net) - Fetch the spam score of an email/newsletter
-* IPEcho (https://ipecho.net) - Get the current mail exchange IP address
-* IPLocate (https://www.iplocate.io) - To get the country of a user by IP address
-* HostIP.info (http://www.hostip.info) - To get the country of a user by IP address
-* geoPlugin (https://www.geoplugin.com) - To get the country of a user by IP address
+* Postmark Spam Check API (https://spamcheck.postmarkapp.com/) - Fetch the spam score of an email/newsletter
+* IPEcho (https://ipecho.net/) - Get the current mail exchange IP address
+* IPLocate (https://www.iplocate.io/) - To get the country of a user by IP address
+* HostIP.info (https://www.hostip.info/) - To get the country of a user by IP address
+* geoPlugin (https://www.geoplugin.com/) - To get the country of a user by IP address
 
 
 == Installation ==
 
-Installing the WordPress Newsletter plugin is simple. Follow these steps:
+Installing the Tribulant WordPress Newsletter plugin is simple. Follow these steps:
 
 = Automatic Installation =
 
-1. Go to **Plugins > Add New** in your WordPress dashboard.
-2. Search for `newsletters` to find this plugin, by Tribulant.
+If you don't have the file on your computer:
+1. Go to **Plugins > Add New Plugin** in your WordPress dashboard.
+2. Search for `newsletters` to find this plugin, by Tribulant Software.
 3. Click **Install Now** to install it and then activate it after the installation.
+
+If you downloaded it from the WordPress.org website:
+1. Go to **Plugins > Add New Plugin** in your WordPress dashboard and click on Upload Plugin.
+2. Click on **Browse** to search for this `zip` on your computer and add it.
+3. Click **Install Now** to install it, and then activate it after the installation.
 
 = Manual Installation =
 
@@ -223,6 +229,23 @@ Installing the WordPress Newsletter plugin is simple. Follow these steps:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.9.9.8 =
+* ADD: Option to sanitize the email content under Configuration > General > Sending Settings. This is enabled by default to prevent a potential vulnerability and may use more CPU. Can be disabled.
+* ADD: Prefix attribute to [newsletters_field ] shortcode. From now on, it is easy to add Hi {firstname}, using this shortcode: [newsletters_field name="firstname|" prefix="Hi "]
+* ADD: Delete account button to Default template of the subscription management in front-end.
+* ADD: New filters to add inline style to post link and post thumbnails: 'wpml_post_anchor_style', 'wpml_post_thumbnail_img_style'.
+* ADD: Post Type selector in Single Post block while creating/editing the newsletters.
+* IMPROVE: The link to view logs in the hover text in Configuration now loads the correct page.
+* FIX: SQL injection vulnerability.
+* FIX: Fatal error while using ConvertPlus addon and the subscriber subscribes to no list.
+* FIX: Mailing lists were not showing in the groups view.
+* FIX: autoembed_callback incomplete check made embed function run unexpectedly while preview generation in Video Embed.
+* FIX: XSS vulnerability on some admin pages and on view logs and error log.
+* FIX: Prevent deleting administrator users when Delete on Unsubscribe option is set to Yes.
+* FIX: Plus symbols (+) now appear in newsletter creation, such as in subject, body, preview.
+* FIX: WPML and all other multilingual plugins front-end compatibility issue.
+* FIX: Importing subscribers using "Yes and show progress" and not mapping firstname and lastname columns.
 
 = 4.9.9.7 =
 * IMPROVE: Hidden field conflict with Tailwind library (third-party plugins and themes).
@@ -436,7 +459,7 @@ See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#do
 * FIX: Spam Score issue.
 * FIX: AJAX (e.g., Show Progress) now works correctly.
 * FIX: Custom Fields were not getting saved when editing a Subscription Form.
-* FIX: Font Awesome icons conflict with some third party plugins.
+* FIX: Font Awesome icons conflict with some third-party plugins.
 * FIX: Opt in function backward compatibility issue with PHP 8.0.
 * FIX: Panel option description showed HTML in Gutenberg editor.
 * FIX: Missing Label For that caused accessibility scan notice.
@@ -584,7 +607,7 @@ See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#do
 * IMPROVE: Security: current_user_can for Ajax calls
 * IMPROVE: Update CKEditor to 4.12.1
 * IMPROVE: Use optin date for autoresponders delay
-* IMPROVE: Integrate 3rd party CKEditor script inside the plugin itself
+* IMPROVE: Integrate 3rd-party CKEditor script inside the plugin itself
 * IMPROVE: Fix About page layout for WordPress 5.2+
 * IMPROVE: Prefill subscribe form with GET/POST values
 * IMPROVE: Remove newsletter builder (beta)

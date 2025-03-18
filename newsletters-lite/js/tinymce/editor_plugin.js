@@ -6,18 +6,47 @@
 (function() {	
 	tinymce.PluginManager.add('Newsletters', function(editor, url) {
 	
-		var self = this, post_element;
-	
-		function post_change_category(category_id) {			
+		var self = this, post_element, category_element, post_types_selected;
+
+
+		function post_change_type(post_type) {
+			tinyMCE.activeEditor.plugins.Newsletters.refresh_cat([{text:'loading...', value:'loading'}], true);
+
+			jQuery.post(newsletters_ajaxurl + 'action=newsletters_get_post_type_categories&security=' + $ajaxnonce_categories_by_post_type + '&post_type=' + post_type, {post_type:post_type}, function(response) {
+				tinyMCE.activeEditor.plugins.Newsletters.refresh_cat(response, false);
+			});
+
+			return true;
+		}
+
+		function post_change_category(category_id, post_types) {
+		
 			tinyMCE.activeEditor.plugins.Newsletters.refresh([{text:'loading...', value:'loading'}], true);
 			
-			jQuery.post(newsletters_ajaxurl + 'action=newsletters_posts_by_category&security=' + $ajaxnonce_posts_by_category + '&cat_id=' + category_id, {category:category_id}, function(response) {				
+			jQuery.post(newsletters_ajaxurl + 'action=newsletters_posts_by_category&security=' + $ajaxnonce_posts_by_category + '&cat_id=' + category_id, {category:category_id, post_type: post_types}, function(response) {
 				tinyMCE.activeEditor.plugins.Newsletters.refresh(response, false);	
 			});
 			
 			return true;
 		}
 		
+		self.refresh_cat = function(values, disabledstate) {
+			if (typeof values[1] == 'undefined') {
+				disabledstate = true;
+			}
+
+			if (category_element.menu) {
+				category_element.menu.remove();
+			}
+
+			category_element.menu = null;
+			category_element.state.data.menu = category_element.settings.values = category_element.settings.menu = values;
+			category_element.disabled(disabledstate);
+			category_element.value(values[0]['value']);
+			category_element.focus();
+		}
+
+
 		self.refresh = function(values, disabledstate) {						
 			if (typeof values[1] == 'undefined') {
 				disabledstate = true;	
@@ -213,16 +242,35 @@
 							value: '15',
 							tooltip: 'The spacing of the thumbnail',
 						});
-						
+
+						newsletters_post_body.push({
+							type: 'listbox',
+							name: 'newsletters_post_type',
+							label: 'Post Type',
+							values: tinymce.settings.newsletters_post_types,
+							tooltip: 'Choose a post type to populate the category below in order to choose a post',
+							onSelect: function(e) {
+								post_types_selected = this.value();
+								post_change_type(this.value());
+								post_change_category(null, post_types_selected);
+								this.value(null);
+
+							}
+						});
+
 						newsletters_post_body.push({
 							type: 'listbox',
 							name: 'newsletters_post_category',
 							label: 'Category',
-							values: tinymce.settings.newsletters_post_categories,
-							tooltip: 'Choose a category to populate the posts below in order to choose a post',
+							values: [{text:'- Choose Post Type Above -', value:false}],
+							tooltip: '\'First choose a Post Type, then choose a category to populate the posts below in order to choose a post',
 							onSelect: function(e) {								
-								post_change_category(this.value());
+								post_change_category(this.value(), post_types_selected );
 								this.value(null);
+							},
+							onPostRender : function() {
+								category_element = this;
+
 							}
 						});
 						

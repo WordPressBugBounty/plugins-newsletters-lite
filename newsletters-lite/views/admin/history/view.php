@@ -8,9 +8,10 @@ $preview_src = admin_url('admin-ajax.php?action=' . $this -> pre . 'historyifram
 $user_chart = $this -> get_user_option(false, 'chart');
 $chart = (empty($user_chart)) ? "bar" : $user_chart; 
 
-$type = (empty($_GET['type'])) ? 'days' :  sanitize_text_field(wp_unslash($_GET['type']));
-$fromdate = (empty($_GET['from'])) ? $Html -> gen_date("Y-m-d", strtotime("-13 days")) :  sanitize_text_field(wp_unslash($_GET['from']));
-$todate = (empty($_GET['to'])) ? $Html -> gen_date("Y-m-d") :  sanitize_text_field(wp_unslash($_GET['to']));
+
+$type = (empty($_GET['type'])) ? 'days' :  esc_html(sanitize_text_field(wp_unslash($_GET['type'])));
+$fromdate = (empty($_GET['from'])) ? $Html -> gen_date("Y-m-d", strtotime("-13 days")) :  esc_html(sanitize_text_field(wp_unslash($_GET['from'])));
+$todate = (empty($_GET['to'])) ? $Html -> gen_date("Y-m-d") :  esc_html(sanitize_text_field(wp_unslash($_GET['to'])));
 
 ?>
 

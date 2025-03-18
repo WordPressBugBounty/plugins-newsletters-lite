@@ -6,8 +6,8 @@
 $user_chart_type = $this -> get_user_option(false, 'chart_type');
 $chart_type = (empty($user_chart_type)) ? 'days' : esc_html($user_chart_type);
 
-$fromdate = (empty($_GET['from'])) ? $Html -> gen_date("Y-m-d", strtotime("-13 days")) :  sanitize_text_field(wp_unslash($_GET['from']));
-$todate = (empty($_GET['to'])) ? $Html -> gen_date("Y-m-d") :  sanitize_text_field(wp_unslash($_GET['to']));
+$fromdate = (empty($_GET['from'])) ? $Html -> gen_date("Y-m-d", strtotime("-13 days")) :  esc_html(sanitize_text_field(wp_unslash($_GET['from'])));
+$todate = (empty($_GET['to'])) ? $Html -> gen_date("Y-m-d") :  esc_html(sanitize_text_field(wp_unslash($_GET['to'])));
 
 $user_chart = $this -> get_user_option(false, 'chart');
 $chart = (empty($user_chart)) ? 'bar' : esc_html($user_chart);

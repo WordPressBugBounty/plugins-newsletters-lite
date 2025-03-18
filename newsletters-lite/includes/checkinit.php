@@ -246,6 +246,9 @@ if (!class_exists('wpMailCheckinit')) {
                 }
             }
 
+            add_filter( 'newsletters_process_set_variables_user_message', array($this,'newsletters_sanitize_user_message'), 10, 2 );
+	        add_filter( 'newsletters_process_set_variables_subscriber_message', array($this,'newsletters_sanitize_subscriber_message'), 10, 2 );
+
             add_action('wp_ajax_newsletters_dismissed_notice', array($this, 'ajax_dismissed_notice'));
             add_action('wp_ajax_newsletters_dismiss_forever_notice', array($this, 'ajax_dismiss_forever_notice'));
 
@@ -270,6 +273,7 @@ if (!class_exists('wpMailCheckinit')) {
             add_action('wp_ajax_wpmlgetlistfields', array($this, 'ajax_getlistfields'));
             add_action('wp_ajax_nopriv_wpmlgetlistfields', array($this, 'ajax_getlistfields'));
             add_action('wp_ajax_newsletters_builderon', array($this, 'ajax_builderon'));
+            add_action('wp_ajax_newsletters_get_post_type_categories', array($this, 'ajax_categories_by_post_type'));
             add_action('wp_ajax_newsletters_posts_by_category', array($this, 'ajax_posts_by_category'));
             add_action('wp_ajax_newsletters_template_iframe', array($this, 'ajax_template_iframe'));
             add_action('wp_ajax_newsletters_form_preview', array($this, 'ajax_form_preview'));

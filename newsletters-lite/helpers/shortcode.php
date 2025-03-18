@@ -689,10 +689,19 @@ if (!class_exists('wpmlShortcodeHelper')) {
 				case 'post_anchor'				:
 				case 'newsletters_post_anchor'	:
 					if (!empty($shortcode_post)) {
-						$linktitle = (empty($content)) ? esc_html($shortcode_post -> post_title) : esc_html($content);
-						return do_shortcode('<a style="' . esc_attr(wp_unslash($style)) . '" title="' . esc_attr(wp_unslash($linktitle)) . '" href="' . $this -> direct_post_permalink($shortcode_post -> ID) . '">' . $linktitle . '</a>');
-					}
-					break;
+			            $linktitle = (empty($content)) ? __($shortcode_post->post_title) : __($content);
+			            // Get a custom inline style for the anchor via a filter.
+			            $default_anchor_style = ''; // Default is empty.
+			            $anchor_style = apply_filters(
+				            'wpml_post_anchor_style',
+				            $default_anchor_style,
+				            $shortcode_post->ID,
+				            get_post_type($shortcode_post->ID),
+				            $shortcode_post
+			            );
+			            return do_shortcode('<a style="' . esc_attr($anchor_style) . '" title="' . esc_attr($linktitle) . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">' . $linktitle . '</a>');
+		            }
+		            break;
 				case 'post_title'				:
 				case 'newsletters_post_title'	:
 					if (!empty($shortcode_post)) {
@@ -723,66 +732,86 @@ if (!class_exists('wpmlShortcodeHelper')) {
 				case 'post_thumbnail'			:
 				case 'newsletters_post_thumbnail'	:
 					if (empty($shortcode_post)) {
-						// there is no $shortcode_post, this may be an independent [newsletters_post_thumbnail...] shortcode
-						return $this -> post_thumbnail($atts, false);
-					} else {
-						if (!empty($atts) && is_array($atts)) {
-							if (!empty($shortcode_thumbnail)) {
-								$atts = wp_parse_args($atts, $shortcode_thumbnail);
-							}
-						} else {
-							$atts = $shortcode_thumbnail;
-						}
-	
-						$defaults = array(
-							'size' 			=> 	"thumbnail",
-							'align'			=>	"left",
-							'hspace'		=>	"15",
-							'class'			=>	"newsletters_thumbnail",
-						);
-	
-						$defaults = apply_filters('newsletters_post_thumbnail_defaults', $defaults);
-	
-						$style = false;
-						if (!empty($align) && !empty($hspace)) {
-							switch ($align) {
-								case 'left'					:
-									$style = "margin-right:" . $hspace . "px;";
-									break;
-								case 'right'				:
-									$style = "margin-left:" . $hspace . "px;";
-									break;
-							}
-						}
-	
-						extract(shortcode_atts($defaults, $atts));
-	
-						if (strpos($size, ',') !== false) {
-							$sizes = explode(",", $size);
-							if (!empty($sizes) && is_array($sizes)) {
-								$size = $sizes;
-							}
-						}						
-	
-						if (!empty($shortcode_post)) {
-							if (function_exists('has_post_thumbnail') && has_post_thumbnail($shortcode_post -> ID)) {
-								$return .= '<a target="' . $wpml_target . '" href="' . $this -> direct_post_permalink($shortcode_post -> ID) . '">';
-								$attr = apply_filters('newsletters_post_thumbnail_attr', array('style' => $style, 'align' => $align, 'hspace' => $hspace, 'class' => $class), $shortcode_post -> ID);
-								$return .= get_the_post_thumbnail($shortcode_post -> ID, $size, $attr);
-								$return .= '</a>';
-								return do_shortcode(apply_filters('newsletters_post_thumbnail_output', $return, $shortcode_post));
-							} else {
-								// added by Ted Eytan
-								$return .= '<a target="' . $wpml_target . '" href="' . $this -> direct_post_permalink($shortcode_post -> ID) . '">';
-								$attr = apply_filters('newsletters_post_thumbnail_attr', array('style' => $style, 'align' => $align, 'hspace' => $hspace, 'class' => $class), $shortcode_post -> ID);
-								require_once($this -> plugin_base() . DS . 'vendors' . DS . 'gettheimage.php');								
-								$return .= get_the_image(array('post_id' => $shortcode_post -> ID, 'scan' => true, 'size' => $size, 'echo' => false));
-								$return .= '</a>';
-								return do_shortcode(apply_filters('newsletters_post_thumbnail_output', $return, $shortcode_post));
-							}
-						}
-					}
-					break;
+			            // there is no $shortcode_post, this may be an independent [newsletters_post_thumbnail...] shortcode
+			            return $this->post_thumbnail($atts, false);
+		            } else {
+			            if (!empty($atts) && is_array($atts)) {
+				            if (!empty($shortcode_thumbnail)) {
+					            $atts = wp_parse_args($atts, $shortcode_thumbnail);
+				            }
+			            } else {
+				            $atts = $shortcode_thumbnail;
+			            }
+
+			            $defaults = array(
+				            'size'   => "thumbnail",
+				            'align'  => "left",
+				            'hspace' => "15",
+				            'class'  => "newsletters_thumbnail",
+			            );
+
+			            $defaults = apply_filters('newsletters_post_thumbnail_defaults', $defaults);
+
+			            // Build a default inline style based on alignment and horizontal spacing.
+			            $style = false;
+			            if (!empty($align) && !empty($hspace)) {
+				            switch ($align) {
+					            case 'left':
+						            $style = "margin-right:" . $hspace . "px;";
+						            break;
+					            case 'right':
+						            $style = "margin-left:" . $hspace . "px;";
+						            break;
+				            }
+			            }
+
+			            extract(shortcode_atts($defaults, $atts));
+
+			            if (strpos($size, ',') !== false) {
+				            $sizes = explode(",", $size);
+				            if (!empty($sizes) && is_array($sizes)) {
+					            $size = $sizes;
+				            }
+			            }
+
+			            // --- NEW: Determine the inline style for the <img> tag via a filter ---
+			            // Use the default style from the alignment/hspace calculation.
+			            $default_img_style = $style;
+			            $img_style = apply_filters(
+				            'wpml_post_thumbnail_img_style',
+				            $default_img_style,
+				            $shortcode_post->ID,
+				            get_post_type($shortcode_post->ID),
+				            $shortcode_post
+			            );
+
+			            // Build the attributes for the <img> tag, inserting our computed style.
+			            $attr = array(
+				            'style'  => $img_style,
+				            'align'  => $align,
+				            'hspace' => $hspace,
+				            'class'  => $class
+			            );
+			            $attr = apply_filters('newsletters_post_thumbnail_attr', $attr, $shortcode_post->ID);
+
+			            if (!empty($shortcode_post)) {
+				            if (function_exists('has_post_thumbnail') && has_post_thumbnail($shortcode_post->ID)) {
+					            $return = '<a target="' . $wpml_target . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">';
+					            $return .= get_the_post_thumbnail($shortcode_post->ID, $size, $attr);
+					            $return .= '</a>';
+					            return do_shortcode(apply_filters('newsletters_post_thumbnail_output', $return, $shortcode_post));
+				            } else {
+					            // Fallback branch
+					            $return = '<a target="' . $wpml_target . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">';
+					            $attr = apply_filters('newsletters_post_thumbnail_attr', $attr, $shortcode_post->ID);
+					            require_once($this->plugin_base() . DS . 'vendors' . DS . 'gettheimage.php');
+					            $return .= get_the_image(array('post_id' => $shortcode_post->ID, 'scan' => true, 'size' => $size, 'echo' => false));
+					            $return .= '</a>';
+					            return do_shortcode(apply_filters('newsletters_post_thumbnail_output', $return, $shortcode_post));
+				            }
+			            }
+		            }
+		            break;
 				case 'post_excerpt'				:
 				case 'newsletters_post_excerpt'	:
 				

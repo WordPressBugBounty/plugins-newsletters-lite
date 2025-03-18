@@ -378,7 +378,7 @@ if (!class_exists('wpmlMailinglist')) {
 			return false;
 		}
 		
-		function get_all_paginated($conditions = array(), $searchterm = null, $sub = 'newsletters-lists', $perpage = 15, $order = array('modified', "DESC"))
+		function get_all_paginated($conditions = array(), $searchterm = null, $sub = 'newsletters-lists', $perpage = 15, $order = array('id', "DESC"))
         {
 			global $wpdb;
 			

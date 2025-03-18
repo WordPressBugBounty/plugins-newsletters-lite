@@ -7,6 +7,7 @@ $createpreview = $this -> get_option('createpreview');
 $createspamscore = $this -> get_option('createspamscore');
 $themeintextversion = $this -> get_option('themeintextversion');
 $inlinestyles = $this -> get_option('inlinestyles');
+$sanitize_content = $this -> get_option('sanitize_content');
 $videoembed = $this -> get_option('videoembed');
 $defaulttemplate = $this -> get_option('defaulttemplate');
 $remove_width_height_attr = $this -> get_option('remove_width_height_attr');
@@ -84,6 +85,13 @@ if (!class_exists('DOMDocument')) {
 		        	<span class="newsletters_error"><?php esc_html_e('PHP DOMDocument class is not available. Please install and enable PHP DOM extension.', 'wp-mailinglist'); ?></span>
 		        <?php endif; ?>
 	        </td>
+        </tr>
+		<tr class="advanced-setting">
+            <th><label for="sanitize_content"><?php _e('Sanitize Email Content', 'wp-mailinglist'); ?></label></th>
+            <td>
+                <label><input <?php echo (!empty($sanitize_content) ) ? 'checked="checked"' : ''; ?>  type="checkbox" name="sanitize_content" value="1" id="sanitize_content" /> <?php _e('Yes, sanitize the content.', 'wp-mailinglist'); ?></label>
+                <span class="howto"><?php _e('Having this option enabled sanitizes the email content before sending and when previewing. May consume more memory.', 'wp-mailinglist'); ?></span>
+            </td>
         </tr>
         <tr class="advanced-setting">
 	        <th><label for="remove_width_height_attr"><?php esc_html_e('Remove Width/Height Attributes', 'wp-mailinglist'); ?></label>

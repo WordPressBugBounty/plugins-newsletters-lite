@@ -13,6 +13,9 @@ if (!empty($subscriber -> subscriptions)) {
 do_action('newsletters_management_before');
 $logouturl = $Html -> retainquery('method=logout', get_permalink($this -> get_managementpost()));
 
+$managementdelete = $this -> get_option('managementdelete');
+$deleteurl = $Html -> retainquery('method=delete', $this -> get_managementpost(true));
+
 $updated = sanitize_text_field(wp_unslash($_REQUEST['updated']));
 $success = sanitize_text_field(wp_unslash($_REQUEST['success']));
 $error = sanitize_text_field(wp_unslash($_REQUEST['error']));
@@ -34,6 +37,9 @@ $error = sanitize_text_field(wp_unslash($_REQUEST['error']));
 	<p class="managementemail">
 		<?php esc_html_e('Your email address is:', 'wp-mailinglist'); ?> <strong><?php echo wp_kses_post( wp_unslash($subscriber -> email)) ?></strong>
 	    <span class="managementlogout"><a class="newsletters_button ui-button-error" onclick="if (!confirm('<?php esc_html_e('Are you sure you wish to logout?', 'wp-mailinglist'); ?>')) { return false; }" href="<?php echo wp_kses_post($logouturl); ?>"><i class="fa fa-sign-out"></i> <?php esc_html_e('Logout', 'wp-mailinglist'); ?></a></span>
+		<?php if (!empty($managementdelete)) : ?>
+	    	<span class="managementdelete"><a class="newsletters_button btn btn-danger" onclick="if (!confirm('<?php esc_html_e('Are you sure you want to delete your account?', 'wp-mailinglist'); ?>')) { return false; }" href="<?php echo wp_kses_post($deleteurl); ?>"><i class="fa fa-trash fa-fw"></i> <?php esc_html_e('Delete Account', 'wp-mailinglist'); ?></a></span>
+	    <?php endif; ?>
 	</p>
 	
 	<?php if (!empty($updated)) : ?>

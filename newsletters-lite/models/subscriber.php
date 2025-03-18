@@ -207,7 +207,7 @@ if (!class_exists('wpmlSubscriber')) {
 				
 				if (!empty($listsarray)) {			
 					foreach ($listsarray as $larr) {						
-						if (empty($includeonly) || (!empty($includeonly) && $includeonly[0] == "all") || (!empty($includeonly) && in_array($larr -> list_id, $includeonly))) {
+						if (empty($includeonly) || (!empty($includeonly) && $includeonly[0] == "all") || (!empty($includeonly) && is_array($includeonly) && in_array($larr -> list_id, $includeonly))) {
 							if (empty($mailinglists) || (!empty($mailinglists) && !in_array($larr -> list_id, $mailinglists))) {
 								if (empty($exclude) || (!empty($exclude) && !in_array($larr -> list_id, $exclude))) {
 									$mailinglists[] = $larr -> list_id;

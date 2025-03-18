@@ -595,7 +595,11 @@ if (!class_exists('wpmlDbHelper')) {
 								if ($this->get_option('unsubscribewpuserdelete') == 'Y' 
 									&& is_numeric($wp_user_id) 
 									&& $wp_user_id > 0) {
-									wp_delete_user($wp_user_id);
+									if (!user_can( $wp_user_id, 'manage_options' ) ) {
+										// User is an administrator, so avoid the next operation.
+										wp_delete_user($wp_user_id);
+									} 
+	
 								}
 
 								break;

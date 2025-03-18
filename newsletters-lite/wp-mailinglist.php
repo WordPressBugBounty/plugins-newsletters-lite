@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.9.9.7
+Version: 4.9.9.8
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -176,7 +176,19 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     $init_array['newsletters_languages'] = $newsletters_languages;
                 }
 
-                $categories_args = array('hide_empty' => 0, 'show_count' => 1);
+                if ($post_types = $this -> get_custom_post_types()) {
+                    $newsletters_post_types = array();
+                    $newsletters_post_types[] = array('text' => __('- Select -', 'wp-mailinglist'), 'value' => false);
+                    foreach ($post_types as $ptype_key => $ptype) {
+                        $newsletters_post_types[] = array('text' => $ptype -> labels -> name, 'value' => $ptype_key);
+                    }
+                    $newsletters_post_types = json_encode($newsletters_post_types);
+                    $init_array['newsletters_post_types'] = $newsletters_post_types;
+                } else {
+                    $init_array['newsletters_post_types'] = "{}";
+                }
+                //error_log('newsletters_post_types ' . $init_array['newsletters_post_types']);
+                $categories_args = array('hide_empty' => 0, 'show_count' => 1, 'taxonomy' => json_decode($init_array['newsletters_post_types']));
                 if ($categories = get_categories($categories_args)) {
                     $newsletters_categories = array();
                     $newsletters_posts_categories = array();
@@ -193,19 +205,6 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                 }
 
                 $init_array['newsletters_loading_image'] = $this -> url() . '/images/loading.gif';
-
-                if ($post_types = $this -> get_custom_post_types()) {
-                    $newsletters_post_types = array();
-                    $newsletters_post_types[] = array('text' => __('- Select -', 'wp-mailinglist'), 'value' => false);
-                    foreach ($post_types as $ptype_key => $ptype) {
-                        $newsletters_post_types[] = array('text' => $ptype -> labels -> name, 'value' => $ptype_key);
-                    }
-
-                    $newsletters_post_types = wp_json_encode($newsletters_post_types);
-                    $init_array['newsletters_post_types'] = $newsletters_post_types;
-                } else {
-                    $init_array['newsletters_post_types'] = "{}";
-                }
 
                 //tinymce.settings.newsletters_thumbnail_sizes
                 if ($image_sizes = $Html -> get_image_sizes()) {
@@ -6786,8 +6785,12 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             $subscriber_id = (int) sanitize_text_field(wp_unslash($_POST['Subscriber']['id']));
                             if (!empty($subscriber_id)) {
                                 $subscriber = $Subscriber -> get($subscriber_id);
-                                $mailinglists = array_map('sanitize_text_field', $_POST['Subscriber']['mailinglists']);
 
+                                $mailinglists = array();
+                                if(!empty($_POST['Subscriber']['mailinglists'])) {
+	                                $mailinglists = sanitize_text_field( $_POST['Subscriber']['mailinglists'] );
+                                }
+                                
                                 if (!empty($subscriber -> mailinglists)) {
                                     foreach ($subscriber -> mailinglists as $mid) {
                                         if (empty($mailinglists) || !in_array($mid, $mailinglists)) {
@@ -7276,7 +7279,10 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                             $user_id = $Db -> field('user_id', array('id' => $unsubscribe_id));
 
                                             if (!empty($user_id)) {
-                                                wp_delete_user($user_id);
+                                                if (!user_can( $user_id, 'manage_options' ) ) {
+                                                    // User is an administrator, so avoid the next operation.
+                                                    wp_delete_user($user_id);
+                                                }    
                                             }
                                         }
 
@@ -7297,7 +7303,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                         break;
                     case 'deleteuser'				:
                         if (!empty($_GET['user_id'])) {
-                            if (wp_delete_user((int) $_GET['user_id'])) {
+                            if (wp_delete_user((int) $_GET['user_id'])  && !user_can( $_GET['user_id'], 'manage_options' )) {
                                 $msgtype = 'message';
                                 $message = __('User has been deleted', 'wp-mailinglist');
                             } else {
@@ -9941,6 +9947,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             $message = __('Configuration settings cannot be reset', 'wp-mailinglist');
                         }
 
+                        $this -> update_option('sanitize_content', 1);
                         $this -> redirect($Html -> retainquery('reset=1', $this -> url), $msg_type, $message);
                         break;
                     default					:
@@ -9953,6 +9960,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             unset($_POST['save']);
                             delete_option('tridebugging');
                             $this -> update_option('inlinestyles', 0);
+                            $this -> update_option('sanitize_content', 0);
                             $this -> update_option('themeintextversion', 0);
                             $this -> update_option('emailarchive', 0);
                             $this -> update_option('showpostattachments', 0);

@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.9.9.7';
+		var $version = '4.9.9.8';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -1135,60 +1135,211 @@ function qp_scheduling() {
 		    die();
 	    }
 
-	    function ajax_posts_by_category() {
 		    
-		    check_ajax_referer('posts_by_category', 'security');
+	    function ajax_categories_by_post_type() {
 		    
-		    if (!current_user_can('edit_posts')) {
-			    wp_die(wp_kses_post(__('You do not have permission', 'wp-mailinglist')));
+		    // Verify nonce and permissions.
+		    check_ajax_referer( 'get_post_type_categories_nonce', 'security' );
+		    if ( ! current_user_can( 'edit_posts' ) ) {
+			    wp_die( __( 'You do not have permission', 'wp-mailinglist' ) );
 		    }
-		    
-		    header('Content-Type: application/json');
+
+			header( 'Content-Type: application/json' );
+		    // Get and sanitize the post type from POST or REQUEST.
+		    $post_type = '';
+		    if ( ! empty( $_POST['post_type'] ) ) {
+			    $post_type = sanitize_text_field( wp_unslash( $_POST['post_type'] ) );
+                if('shop_order_placehold' === $_POST['post_type'])
+                {
+	                $post_type = 'post';
+                }
+		    } elseif ( ! empty( $_REQUEST['post_type'] ) ) {
+			    $post_type = sanitize_text_field( wp_unslash( $_REQUEST['post_type'] ) );
+			    if('shop_order_placehold' === $_REQUEST['post_type'])
+			    {
+				    $post_type = 'post';
+			    }
+		    }
+
+		    if ( empty( $post_type ) ) {
+			    wp_send_json_error( 'No post type provided' );
+		    }
+
+		    // Determine the taxonomy to use.
+		    if ( 'post' === $post_type ) {
+			    // For standard posts, use the built-in "category"
+			    $taxonomy = 'category';
+		    } else {
+			    // For custom post types, get all registered taxonomies as objects.
+			    $taxonomies = get_object_taxonomies( $post_type, 'objects' );
+			    $taxonomy   = '';
+
+			    // Choose one taxonomy – for example, the first one that is hierarchical.
+			    if ( ! empty( $taxonomies ) ) {
+				    foreach ( $taxonomies as $tax_obj ) {
+					    if ( ! empty( $tax_obj->hierarchical ) ) {
+						    $taxonomy = $tax_obj->name;
+						    break;
+					    }
+				    }
+			    }
+
+			    // Fallback: if no hierarchical taxonomy is found, return an empty list.
+			    if ( empty( $taxonomy ) ) {
+				    wp_send_json( array( array( 'text' => __( '- Select -', 'wp-mailinglist' ), 'value' => false ) ) );
+			    }
+		    }
+
+		    // Retrieve the terms for the selected taxonomy.
+		    // For the 'post' post type, you might want to include even empty categories.
+		    $args = array(
+			    'taxonomy'   => $taxonomy,
+			    'hide_empty' => ( 'post' === $post_type ? false : true ),
+		    );
+		    $terms = get_terms( $args );
+
+		    // Build the listbox values array.
+		    $values = array();
+		    $values[] = array( 'text' => __( '- Select -', 'wp-mailinglist' ), 'value' => false );
+		    if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+			    foreach ( $terms as $term ) {
+				    $values[] = array( 'text' => $term->name, 'value' => $term->term_id );
+			    }
+		    }
+
+		    wp_send_json( $values );
+		    exit();
+	    }
+
+	    function ajax_posts_by_category() {
+
+		    // Verify the nonce.
+		    check_ajax_referer( 'posts_by_category', 'security' );
+
+		    // Check user capabilities.
+		    if ( ! current_user_can( 'edit_posts' ) ) {
+			    wp_die( __( 'You do not have permission', 'wp-mailinglist' ) );
+		    }
+
+		    header( 'Content-Type: application/json' );
 
 		    $posts_by_category = array();
 
-			$arguments = array(
-				'numberposts'			=>	"-1",
-				'orderby'				=>	'post_date',
-				'order'					=>	"DESC",
-				'post_type'				=>	"post",
-				'post_status'			=>	"publish",
-			);
+		    // Set up default query arguments.
+		    $arguments = array(
+			    'numberposts' => -1,
+			    'orderby'     => 'post_date',
+			    'order'       => 'DESC',
+			    'post_type'   => 'post',
+			    'post_status' => 'publish',
+		    );
 
-			if (!empty($_REQUEST['cat_id']) && $_REQUEST['cat_id'] > 0) {
-				$arguments['category'] = map_deep(wp_unslash($_REQUEST['cat_id']), 'sanitize_text_field');
-			}
+		    // Sanitize and retrieve the category (term) ID.
+		    $category_id = 0;
+		    if ( ! empty( $_REQUEST['cat_id'] ) && intval( $_REQUEST['cat_id'] ) > 0 ) {
+			    // Use absint to ensure it is an integer.
+			    $category_id = absint( $_REQUEST['cat_id'] );
+		    }
 
-			if (!empty($_REQUEST['post_type'])) {
-				$arguments['post_type'] = sanitize_text_field(wp_unslash($_REQUEST['post_type']));
-			}
-			
-			if (!empty($_REQUEST['language'])) {
-				$language = sanitize_text_field(wp_unslash($_REQUEST['language']));
-				$arguments['lang'] = $language;
-				$arguments['language'] = $language;
-				$this -> language_set($language);
-			}
+		    // Sanitize the post type if provided.
+		    if ( ! empty( $_REQUEST['post_type'] ) ) {
+			    $arguments['post_type'] = sanitize_text_field( $_REQUEST['post_type'] );
+			    if('shop_order_placehold' === $_REQUEST['post_type'])
+			    {
+				    $arguments['post_type'] = 'post';
+			    }
+		    }
 
-			if ($posts = get_posts($arguments)) {
-				$posts_by_category[] = array('text' => __('- Select -', 'wp-mailinglist'), 'value' => false);
+		    // Handle language, if provided.
+		    if ( ! empty( $_REQUEST['language'] ) ) {
+			    $language = sanitize_text_field( $_REQUEST['language'] );
+			    $arguments['lang'] = $language;
+			    $arguments['language'] = $language;
+			    // This method is assumed to be defined in your class.
+			    $this->language_set( $language );
+		    }
 
-				foreach ($posts as $post) {
-					if ($this -> language_do()) {
-						$posts_by_category[] = array('text' => esc_html($this -> language_use(sanitize_text_field(wp_unslash($_REQUEST['language'])), $post -> post_title, false)), 'value' => $post -> ID);
-					} else {
-						$posts_by_category[] = array('text' => esc_html($post -> post_title), 'value' => $post -> ID);
-					}
-				}
-			} else {
-				$posts_by_category[] = array('text' => __('No posts in this category', 'wp-mailinglist'), 'value' => false);
-			}
+		    // Build the tax_query if a valid category_id is provided.
+		    if ( $category_id ) {
 
-			echo wp_json_encode($posts_by_category);
+			    $tax_query = array();
 
+			    // If the post type is 'post', use the default 'category' taxonomy.
+			    if ( 'post' === $arguments['post_type'] ) {
+
+				    // Double-check that the term exists in the category taxonomy.
+				    $term = get_term_by( 'id', $category_id, 'category' );
+				    if ( $term && ! is_wp_error( $term ) ) {
+					    $tax_query[] = array(
+						    'taxonomy' => 'category',
+						    'field'    => 'term_id',
+						    'terms'    => $category_id,
+					    );
+				    }
+
+			    } else {
+				    // For custom post types, get all registered taxonomies as objects.
+				    $taxonomies = get_object_taxonomies( $arguments['post_type'], 'objects' );
+
+				    if ( ! empty( $taxonomies ) ) {
+					    foreach ( $taxonomies as $tax_obj ) {
+						    // Check if the term exists in this taxonomy.
+						    $term = get_term_by( 'id', $category_id, $tax_obj->name );
+						    if ( $term && ! is_wp_error( $term ) ) {
+							    $tax_query[] = array(
+								    'taxonomy' => $tax_obj->name,
+								    'field'    => 'term_id',
+								    'terms'    => $category_id,
+							    );
+						    }
+					    }
+				    }
+			    }
+
+			    // If we found at least one taxonomy where the term exists, add the tax_query.
+			    if ( ! empty( $tax_query ) ) {
+				    // Use OR so that posts from any matching taxonomy are returned.
+				    $arguments['tax_query'] = array_merge( array( 'relation' => 'OR' ), $tax_query );
+			    }
+		    }
+
+		    // Optional: Log arguments for debugging (remove or comment out on production).
+
+		    // Retrieve the posts.
+		    if ( $posts = get_posts( $arguments ) ) {
+			    // Add a default prompt option.
+			    $posts_by_category[] = array(
+				    'text'  => __( '- Select -', 'wp-mailinglist' ),
+				    'value' => false,
+			    );
+
+			    foreach ( $posts as $post ) {
+				    // Use your language methods if needed.
+				    if ( $this->language_do() ) {
+					    $posts_by_category[] = array(
+						    'text'  => __( $this->language_use( $_REQUEST['language'], $post->post_title, false ) ),
+						    'value' => $post->ID,
+					    );
+				    } else {
+					    $posts_by_category[] = array(
+						    'text'  => __( $post->post_title ),
+						    'value' => $post->ID,
+					    );
+				    }
+			    }
+		    } else {
+			    // No posts found for the given term.
+			    $posts_by_category[] = array(
+				    'text'  => __( 'No posts in this category', 'wp-mailinglist' ),
+				    'value' => false,
+			    );
+		    }
+
+		    // Output the JSON response.
+		    echo json_encode( $posts_by_category );
 		    exit();
-		    die();
 	    }
+
 
 	    function ajax_getposts() {
 		    
@@ -1311,11 +1462,11 @@ function qp_scheduling() {
 		    
 		    global $wpdb, $Html, $Subscriber, $Email, $Bounce, $Unsubscribe;
 
-		    $chart = (empty($_GET['chart'])) ? "bar" : sanitize_text_field(wp_unslash($_GET['chart']));
-		    $type = (empty($_GET['type'])) ? "days" : sanitize_text_field(wp_unslash($_GET['type']));
-			$fromdate = (empty($_GET['from'])) ? date_i18n("Y-m-d", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " -13 days")) : sanitize_text_field(wp_unslash($_GET['from']));
-			$todate = (empty($_GET['to'])) ? date_i18n("Y-m-d") : sanitize_text_field(wp_unslash($_GET['to']));
-			$history_id = (empty($_GET['history_id'])) ? false : sanitize_text_field(wp_unslash($_GET['history_id']));
+		    $chart = (empty($_GET['chart'])) ? "bar" : esc_html(sanitize_text_field(wp_unslash($_GET['chart'])));
+		    $type = (empty($_GET['type'])) ? "days" : esc_html(sanitize_text_field(wp_unslash($_GET['type'])));
+			$fromdate = (empty($_GET['from'])) ? date_i18n("Y-m-d", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " -13 days")) : esc_html(sanitize_text_field(wp_unslash(esc_sql($_GET['from']))));
+			$todate = (empty($_GET['to'])) ? date_i18n("Y-m-d") : esc_html(sanitize_text_field(wp_unslash(esc_sql($_GET['to']))));
+			$history_id = (empty($_GET['history_id'])) ? false : esc_html(sanitize_text_field(wp_unslash(esc_sql($_GET['history_id']))));
 
 			$history_condition = (!empty($history_id)) ? " `history_id` = '" . $history_id . "' AND" : false;
 			$history_condition = apply_filters('newsletters_stats_history_condition', $history_condition, $type, $fromdate, $todate, $history_id);
@@ -4512,10 +4663,10 @@ function qp_scheduling() {
 			}
 
 			if ($returnoutput) {
-				return $output;
+				return $this -> wpml_newsletters_conditional_sanitize_content($output);
 			}
              // phpcs:ignore
-			echo $output;
+			echo $this -> wpml_newsletters_conditional_sanitize_content($output);
 			exit();
 			die();
 		}
@@ -5709,7 +5860,10 @@ function qp_scheduling() {
                 $useridfrommail = get_user_by( 'email', $subscriber -> email );
                 $wpuserid = $useridfrommail->ID;
                 require_once(ABSPATH.'wp-admin/includes/user.php' );
-                wp_delete_user($wpuserid);
+                if (!user_can( $wpuserid, 'manage_options' ) ) {
+		            // User is an administrator, so avoid the next operation.
+		            wp_delete_user($wpuserid);
+	            }
             }
 			
 			return true;
@@ -5997,7 +6151,10 @@ function qp_scheduling() {
                                     $useridfrommail = get_user_by( 'email', $subscriber -> email );
                                     $wpuserid = $useridfrommail->ID;
                                     require_once(ABSPATH.'wp-admin/includes/user.php' );
-                                    wp_delete_user($wpuserid);
+                                    if (!user_can( $wpuserid, 'manage_options' ) ) {
+										// User is an administrator, so avoid the next operation.
+										wp_delete_user($wpuserid);
+									}					
                                 }
 
 
@@ -7682,7 +7839,7 @@ function qp_scheduling() {
 
 		function get_custom_post_types($removedefaults = true) {
 			if ($post_types = get_post_types(null, 'objects')) {
-				$default_types = array('post', 'page', 'attachment', 'revision', 'nav_menu_item');
+				$default_types = array( 'page', 'attachment', 'revision', 'nav_menu_item');
 
 				if ($removedefaults) {
 					foreach ($default_types as $dpt) {
@@ -8084,7 +8241,12 @@ function qp_scheduling() {
 						}
 						
 						if (!empty($form_styling['fieldshowlabel'])) {
-							echo '<label for="' . ((!empty($list) && $list == "checkboxes") ? '' : ( '' . $this -> pre . '-' . $optinid . $field -> slug . '' )) . '" class="control-label' . ((!empty($list) && $list == "checkboxes") ? ' form-inline' : '') . ' ' . $this -> pre . 'customfield ' . $this -> pre . 'customfield' . $field_id . '">'  . ((empty($form_field -> label)) ? __($field -> title) : __($form_field -> label)) . ((empty($form_field -> required)) ? ' <small class="small text-muted">' . __('(optional)', 'wp-mailinglist') . '</small>' : '') . '</label> ';	
+							$label_text = ((empty($form_field -> label)) ? __($field -> title) : __($form_field -> label)) ;
+							if ( $this->language_do() ) {
+
+								$label_text = $this->language_useordefault(  $label_text  ) ;
+							}
+							echo '<label for="' . ((!empty($list) && $list == "checkboxes") ? '' : ( '' . $this -> pre . '-' . $optinid . $field -> slug . '' )) . '" class="control-label' . ((!empty($list) && $list == "checkboxes") ? ' form-inline' : '') . ' ' . $this -> pre . 'customfield ' . $this -> pre . 'customfield' . $field_id . '">'  . ( $label_text ) . ((empty($form_field -> required)) ? ' <small class="small text-muted">' . __('(optional)', 'wp-mailinglist') . '</small>' : '') . '</label> ';
 							if (!empty($offsite)) {
 								echo '<br/>';
 							}
@@ -8118,6 +8280,11 @@ function qp_scheduling() {
 						}
 
 						$watermark = (empty($form_field -> placeholder)) ? ((empty($field -> watermark)) ? false : esc_html($field -> watermark)) : esc_html($form_field -> placeholder);
+						if ( $this->language_do() ) {
+
+							$watermark = $this->language_useordefault(  $watermark  ) ;
+						}
+			
 						if (!empty($watermark)) {
 							$placeholder = ' placeholder="' . $watermark . '"';
 						}
@@ -8136,8 +8303,15 @@ function qp_scheduling() {
 							$newsletters_is_management = false;
 						}
 
-						$placeholder =  ' placeholder="' . ((!empty($field -> watermark) && $watermark == true && empty($offsite)) ? esc_attr(wp_unslash(esc_html($field -> watermark))) : '') . '"';
+						$watermark = ((!empty($field -> watermark) && $watermark == true && empty($offsite)) ? esc_attr(wp_unslash(__($field -> watermark))) : '');
 
+						if ( $this->language_do() ) {
+				
+							$watermark = $this->language_useordefault(  $watermark  ) ;
+						}
+				
+						$placeholder =  ' placeholder="' . $watermark . '"';
+				
 						if (!empty($fieldset) && $fieldset == true) {
 							echo '<div id="newsletters-' . $optinid . $field -> slug . '-holder" class="form-group ' . $col . ' newsletters-fieldholder' . ((!empty($Subscriber -> errors[$field -> slug])) ? ' has-error' : '') . ' ' . ((empty($visible) && (!is_admin() || defined('DOING_AJAX'))) ? 'newsletters-fieldholder-hidden hidden' : 'newsletters-fieldholder-visible') . ' ' . $field -> slug . '">';
 						}
@@ -8153,7 +8327,14 @@ function qp_scheduling() {
 								echo '<label for="' . $this -> pre . '-' . $optinid . $field -> slug . '" class="control-label ' . $this -> pre . 'customfield ' . $this -> pre . 'customfield' . $field_id . '">';
 							}
 
-							echo esc_attr($field -> title);
+							$title = $field->title;
+							if ( $this->language_do() && !empty($title)) {
+
+								$watermark = $this->language_useordefault(  $title  ) ;
+							}
+
+							echo esc_attr($title);
+
 							if (empty($field -> required) || $field -> required == "N") { echo ' <small class="small text-muted">' . __('(optional)', 'wp-mailinglist') . '</small>'; };
 							echo '</label><br/>';
 						}
@@ -8254,6 +8435,11 @@ function qp_scheduling() {
 														echo '<option value="">' . __('- Select -', 'wp-mailinglist') . '</option>';
 
 														foreach ($lists as $list_id => $list_title) {
+															if ( $this->language_do() && !empty($list_title)) {
+
+																$list_title = $this->language_useordefault(  $list_title  ) ;
+															}
+		
 															echo '<option' . ((!empty($Subscriber -> data['list_id']) && $Subscriber -> data['list_id'][0] == $list_id) ? ' selected="selected"' : '') . ' value="' . $list_id . '">' . esc_html($list_title) . '</option>';
 														}
 
@@ -8269,6 +8455,11 @@ function qp_scheduling() {
 
 													if (!empty($lists)) {
 														foreach ($lists as $list_id => $list_title) {
+															if ( $this->language_do() && !empty($list_title)) {
+
+																$list_title = $this->language_useordefault(  $list_title  ) ;
+															}
+		
 															echo '<div class="checkbox">';
 															echo '<label class="wpmlcheckboxlabel ' . $this -> pre . '">';
 															echo '<input' . ((!empty($Subscriber -> data['list_id']) && in_array($list_id, $Subscriber -> data['list_id'])) ? ' checked="checked"' : '') . ' type="checkbox" name="list_id[]" value="' . $list_id . '" class="newsletters-list-checkbox" id="' . $optinid . $field -> slug . '-list-checkbox" /> ';
@@ -8294,7 +8485,13 @@ function qp_scheduling() {
 											} else {
 												if (empty($form_id) && (empty($list) || $list != "all")) {
 													echo '<label class="' . $this -> pre . 'customfield ' . $this -> pre . 'customfield' . $field_id . '">';
-													echo esc_attr($field -> title);
+													$title = $field -> title;
+													if ( $this->language_do() && !empty($title)) {
+
+														$title = $this->language_useordefault(  $title  ) ;
+													}
+													echo esc_attr($title);
+
 													if (empty($field -> required) || $field -> required == "N") { echo ' <small class="small text-muted">' . __('(optional)', 'wp-mailinglist') . '</small>'; };
 													echo '</label>';
 												}
@@ -8304,6 +8501,10 @@ function qp_scheduling() {
 
 												if ($list == "checkboxes") {
 													foreach ($lists as $list_id => $list_title) {
+														if ( $this->language_do() && !empty($list_title)) {
+															$list_title = $this->language_useordefault(  $list_title  ) ;
+														}
+		
 														echo '<div class="checkbox">';
 														echo '<label class="wpmlcheckboxlabel ' . $this -> pre . '">';
 														echo '<input' . ((!empty($Subscriber -> data['list_id']) && in_array($list_id, $Subscriber -> data['list_id'])) ? ' checked="checked"' : '') . ' type="checkbox" name="list_id[]" value="' . $list_id . '" class="newsletters-list-checkbox" id="' . $optinid . $field -> slug . '-list-checkbox" /> ';
@@ -8317,6 +8518,11 @@ function qp_scheduling() {
 													echo '<option value="">' . __('- Select -', 'wp-mailinglist') . '</option>';
 
 													foreach ($lists as $list_id => $list_title) {
+														if ( $this->language_do() && !empty($list_title)) {
+
+															$list_title = $this->language_useordefault(  $list_title  ) ;
+														}
+		
 														echo '<option' . ((!empty($Subscriber -> data['list_id']) && $Subscriber -> data['list_id'][0] == $list_id) ? ' selected="selected"' : '') . ' value="' . $list_id . '">' . esc_html($list_title) . '</option>';
 													}
 
@@ -8341,6 +8547,11 @@ function qp_scheduling() {
 
 							if (!empty($field -> newfieldoptions)) {
 								foreach ($field -> newfieldoptions as $option_id => $option_value) {
+									if ( $this->language_do() && !empty($option_value)) {
+
+										$option_value = $this->language_useordefault(  $option_value  ) ;
+									}
+		
 									$select = (!empty($fieldvalue) && ($fieldvalue == $option_id || $fieldvalue == esc_html($option_value))) ? 'selected="selected"' : '';
 									echo '<option ' . $select . ' value="' . $option_id . '">' . esc_html($option_value) . '</option>';
 								}
@@ -8351,6 +8562,10 @@ function qp_scheduling() {
 						case 'radio'			:
 							if (!empty($field -> newfieldoptions)) {
 								foreach ($field -> newfieldoptions as $option_id => $option_value) {
+									if ( $this->language_do() && !empty($option_value)) {
+
+										$option_value = $this->language_useordefault(  $option_value  ) ;
+									}		
 									$checked = ($fieldvalue == $option_id || (!empty($fieldvalue) && $fieldvalue == esc_html($value))) ? 'checked="checked"' : '';
 									echo '<div class="radio">';
 									echo '<label class="control-label wpmlradiolabel ' . $this -> pre . '">';
@@ -8368,6 +8583,9 @@ function qp_scheduling() {
 
 							if (!empty($field -> newfieldoptions)) {
 								foreach ($field -> newfieldoptions as $option_id => $option_value) {
+									if ( $this->language_do() && !empty($option_value)) {
+										$option_value = $this->language_useordefault(  $option_value  ) ;
+									}	
 									$checked = (!empty($subscribercheckboxes) && (is_array($subscribercheckboxes) && in_array($option_id, $subscribercheckboxes))) ? 'checked="checked"' : '';
 									echo '<div class="checkbox">';
 									echo '<label class="control-label wpmlcheckboxlabel ' . $this -> pre . '">';
@@ -8494,12 +8712,22 @@ function qp_scheduling() {
 					if (!empty($form_id) && !empty($form_field)) {
 						$caption = (empty($form_field -> caption)) ? ((empty($field -> caption)) ? false : esc_html($field -> caption)) : esc_html($form_field -> caption);
 						if (!empty($caption) && !empty($form_styling['fieldcaptions'])) {
+							if ( $this->language_do() && !empty($caption)) {
+
+								$caption = $this->language_useordefault(  $caption  ) ;
+							}
+		
 							echo '<p class="help-block">' . wp_unslash($caption) . '</p>';
 						}
 					} else {
 						$docaption = false;
 						if (!empty($field -> caption) && $showcaption == true && $field -> type != "special" && $field -> type != "hidden") {
-							echo '<p class="help-block ' . $this -> pre . 'customfieldcaption">' . __(wp_unslash($field -> caption)) . '</p>';
+							$caption = $field -> caption;
+							if ( $this->language_do() && !empty($caption)) {
+
+								$caption = $this->language_useordefault(  $caption  ) ;
+							}
+							echo '<p class="help-block ' . $this -> pre . 'customfieldcaption">' . __(wp_unslash($caption)) . '</p>';
 							$docaption = true;
 						}
 					}
@@ -9303,7 +9531,7 @@ function qp_scheduling() {
 		        $embed = new WP_oEmbed();
 		        if ($provider = $embed -> get_provider($url)) {
 			        if ($response = $embed -> fetch($provider, $url)) {
-				        if (empty($response -> errorCode)) {
+						if ($response !== false) {
 					        $play_icon = $this -> render_url('img/play.png', 'default');
 	
 							$imagesize = getimagesize($response -> thumbnail_url);
@@ -9358,33 +9586,39 @@ function qp_scheduling() {
 	    
 	    function replace_custom_field($matches = null) {
 			global $Db, $Field, $Html;
-
-          //  $user  = $subscriber = array();
-          //  print_r(get_class($this));
-           // print_r($this);
-           // if(property_exists(get_class($this), 'replace_subscriber')) {
-                $subscriber = $this->replace_subscriber;
-           // }
-          //  $user  = $subscriber = array();
-		//	if(property_exists(get_class($this), 'replace_user')) {
-                $user = $this->replace_user;
-        //    }
+	
+			//  $user  = $subscriber = array();
+			//  print_r(get_class($this));
+			// print_r($this);
+			// if(property_exists(get_class($this), 'replace_subscriber')) {
+			$subscriber = $this->replace_subscriber;
+			// }
+			//  $user  = $subscriber = array();
+			//	if(property_exists(get_class($this), 'replace_user')) {
+			$user = $this->replace_user;
+			//    }
+	
 			if (!empty($matches)) {
 				$atts = shortcode_parse_atts($matches['3']);
-
+	
 				if (!empty($atts['name'])) {
-					
+	
 					$namesplit = explode("|", $atts['name']);
-                
-					//if(is_array())
-					
-                    $atts['name'] = (is_array($namesplit) && count($namesplit) >= 1) ? $namesplit[0] : $namesplit;
+	
+	
+					$prefix = "";
+	
+					if(!empty($atts['prefix'])) {
+						$prefix = esc_html($atts['prefix']);
+					}
+	
+					$atts['name'] = (is_array($namesplit) && count($namesplit) >= 1) ? $namesplit[0] : $namesplit;
 					$defaultvalue = (is_array($namesplit) && count($namesplit) > 1) ? $namesplit[1] : (is_array($namesplit) ? $namesplit[0] : $namesplit);
-					//print_r($defaultvalue);
+	
 					$Db -> model = $Field -> model;
 					if ($field = $Db -> find(array('slug' => (is_array($atts['name']) ? implode(',',  $atts['name']) : $atts['name']) ))) {
 						$fieldoptions = $field -> newfieldoptions;
-
+	
 						if (!empty($subscriber)) {
 							switch ($field -> type) {
 								case 'pre_country'		:
@@ -9431,7 +9665,7 @@ function qp_scheduling() {
 										if (($varray = @unserialize($value)) !== false) {
 											$subscriber -> {$field -> slug} = '';
 											$newline = (empty($subscriber -> format) || $subscriber -> format == "html") ? "<br/>" : "\r\n";
-
+	
 											foreach ($varray as $vkey => $vval) {
 												$subscriber -> {$field -> slug} .= '&raquo; ' . esc_html($vval) . $newline;
 											}
@@ -9441,16 +9675,25 @@ function qp_scheduling() {
 											}
 										}
 									}
-
+	
 									$shortcode_replace = $subscriber -> {$field -> slug};
 									break;
 							}
-							
-							if (empty($shortcode_replace) && !empty($defaultvalue)) {
-								return $defaultvalue;
+	
+							if ($shortcode_replace == $field -> slug)
+							{
+								$shortcode_replace = "";
 							}
-
-							return $shortcode_replace;
+	
+	
+							if (empty($shortcode_replace) && !empty($defaultvalue)) {
+								return trim($prefix . $defaultvalue);
+							}
+	
+							if ($prefix . $shortcode_replace === $prefix) {
+								return trim($prefix . $shortcode_replace);
+							}
+							return  $prefix . $shortcode_replace;
 						} elseif (!empty($user)) {
 							switch ($field -> type) {
 								case 'email'				:
@@ -9468,7 +9711,7 @@ function qp_scheduling() {
 								default 					:
 									$importusersfields = $this -> get_option('importusersfields');
 									$importusersfieldspre = $this -> get_option('importusersfieldspre');
-		
+	
 									if (!empty($importusersfieldspre[$field -> id])) {
 										if (!empty($user -> {$importusersfieldspre[$field -> id]})) {
 											$shortcode_replace = $user -> {$importusersfieldspre[$field -> id]};
@@ -9480,23 +9723,27 @@ function qp_scheduling() {
 									}
 									break;
 							}
-							
+	
 							if (empty($shortcode_replace) && !empty($defaultvalue)) {
-								return $defaultvalue;
+								return trim($prefix . $defaultvalue);
 							}
-
-							return $shortcode_replace;
+	
+							if ($prefix . $shortcode_replace === $prefix) {
+								return trim($prefix . $shortcode_replace);
+							}
+	
+							return $prefix . $shortcode_replace;
 						}
 					} else {
 						if (isset($subscriber) && !empty($subscriber -> {$atts['name']})) {
-							return wp_unslash($subscriber -> {$atts['name']});
+							return $prefix . wp_unslash($subscriber -> {$atts['name']});
 						} elseif (isset($defaultvalue) &&  !empty($defaultvalue)) {
-							return $defaultvalue;
+							return trim($prefix . $defaultvalue) ;
 						}
 					}
 				}
 			}
-
+	
 			return false;
 		}
 
@@ -10006,6 +10253,213 @@ function qp_scheduling() {
 
         }
 
+		function sanitize_content( $content ) {
+			$allowed_tags = array(
+				// Document metadata
+				'html'      => array(),
+				'head'      => array(),
+				'title'     => array(),
+				'base'      => array( 'href' => true, 'target' => true ),
+				'link'      => array( 'href' => true, 'rel' => true, 'type' => true ),
+				'meta'      => array( 'name' => true, 'content' => true, 'charset' => true ),
+				'style'     => array( 'type' => true, 'media' => true ),
+
+				// Body and structural layout
+				'body'      => array(
+					'class'       => true,
+					'id'          => true,
+					'style'       => true,
+					'leftmargin'  => true,
+					'marginwidth' => true,
+					'topmargin'   => true,
+					'marginheight'=> true,
+					'offset'      => true,
+				),
+				'center'    => array(),
+				'section'   => array( 'class' => true, 'id' => true, 'style' => true ),
+				'nav'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'article'   => array( 'class' => true, 'id' => true, 'style' => true ),
+				'aside'     => array( 'class' => true, 'id' => true, 'style' => true ),
+				'header'    => array( 'class' => true, 'id' => true, 'style' => true ),
+				'footer'    => array( 'class' => true, 'id' => true, 'style' => true ),
+				'address'   => array( 'class' => true, 'id' => true, 'style' => true ),
+				'main'      => array( 'class' => true, 'id' => true, 'style' => true ),
+
+				// Text content and inline elements
+				'p'         => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+				'hr'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'pre'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'blockquote'=> array( 'cite' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'ol'        => array( 'class' => true, 'id' => true, 'style' => true, 'start' => true, 'type' => true ),
+				'ul'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'li'        => array( 'class' => true, 'id' => true, 'style' => true, 'value' => true ),
+				'dl'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'dt'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'dd'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'figure'    => array( 'class' => true, 'id' => true, 'style' => true ),
+				'figcaption'=> array( 'class' => true, 'id' => true, 'style' => true ),
+				'div'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'a'         => array( 'href' => true, 'title' => true, 'target' => true, 'rel' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'em'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'strong'    => array( 'class' => true, 'id' => true, 'style' => true ),
+				'small'     => array( 'class' => true, 'id' => true, 'style' => true ),
+				's'         => array( 'class' => true, 'id' => true, 'style' => true ),
+				'cite'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'q'         => array( 'cite' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'dfn'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'abbr'      => array( 'title' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'data'      => array( 'value' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'time'      => array( 'datetime' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'code'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'var'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'samp'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'kbd'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'sub'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'sup'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'i'         => array( 'class' => true, 'id' => true, 'style' => true ),
+				'b'         => array( 'class' => true, 'id' => true, 'style' => true ),
+				'u'         => array( 'class' => true, 'id' => true, 'style' => true ),
+				'mark'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'ruby'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'rt'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'rp'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'bdi'       => array( 'class' => true, 'id' => true, 'style' => true ),
+				'bdo'       => array( 'dir' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'span'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'br'        => array( 'class' => true, 'id' => true, 'style' => true ),
+				'wbr'       => array( 'class' => true, 'id' => true, 'style' => true ),
+
+				// Heading tags (h1 to h6)
+				'h1'        => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+				'h2'        => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+				'h3'        => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+				'h4'        => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+				'h5'        => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+				'h6'        => array( 'class' => true, 'id' => true, 'style' => true, 'align' => true ),
+
+				// Multimedia elements
+				'img'       => array( 'src' => true, 'alt' => true, 'width' => true, 'height' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'iframe'    => array( 'src' => true, 'width' => true, 'height' => true, 'frameborder' => true, 'allowfullscreen' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'embed'     => array( 'src' => true, 'type' => true, 'width' => true, 'height' => true, 'allowfullscreen' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'object'    => array( 'data' => true, 'type' => true, 'width' => true, 'height' => true, 'classid' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'param'     => array( 'name' => true, 'value' => true ),
+				'video'     => array( 'src' => true, 'controls' => true, 'width' => true, 'height' => true, 'poster' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'audio'     => array( 'src' => true, 'controls' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'source'    => array( 'src' => true, 'type' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'track'     => array( 'kind' => true, 'src' => true, 'srclang' => true, 'label' => true ),
+				'canvas'    => array( 'width' => true, 'height' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'svg'       => array( 'width' => true, 'height' => true, 'viewBox' => true, 'xmlns' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'math'      => array( 'class' => true, 'id' => true, 'style' => true ),
+
+				// Forms and interactive content
+				'form'      => array( 'action' => true, 'method' => true, 'class' => true, 'id' => true, 'style' => true, 'enctype' => true, 'accept-charset' => true, 'name' => true ),
+				'fieldset' => array( 'disabled' => true, 'form' => true, 'name' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'legend'    => array( 'class' => true, 'id' => true, 'style' => true ),
+				'label'     => array( 'for' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'input'     => array(
+					'type'        => true,
+					'name'        => true,
+					'value'       => true,
+					'placeholder' => true,
+					'checked'     => true,
+					'disabled'    => true,
+					'readonly'    => true,
+					'size'        => true,
+					'maxlength'   => true,
+					'min'         => true,
+					'max'         => true,
+					'step'        => true,
+					'class'       => true,
+					'id'          => true,
+					'style'       => true,
+				),
+				'button'    => array(
+					'type'     => true,
+					'name'     => true,
+					'value'    => true,
+					'disabled' => true,
+					'class'    => true,
+					'id'       => true,
+					'style'    => true,
+				),
+				'select'    => array( 'name' => true, 'multiple' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'datalist'  => array( 'class' => true, 'id' => true, 'style' => true ),
+				'optgroup'  => array( 'label' => true, 'disabled' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'option'    => array( 'value' => true, 'selected' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'textarea'  => array( 'name' => true, 'rows' => true, 'cols' => true, 'placeholder' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'output'    => array( 'for' => true, 'form' => true, 'name' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'progress'  => array( 'max' => true, 'value' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'meter'     => array( 'min' => true, 'max' => true, 'value' => true, 'low' => true, 'high' => true, 'optimum' => true, 'class' => true, 'id' => true, 'style' => true ),
+
+				// Table elements
+				'table'     => array( 'class' => true, 'id' => true, 'style' => true, 'border' => true, 'cellpadding' => true, 'cellspacing' => true, 'width' => true, 'height' => true, 'align' => true ),
+				'caption'   => array( 'class' => true, 'id' => true, 'style' => true ),
+				'colgroup'  => array( 'span' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'col'       => array( 'span' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'thead'     => array( 'class' => true, 'id' => true, 'style' => true, 'width' => true, 'height' => true ),
+				'tbody'     => array( 'class' => true, 'id' => true, 'style' => true, 'width' => true, 'height' => true ),
+				'tfoot'     => array( 'class' => true, 'id' => true, 'style' => true, 'width' => true, 'height' => true ),
+				'tr'        => array( 'class' => true, 'id' => true, 'style' => true, 'valign' => true, 'width' => true, 'height' => true ),
+				'td'        => array( 'colspan' => true, 'rowspan' => true, 'headers' => true, 'class' => true, 'id' => true, 'style' => true, 'align' => true, 'valign' => true, 'width' => true, 'height' => true ),
+				'th'        => array( 'colspan' => true, 'rowspan' => true, 'headers' => true, 'scope' => true, 'class' => true, 'id' => true, 'style' => true, 'width' => true, 'height' => true ),
+
+				// Interactive and additional elements
+				'details'   => array( 'open' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'summary'   => array( 'class' => true, 'id' => true, 'style' => true ),
+				'dialog'    => array( 'open' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'menu'      => array( 'class' => true, 'id' => true, 'style' => true ),
+				'menuitem'  => array( 'label' => true, 'icon' => true, 'class' => true, 'id' => true, 'style' => true ),
+				'template'  => array( 'class' => true, 'id' => true, 'style' => true ),
+			);
+
+			// Add width and height attributes to specific table-related tags
+			$table_tags = array('table', 'tr', 'td', 'th', 'tfoot', 'tbody');
+			foreach( $table_tags as $tag ) {
+				if ( isset($allowed_tags[$tag]) ) {
+					$allowed_tags[$tag]['width']  = true;
+					$allowed_tags[$tag]['height'] = true;
+				}
+			}
+
+			if ( ! function_exists( 'wp_kses' ) ) {
+				return $content;
+			}
+
+			try {
+				$sanitized_content = wp_kses( $content, $allowed_tags );
+				return $sanitized_content;
+			} catch ( Exception $e ) {
+				error_log( 'Sanitization error: ' . $e->getMessage() );
+				return $content;
+			}
+		}
+
+
+
+		function wpml_newsletters_conditional_sanitize_content( $content ) {
+			// Allow unfiltered HTML for users who have the capability.
+			if ( current_user_can( 'unfiltered_html' ) ) {
+				//return $content;
+			}
+			if($this -> get_option('sanitize_content'))
+			{
+				$content = $this -> sanitize_content($content);
+			}
+			// Otherwise, sanitize using wp_kses_post.
+			return  $content ;
+		}
+
+
+		// Filter callback for user messages.
+		function newsletters_sanitize_user_message( $message, $user ) {
+			$message = $this -> wpml_newsletters_conditional_sanitize_content( $message );
+			return $message;
+		}
+		// Filter callback for subscriber messages.
+		function newsletters_sanitize_subscriber_message( $message, $subscriber ) {
+			$message = $this -> wpml_newsletters_conditional_sanitize_content( $message );
+			return $message;
+		}
 
 		function execute_mail($subscriber = null, $user = null, $subject = null, $message = null, $attachments = null, $history_id = null, $eunique = null, $shortlinks = true, $emailtype = "newsletter") {
 			global $wpdb, $Db, $Html, $Email, $phpmailer, $Mailinglist, $Subscriber,
@@ -10948,21 +11402,39 @@ function qp_scheduling() {
 		}
 
 		function log_error($error = null) {
-			$debugging = get_option('tridebugging');
-			$this -> debugging = (empty($debugging)) ? $this -> debugging : true;
+            $debugging = get_option('tridebugging');
+            $this->debugging = (empty($debugging)) ? $this->debugging : true;
 
-			if (!empty($error)) {
-				if (is_array($error) || is_object($error)) {
-					$error = '<pre>' . print_r($error, true) . '</pre>';
-				}
-				
-				error_log(date_i18n('[Y-m-d H:i:s] ') . $error . PHP_EOL, 3, NEWSLETTERS_LOG_FILE);
+            if (!empty($error)) {
+                // Recursively sanitize the input to handle arrays/objects
+                if (is_array($error) || is_object($error)) {
+                    $error = $this->sanitize_recursive($error);
+                    $error = '<pre>' . print_r($error, true) . '</pre>';
+                } else {
+                    $error = sanitize_text_field($error); // Sanitize scalar values
+                }
 
-				return true;
-			}
+                error_log(date_i18n('[Y-m-d H:i:s] ') . $error . PHP_EOL, 3, NEWSLETTERS_LOG_FILE);
 
-			return false;
-		}
+                return true;
+            }
+
+            return false;
+        }
+
+        // Helper function to recursively sanitize arrays/objects
+        private function sanitize_recursive($data) {
+            if (is_array($data)) {
+                return array_map([$this, 'sanitize_recursive'], $data);
+            } elseif (is_object($data)) {
+                foreach ($data as $key => $value) {
+                    $data->$key = $this->sanitize_recursive($value);
+                }
+                return $data;
+            } else {
+                return sanitize_text_field($data);
+            }
+        }
 
 		/**
 		 * Prints a variable or an array encapsulated in PRE tags
@@ -11994,6 +12466,15 @@ function qp_scheduling() {
 					$version = '4.9.7';
 				}
 
+
+                if (version_compare($cur_version, "4.9.9.8") < 0) {
+
+                    if (empty(get_option('sanitize_content'))) {
+                        $this -> add_option('sanitize_content', true);
+                    }
+
+                    $version = '4.9.9.8';
+                }
 
 
 
@@ -13561,7 +14042,7 @@ function qp_scheduling() {
 						$img -> removeAttribute('height');
 					}
 	
-					$html = urldecode($dom -> saveHTML());
+					$html = ($dom -> saveHTML());
 					$html = trim(preg_replace(array("/^\<\!DOCTYPE.*?<html><body>/si", "!</body></html>$!si"), "", $html));
 				}
 			}
@@ -13587,7 +14068,7 @@ function qp_scheduling() {
 		                }
 		            }
 
-		            $html = urldecode($dom->saveHTML());
+		            $html = ($dom->saveHTML());
 		            $html = trim(preg_replace(array("/^\<\!DOCTYPE.*?<html><body>/si", "!</body></html>$!si"), "", $html));
 		        }
 		    }

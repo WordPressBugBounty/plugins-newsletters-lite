@@ -11,6 +11,8 @@ $page = isset($_GET['page']) ? esc_html($_GET['page']) : '';
 	
 var $ajaxnonce_posts_by_category = '<?php echo esc_html(wp_create_nonce('posts_by_category')) ?>';
 	
+var $ajaxnonce_categories_by_post_type = '<?php echo esc_html(wp_create_nonce('get_post_type_categories_nonce')); ?>';
+
 var wpmlAjax = '<?php echo esc_url_raw($this -> url()); ?>/<?php echo esc_html($this -> plugin_name); ?>-ajax.php';
 <?php if ($this -> language_do()) : ?>
 	var newsletters_ajaxurl = '<?php echo esc_url_raw( admin_url('admin-ajax.php?lang=' . $this -> language_current() . '&')) ?>';

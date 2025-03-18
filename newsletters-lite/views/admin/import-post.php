@@ -13,7 +13,11 @@
 	        }
 
 	        // Validate subscriber data
-	        if (is_array($subscriber) && !empty($subscriber['email']) && filter_var($subscriber['email'], FILTER_VALIDATE_EMAIL) && !empty($subscriber['firstname']) && !empty($subscriber['lastname'])) {
+	        if (
+                is_array($subscriber) &&
+                !empty($subscriber['email']) &&
+                filter_var($subscriber['email'], FILTER_VALIDATE_EMAIL)
+            ) {
 	            $cleanedSubscribers[] = $subscriber;
 	        }
 	    }

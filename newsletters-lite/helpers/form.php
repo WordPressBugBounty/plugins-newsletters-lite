@@ -107,8 +107,10 @@ class wpmlFormHelper extends wpMailPlugin
 		ob_start(); ?>
 		
 		<?php if (!empty($buttons)) : ?>
+			<?php $language =  $this -> language_default(); ?>
 			<?php foreach ($buttons as $bkey => $bval) : ?>
-				<label><input id="<?php echo esc_html($Html -> field_id($name)); ?><?php echo esc_html( $bval); ?>" <?php echo ((!empty($value) && $value == $bkey) || (empty($value) && !empty($default) && $bkey == $default)) ? 'checked="checked"' : ''; ?> onclick="<?php echo wp_kses_post($onclick); ?>" type="radio" name="<?php echo esc_html($name); ?>" value="<?php echo esc_attr(wp_unslash($bkey)); ?>" /> <?php echo esc_html($bval); ?></label><?php echo esc_html( $separator); ?>
+				<?php  $text = $this -> language_use($language, $this -> get_option($bval)); ?>
+                <label><input id="<?php echo $Html -> field_id($name); ?><?php echo $bval; ?>" <?php echo ((!empty($value) && $value == $bkey) || (empty($value) && !empty($default) && $bkey == $default)) ? 'checked="checked"' : ''; ?> onclick="<?php echo $onclick; ?>" type="radio" name="<?php echo $name; ?>" value="<?php echo esc_attr(wp_unslash($bkey)); ?>" /> <?php echo __($text); ?></label><?php echo $separator; ?>
 			<?php endforeach; ?>
 		<?php endif; ?>
 		
@@ -130,10 +132,13 @@ class wpmlFormHelper extends wpMailPlugin
 		extract($r, EXTR_SKIP);
 		
 		ob_start(); ?>
+		<?php $language =  $this -> language_default(); ?>
+
 		
 		<?php if (!empty($boxes)) : ?>
 			<?php foreach ($boxes as $bkey => $bval) : ?>
-				<label><input <?php echo (is_array($Html -> field_value($name)) && in_array($bkey, $Html -> field_value($name))) ? 'checked="checked"' : ''; ?> type="checkbox" name="<?php echo esc_html($name); ?>" id="<?php echo esc_html( $Html -> field_id($name)); ?>checklist<?php echo esc_html($bkey); ?>" value="<?php echo esc_attr(wp_unslash($bkey)); ?>" /> <?php echo esc_html($bval); ?></label><?php echo esc_html($separator); ?>
+				<?php  $text = $this -> language_use($language, $this -> get_option($bval)); ?>
+                <label><input <?php echo (is_array($Html -> field_value($name)) && in_array($bkey, $Html -> field_value($name))) ? 'checked="checked"' : ''; ?> type="checkbox" name="<?php echo $name; ?>" id="<?php echo $Html -> field_id($name); ?>checklist<?php echo $bkey; ?>" value="<?php echo esc_attr(wp_unslash($bkey)); ?>" /> <?php echo __($text); ?></label><?php echo $separator; ?>
 			<?php endforeach; ?>
 		<?php endif; ?>
 		

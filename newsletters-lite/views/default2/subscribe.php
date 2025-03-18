@@ -403,7 +403,14 @@ $allowedProtocols = [ 'http', 'https' ];
 {
     ?>
     <div class="newsletters-form-styling_beforeform" ><?php
-    echo wpautop(wp_kses(wp_unslash($form -> styling_beforeform), $allowed_html, $allowedProtocols)); ?>
+    
+    $styling_beforeform = $form -> styling_beforeform;
+    if ( $this->language_do() && !empty($styling_beforeform)) {
+
+        $styling_beforeform = $this->language_useordefault(  $styling_beforeform  ) ;
+    }
+
+    echo wpautop(wp_kses(wp_unslash($styling_beforeform), $allowed_html, $allowedProtocols));  ?>
     </div>
     <?php
 }
@@ -695,7 +702,13 @@ if(!isset($errors)) {$errors = array();}
 {
     ?>
     <div class="newsletters-form-styling_afterform" >
-    <?php echo wpautop(wp_kses(wp_unslash($form -> styling_afterform),  $allowed_html, $allowedProtocols)); ?>
+    <?php
+        $styling_afterform = $form -> styling_afterform;
+        if ( $this->language_do() && !empty($styling_afterform)) {
+
+            $styling_afterform = $this->language_useordefault(  $styling_afterform  ) ;
+        }
+        echo wpautop(wp_kses(wp_unslash($styling_afterform),  $allowed_html, $allowedProtocols)); ?>
     </div>
 <?php
 } ?>

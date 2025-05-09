@@ -45,6 +45,8 @@ if($disable_drag_and_drop_builder)
     $builderon = 0;
 }
 
+$validation_status = $this -> ci_serial_valid();
+
 $grapeJS_editor = false;
 $grapeJS_inDB = get_post_meta($post_ID, 'using_grapeJS', true);
 //echo $post_ID . ' ' . $grapeJS_inDB;
@@ -102,12 +104,12 @@ $page = $screen -> id;
 					</div>
 					<?php do_action('edit_form_after_title', $post); ?>
                     <?php if($mailtype != "api" && !$disable_drag_and_drop_builder) { ?>
-                    <?php if ($isSerialKeyValid) { ?>
+                    <?php if (!is_array($validation_status)  && $validation_status) { ?>
 
 
                         <div id="usebuilder-wrapper">
                             <button type="button" name="usebuilder" id="usebuilder" class="btn btn-lg btn-success <?php echo (!empty($builderon) && $grapeJS_inDB) ? 'active builderon' : 'builderoff'; ?>">
-                                <i class="fa fa-eye fa-fw"></i> <?php _e('Use drag & drop builder', 'wp-mailinglist'); ?> <sup>beta</sup>
+                                <i class="fa fa-eye fa-fw"></i> <?php _e('Drag & Drop Builder', 'wp-mailinglist'); ?>
                              </button>
 
                         <script type="text/javascript">
@@ -223,9 +225,9 @@ $page = $screen -> id;
                                         assets: assets,
                                         upload: newsletters_ajaxurl + "action=newsletters_importmedia",
                                     },
-                                    plugins: ['gjs-preset-newsletter', 'gjs-plugin-wordpress'],
+                                    plugins: ['grapesjs-preset-newsletter', 'gjs-plugin-wordpress'],
                                     pluginsOpts: {
-                                        'gjs-preset-newsletter': {
+                                        'grapesjs-preset-newsletter': {
                                             modalTitleImport: 'Import template',
                                             // ... other options
                                         },
@@ -322,8 +324,8 @@ $page = $screen -> id;
                         {
                             ?>
                             <div id="usebuilder-wrapper">
-                                <a type="button"  id="usebuilder" class="btn btn-md btn-success" style="text-decoration: none;"  href="<?php echo admin_url('admin.php?page=' . $this -> sections -> lite_upgrade);   ?>">
-                                    <i class="fa fa-eye fa-fw"></i> <?php _e('Use drag & drop builder (PRO only)', 'wp-mailinglist'); ?> <sup>beta</sup>
+                                <a type="button"  id="usebuilder" class="btn btn-md btn-success" style="text-decoration: none;"  target="_blank" href="<?php echo admin_url('admin.php?page=' . $this -> sections -> lite_upgrade);   ?>">
+                                    <i class="fa fa-eye fa-fw"></i> <?php _e('Drag & Drop Builder', 'wp-mailinglist'); ?> <sup>(PRO only)</sup>
                                 </a>
                             </div>
                             <?php

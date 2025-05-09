@@ -24,14 +24,11 @@
 			<input type="hidden" name="instance[<?php echo $ikey; ?>]" value="<?php echo esc_attr(wp_unslash(__($ival))); ?>" />
 		<?php endif; ?>
 	<?php endforeach; ?>
-	
 	<?php do_action('newsletters_subscribe_inside_form_top', $instance); ?>
 
 	<div id="<?php echo (int) $widget_id; ?>-fields" class="newsletters-form-fields">
-		<?php 
-		
+		<?php
 		$list_id = (empty($_REQUEST['list_id'])) ? (int) $instance['list'] : (int) $_REQUEST['list_id'];
-		
 		?>
 		<?php if ($fields = $FieldsList -> fields_by_list($list_id)) : ?>
 			<?php foreach ($fields as $field) : ?>
@@ -50,8 +47,7 @@
 	<?php if ($captcha_type = $this -> use_captcha(esc_html($instance['captcha']))) : ?>		
 		<?php if ($captcha_type == "rsc") : ?>
 			<div class="form-group<?php echo (!empty($errors['captcha_code'])) ? ' has-error' : ''; ?> newsletters-fieldholder newsletters-captcha newsletters-captcha-wrapper">
-		    	<?php 
-		    	
+		    	<?php
 		    	$captcha = new ReallySimpleCaptcha();
 		    	$captcha -> bg = $Html -> hex2rgb($this -> get_option('captcha_bg')); 
 		    	$captcha -> fg = $Html -> hex2rgb($this -> get_option('captcha_fg'));
@@ -62,10 +58,8 @@
 		    	$captcha_word = $captcha -> generate_random_word();
 		    	$captcha_prefix = mt_rand();
 		    	$captcha_filename = $captcha -> generate_image($captcha_prefix, $captcha_word);
-		        $captcha_file = plugins_url() . '/really-simple-captcha/tmp/' . $captcha_filename; 
-		    	
+		        $captcha_file = plugins_url() . '/really-simple-captcha/tmp/' . $captcha_filename;
 		    	?>
-		    	
 		    	<?php if (!empty($form_styling['fieldlabels'])) : ?>
 	            	<label class="control-label" for="<?php echo esc_html($this -> pre); ?>captcha_code"><?php esc_html_e('Please fill in the code below:', 'wp-mailinglist'); ?></label>
 	            <?php endif; ?>
@@ -75,9 +69,47 @@
 			</div>
 		<?php elseif ($captcha_type == "recaptcha") : ?>
 			<div id="newsletters-<?php echo esc_html($form -> id); ?>-recaptcha-challenge" class="newsletters-recaptcha-challenge"></div>
-		<?php endif; ?>
-		
-		<?php if (!empty($errors['captcha_code']) && !empty($form_styling['fielderrors'])) : ?>
+		<?php elseif ($captcha_type == "recaptcha3") : ?>
+            <input type="hidden" name="g-recaptcha-response" id="<?php echo (int) $widget_id; ?>-recaptcha-response" value="" />
+        <?php elseif ($captcha_type == "hcaptcha") : ?>
+            <?php if (function_exists('HCaptcha\Helpers\HCaptcha::form_display')) : ?>
+                <div class="form-group newsletters-fieldholder newsletters-captcha-wrapper">
+                    <?php
+                    $args = [
+                        'action' => 'hcaptcha_wpmailinglist',
+                        'name'   => 'hcaptcha_wpmailinglist_nonce',
+                        'id'     => [
+                            'source'  => ['wp-mailinglist'],
+                            'form_id' => $widget_id,
+                        ],
+                    ];
+                    HCaptcha\Helpers\HCaptcha::form_display($args);
+                    ?>
+                    <?php if (!empty($errors['captcha_code'])) : ?>
+                        <div id="newsletters-<?php echo (int) $widget_id; ?>-captcha-error" class="newsletters-field-error alert alert-danger">
+                            <i class="fa fa-exclamation-triangle"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        <?php elseif ( $captcha_type == 'turnstile' ) : ?>
+            <div
+                id="newsletters-<?php echo $widget_id; ?>-turnstile-challenge"
+                class="newsletters-turnstile-challenge"
+                data-sitekey="<?php echo esc_attr( $this->get_option( 'turnstile_sitekey' ) ); ?>"
+                data-theme="light"
+                data-size="normal"
+
+            ></div>
+
+            <input type="hidden"
+                name="cf-turnstile-response"
+                id="newsletters-<?php echo $widget_id; ?>-turnstile-response"
+                value=""/>
+
+        <?php endif; ?>
+
+        <?php if (!empty($errors['captcha_code']) && !empty($form_styling['fielderrors'])) : ?>
 			<div id="newsletters-<?php echo esc_html( $number); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
 				<i class="fa fa-exclamation-triangle"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
 			</div>
@@ -106,48 +138,85 @@
 <?php do_action('newsletters_subscribe_after_form', $instance); ?>
 
 <script type="text/javascript">
-jQuery(document).ready(function() {
-	<?php 
-	
-	$ajax = esc_html($instance['ajax']); 
-	$scroll = esc_html($instance['scroll']);
-	
-	?>
-	<?php if (!empty($ajax) && $ajax == "Y") : ?>
-		jQuery('#<?php echo (int) $widget_id; ?>-form').submit(function() {
-			jQuery('#<?php echo (int) $widget_id; ?>-loading').show();
-			jQuery('#<?php echo (int) $widget_id; ?>-button').button('disable');
-			jQuery('#<?php echo (int) $widget_id; ?>-form .newsletters-fieldholder :input').attr('readonly', true);
-			jQuery('div.newsletters-field-error', this).slideUp();
-			jQuery(this).find('.newsletters_fielderror').removeClass('newsletters_fielderror');
-		
-			jQuery.ajax({
-				url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
-				data: jQuery('#<?php echo (int) $widget_id; ?>-form').serialize(),
-				type: "POST",
-				cache: false,
-				success: function(response) {
-					jQuery('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
-					<?php if (!empty($scroll)) : ?>
-						wpml_scroll(jQuery('#<?php echo (int) $widget_id; ?>'));
-					<?php endif; ?>
-				}
-			});
-			
-			return false;
-		});
-	<?php endif; ?>
-	
-	if (jQuery.isFunction(jQuery.fn.select2)) {
-		jQuery('.newsletters select').select2();
-	}
-		
-	if (jQuery.isFunction(jQuery.fn.button)) {	
-		jQuery('.widget_newsletters .button').button();
-	}
-	
-	jQuery('input:not(:button,:submit),textarea,select').focus(function(element) {
-		jQuery(this).removeClass('newsletters_fielderror').nextAll('div.newsletters-field-error').slideUp();	
-	});
-});
+jQuery(document).ready(function($) {
+    <?php
+    $ajax = __($instance['ajax']);
+    $scroll = __($instance['scroll']);
+    $captcha_type = $this->use_captcha(__($instance['captcha']));
+    ?>
+
+    <?php if ($captcha_type == "recaptcha3") : ?>
+        // Handle reCAPTCHA v3 for both AJAX and non-AJAX submissions
+        $('#<?php echo (int) $widget_id; ?>-form').on('submit', function(e) {
+            e.preventDefault();
+            var $form = $(this);
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('<?php echo esc_js($this->get_option('recaptcha3_publickey')); ?>', {action: 'subscribe'}).then(function(token) {
+                    $('#<?php echo (int) $widget_id; ?>-recaptcha-response').val(token);
+
+                    <?php if (!empty($ajax) && $ajax == "Y") : ?>
+                        // AJAX submission
+                        $('#<?php echo (int) $widget_id; ?>-loading').show();
+                        $('#<?php echo (int) $widget_id; ?>-button').button('disable');
+                        $('#<?php echo (int) $widget_id; ?>-form .newsletters-fieldholder :input').attr('readonly', true);
+                        $('div.newsletters-field-error', $form).slideUp();
+                        $form.find('.newsletters_fielderror').removeClass('newsletters_fielderror');
+
+                        $.ajax({
+                            url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
+                            data: $form.serialize(),
+                            type: "POST",
+                            cache: false,
+                            success: function(response) {
+                                $('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
+                                <?php if (!empty($scroll)) : ?>
+                                    wpml_scroll($('#<?php echo (int) $widget_id; ?>'));
+                                <?php endif; ?>
+                            }
+                        });
+                    <?php else : ?>
+                        // Non-AJAX submission
+                        $form.off('submit').submit();
+                    <?php endif; ?>
+                });
+            });
+        });
+    <?php elseif (!empty($ajax) && $ajax == "Y") : ?>
+        // Existing AJAX logic for non-reCAPTCHA v3 cases
+        $('#<?php echo (int) $widget_id; ?>-form').submit(function() {
+            $('#<?php echo (int) $widget_id; ?>-loading').show();
+            $('#<?php echo (int) $widget_id; ?>-button').button('disable');
+            $('#<?php echo (int) $widget_id; ?>-form .newsletters-fieldholder :input').attr('readonly', true);
+            $('div.newsletters-field-error', this).slideUp();
+            $(this).find('.newsletters_fielderror').removeClass('newsletters_fielderror');
+
+            $.ajax({
+                url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
+                data: $(this).serialize(),
+                type: "POST",
+                cache: false,
+                success: function(response) {
+                    $('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
+                    <?php if (!empty($scroll)) : ?>
+                        wpml_scroll($('#<?php echo (int) $widget_id; ?>'));
+                    <?php endif; ?>
+                }
+            });
+
+            return false;
+        });
+    <?php endif; ?>
+
+    if ($.isFunction($.fn.select2)) {
+        $('.newsletters select').select2();
+    }
+
+    if ($.isFunction($.fn.button)) {
+        $('.widget_newsletters .button').button();
+    }
+
+    $('input:not(:button,:submit),textarea,select').focus(function(element) {
+        $(this).removeClass('newsletters_fielderror').nextAll('div.newsletters-field-error').slideUp();
+    });
 </script>

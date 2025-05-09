@@ -24,7 +24,7 @@ if (!isset($post))
 	<h1><?php esc_html_e('Save a Template', 'wp-mailinglist'); ?></h1>
     
     <p>
-    	<?php esc_html_e('This is a full HTML template and should contain at least <code>[newsletters_main_content]</code> somewhere.', 'wp-mailinglist'); ?><br/>
+    	<?php _e('This is a full HTML template and should contain at least <code>[newsletters_main_content]</code> somewhere.', 'wp-mailinglist'); ?><br/>
         <?php esc_html_e('You may use any of the', 'wp-mailinglist'); ?> <a class="button button-secondary" href="" onclick="jQuery.colorbox({title:'<?php esc_html_e('Shortcodes/Variables', 'wp-mailinglist'); ?>', maxHeight:'80%', maxWidth:'80%', href:'<?php echo esc_url_raw( admin_url('admin-ajax.php')) ?>?action=<?php echo esc_html($this -> pre); ?>setvariables&security=<?php echo esc_html( wp_create_nonce('setvariables')); ?>'}); return false;"> <?php esc_html_e('shortcodes/variables', 'wp-mailinglist'); ?></a> <?php esc_html_e('inside templates.', 'wp-mailinglist'); ?><br/>
         <?php esc_html_e('Upload your images, stylesheets and other elements via FTP or the media uploader in WordPress.', 'wp-mailinglist'); ?><br/>
         <?php esc_html_e('Please ensure that all links, images and other references use full, absolute URLs.', 'wp-mailinglist'); ?>
@@ -46,11 +46,11 @@ if (!isset($post))
                     
                     <p class="builder_tabs">
                         <label <?php echo ($Html -> field_value('Theme[type]') == "upload") ? 'class="active"' : ''; ?> ><input <?php echo ($Html -> field_value('Theme[type]') == "upload") ? 'checked="checked"' : ''; ?> onclick="newsletters_theme_change_type(this.value);" type="radio" name="Theme[type]" value="upload" id="Theme.type_upload" /> <?php _e('Upload an HTML File', 'wp-mailinglist'); ?></label>
-                        <label <?php echo ($Html -> field_value('Theme[type]') == "paste") ? 'class="active"' : ''; ?>><input <?php echo ($Html -> field_value('Theme[type]') == "paste") ? 'checked="checked"' : ''; ?> onclick="newsletters_theme_change_type(this.value);" type="radio" name="Theme[type]" value="paste" id="Theme.type_paste" /> <?php _e('HTML Code', 'wp-mailinglist'); ?></label>
+                        <label <?php echo ($Html -> field_value('Theme[type]') == "paste") ? 'class="active"' : ''; ?>><input <?php echo ($Html -> field_value('Theme[type]') == "paste") ? 'checked="checked"' : ''; ?> onclick="newsletters_theme_change_type(this.value);" type="radio" name="Theme[type]" value="paste" id="Theme.type_paste" /> <?php _e('Visual Editor - HTML Code', 'wp-mailinglist'); ?></label>
                         <?php if ($isSerialKeyValid) { ?>
-                            <label <?php echo ($Html -> field_value('Theme[type]') == "builder" || $Html -> field_value('Theme[type]') == "") ? 'class="active"' : ''; ?>><input <?php echo ($Html -> field_value('Theme[type]') == "builder" || $Html -> field_value('Theme[type]') == "") ? 'checked="checked"' : ''; ?> onclick="newsletters_theme_change_type(this.value);" type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & drop builder (Beta)', 'wp-mailinglist'); ?></label>
+                            <label <?php echo ($Html -> field_value('Theme[type]') == "builder" || $Html -> field_value('Theme[type]') == "") ? 'class="active"' : ''; ?>><input <?php echo ($Html -> field_value('Theme[type]') == "builder" || $Html -> field_value('Theme[type]') == "") ? 'checked="checked"' : ''; ?> onclick="newsletters_theme_change_type(this.value);" type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & Drop Builder', 'wp-mailinglist'); ?></label>
                         <?php } else { ?>
-                            <label><input  type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & drop builder (Beta)', 'wp-mailinglist'); ?> <a target="_blank" href="<?php echo admin_url('admin.php?page=' . $this -> sections -> lite_upgrade); ?>"  ><?php echo __('(PRO only)', 'wp-mailinglist'); ?></a></label>
+                            <label><input  type="radio" name="Theme[type]" value="builder" id="Theme.type_builder" /> <?php _e('Drag & Drop Builder', 'wp-mailinglist'); ?> <a target="_blank" href="<?php echo admin_url('admin.php?page=' . $this -> sections -> lite_upgrade); ?>"  ><?php echo __('(PRO only)', 'wp-mailinglist'); ?></a></label>
                         <?php } ?>
                     </p>
                     
@@ -108,9 +108,9 @@ if (!isset($post))
                                     assetManager: {
                                         upload: newsletters_ajaxurl + "action=newsletters_importmedia",
                                     },
-                                    plugins: ['gjs-preset-newsletter', 'gjs-plugin-wordpress'],
+                                    plugins: ['grapesjs-preset-newsletter', 'gjs-plugin-wordpress'],
                                     pluginsOpts: {
-                                        'gjs-preset-newsletter': {
+                                        'grapesjs-preset-newsletter': {
                                             modalTitleImport: 'Import template',
                                             // ... other options
                                         },

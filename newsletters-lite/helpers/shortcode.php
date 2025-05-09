@@ -1049,16 +1049,24 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			$output = "";
 
 			$defaults = array(
-				'number' 		=> 	false, 
-				'order' 		=> 	"DESC", 
-				'orderby' 		=> 	"modified", 
-				'list_id' 		=> 	false, 
-				'linksonly'		=>	false,
-				'index' 		=> 	true
+				'number'        => false,
+				'order'         => "DESC",
+				'orderby'       => "modified",
+				'list_id'       => false,
+				'linksonly'     => false,
+				'index'         => true
 			);
-				
+
 			$r = shortcode_atts($defaults, $atts);
 			extract($r);
+
+			// Validate orderby
+			$allowed_orderby = array('modified', 'id', 'subject', 'senddate');
+			$orderby = in_array($orderby, $allowed_orderby) ? $orderby : $defaults['orderby'];
+
+			// Validate order
+			$allowed_order = array('ASC', 'DESC');
+			$order = in_array(strtoupper($order), $allowed_order) ? strtoupper($order) : $defaults['order'];
 
 			$listscondition = "";
 			$l = 1;
@@ -1066,17 +1074,13 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			if (!empty($list_id)) {
 				if ($mailinglists = explode(",", $list_id)) {
 					$listscondition = " (";
-
 					foreach ($mailinglists as $mailinglist_id) {
 						$listscondition .= "" . $wpdb -> prefix . $HistoriesList -> table . ".list_id = '" . esc_sql($mailinglist_id) . "'";
-
 						if (count($mailinglists) > $l) {
 							$listscondition .= " OR ";
 						}
-
 						$l++;
 					}
-
 					$listscondition .= ")";
 				}
 			} else {
@@ -1084,17 +1088,23 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			}
 
 			$query = "SELECT DISTINCT " . $wpdb -> prefix . $HistoriesList -> table . ".history_id, " .
-			$wpdb -> prefix . parent::History() -> table . ".id, " .
-			$wpdb -> prefix . parent::History() -> table . ".message, " .
-			$wpdb -> prefix . parent::History() -> table . ".modified, " .
-			$wpdb -> prefix . $HistoriesList -> table . ".history_id, " . $wpdb -> prefix . parent::History() -> table . ".subject FROM `" . $wpdb -> prefix . $HistoriesList -> table . "` LEFT JOIN `" .
-			$wpdb -> prefix . parent::History() -> table . "` ON " .
-			$wpdb -> prefix . $HistoriesList -> table . ".history_id = " . $wpdb -> prefix . parent::History() -> table . ".id" .
-			" WHERE" . $listscondition . " AND " . $wpdb -> prefix . parent::History() -> table . ".sent > '0' && " . $wpdb -> prefix . parent::History() -> table . ".senddate <= '" . $Html -> gen_date() . "'" .
-			" ORDER BY " . $wpdb -> prefix . parent::History() -> table . "." . esc_sql($orderby) . " " . esc_sql($order) . "";
-            if (!empty($number)) {
-                $query .= " LIMIT " . esc_sql($number) . "";
-            }
+				$wpdb -> prefix . parent::History() -> table . ".id, " .
+				$wpdb -> prefix . parent::History() -> table . ".message, " .
+				$wpdb -> prefix . parent::History() -> table . ".modified, " .
+				$wpdb -> prefix . $HistoriesList -> table . ".history_id, " .
+				$wpdb -> prefix . parent::History() -> table . ".subject FROM `" .
+				$wpdb -> prefix . $HistoriesList -> table . "` LEFT JOIN `" .
+				$wpdb -> prefix . parent::History() -> table . "` ON " .
+				$wpdb -> prefix . $HistoriesList -> table . ".history_id = " .
+				$wpdb -> prefix . parent::History() -> table . ".id" .
+				" WHERE" . $listscondition . " AND " .
+				$wpdb -> prefix . parent::History() -> table . ".sent > '0' && " .
+				$wpdb -> prefix . parent::History() -> table . ".senddate <= '" . $Html -> gen_date() . "'" .
+				" ORDER BY " . $wpdb -> prefix . parent::History() -> table . "." . esc_sql($orderby) . " " . esc_sql($order);
+
+			if (!empty($number)) {
+				$query .= " LIMIT " . esc_sql($number);
+			}
 
 			$query_hash = md5($query);
 			if ($ob_emails = $this -> get_cache($query_hash)) {
@@ -1112,6 +1122,7 @@ if (!class_exists('wpmlShortcodeHelper')) {
 
 			return $output;
 		}
+
 
 		function meta($atts = array(), $content = null)
 		{

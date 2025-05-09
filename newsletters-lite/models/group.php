@@ -100,7 +100,7 @@ if (!class_exists('wpmlGroup')) {
 					}
 
 					$this -> set_cache($query_hash, $groupsselect);
-					return $groupsselect;
+                    return apply_filters($this->pre . '_groups_select', $groupsselect);
 				}
 			}
 

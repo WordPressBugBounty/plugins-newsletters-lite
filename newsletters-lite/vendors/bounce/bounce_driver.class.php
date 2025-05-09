@@ -583,14 +583,30 @@ class BounceHandler{
         return $from;
     }
 
-    function find_recipient($per_rcpt){
-        $recipient = array();
-        if($per_rcpt['Original-recipient']['addr'] !== ''){
+    function find_recipient($per_rcpt) {
+        $recipient = '';
+        // Try standard DSN fields first
+        if (!empty($per_rcpt['Original-recipient']['addr'])) {
             $recipient = $per_rcpt['Original-recipient']['addr'];
-        }
-        else if($per_rcpt['Final-recipient']['addr'] !== ''){
+        } elseif (!empty($per_rcpt['Final-recipient']['addr'])) {
             $recipient = $per_rcpt['Final-recipient']['addr'];
         }
+        // Handle case where recipient is an array (e.g., from format_final_recipient_array)
+        if (is_array($recipient)) {
+            $recipient = !empty($recipient['addr']) ? $recipient['addr'] : '';
+        }
+        // If still empty, try to extract email from other parts of the per_recipient data
+        if (empty($recipient) && !empty($per_rcpt)) {
+            // Convert per_rcpt data to string for email extraction
+            $per_rcpt_str = is_array($per_rcpt) ? implode("\n", array_map(function($key, $val) {
+                return "$key: " . (is_array($val) ? json_encode($val) : $val);
+            }, array_keys($per_rcpt), $per_rcpt)) : $per_rcpt;
+            $emails = $this->find_email_addresses($per_rcpt_str);
+            $recipient = !empty($emails[0]) ? $emails[0] : '';
+        }
+        // Log for debugging
+        //error_log('find_recipient: ' . json_encode($recipient));
+        // Clean the recipient
         $recipient = $this->strip_angle_brackets($recipient);
         return $recipient;
     }

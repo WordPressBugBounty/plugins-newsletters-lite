@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.9.9.8';
+		var $version = '4.9.9.9';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -7173,6 +7173,7 @@ function qp_scheduling() {
 
 			//enqueue jQuery JS Library
 			if (apply_filters('newsletters_enqueuescript_jquery', true)) { wp_enqueue_script('jquery'); }
+            wp_dequeue_script( 'newsletters-turnstile' );
 
 			if (is_admin() && !defined('DOING_AJAX')) {
 				$donotloadpages = array(
@@ -7418,6 +7419,16 @@ function qp_scheduling() {
 											case 'recaptcha'				:
 												$loadrecaptcha = true;
 												break;
+											case 'turnstile':
+												$turnstile_public = $this->get_option( 'turnstile_sitekey' );
+												wp_enqueue_script(
+													'newsletters-turnstile',
+													'https://challenges.cloudflare.com/turnstile/v0/api.js?render=' . esc_attr( $turnstile_public ),
+													array( 'jquery' ),
+													null,
+													false
+												);
+												break;
 											default 						:
 												wp_enqueue_script($custom_handle, $script['url'], $script['deps'], $script['version'], $script['footer']);
 												break;
@@ -7464,9 +7475,38 @@ function qp_scheduling() {
 						
 						$handle = 'newsletters-recaptcha';
 						wp_enqueue_script($handle, 'https://www.google.com/recaptcha/api.js?render=explicit&hl=' . esc_attr(wp_unslash($recaptcha_language)), array('jquery'), false, false);
-					} elseif ($captcha_type == "rsc") {
+					}  elseif ($captcha_type == "recaptcha3") {
+                        $functions_variables['captcha'] = "recaptcha3";
+
+                        $recaptcha_publickey = $this->get_option('recaptcha3_publickey');
+                        $recaptcha_privatekey = $this->get_option('recaptcha3_privatekey');
+                        $recaptcha_language = $this->get_option('recaptcha3_language');
+                        $recaptcha3_score = $this->get_option('recaptcha3_score');
+
+
+                        $functions_variables['recaptcha3_sitekey'] = $recaptcha_publickey;
+                        $functions_variables['recaptcha3_secretkey'] = $recaptcha_privatekey;
+                        $functions_variables['recaptcha3_language'] = (empty($recaptcha_language)) ? 'en' : $recaptcha_language;
+                        $functions_variables['recaptcha3_score'] = (empty($recaptcha3_score)) ? '0.5' : $recaptcha3_score;
+
+                        // Multilingual reCAPTCHA
+                        if ($this->language_do()) {
+                            if ($language = $this->language_current()) {
+                                $recaptcha_language = $language;
+                            }
+                        }
+
+                        $handle = 'newsletters-recaptcha3';
+                        wp_enqueue_script($handle, 'https://www.google.com/recaptcha/api.js?render=' . esc_attr(wp_unslash($recaptcha_publickey)) . '&hl=' . esc_attr(wp_unslash($recaptcha_language)), array('jquery'), false, false);
+                    } elseif ($captcha_type == "rsc") {
 						$functions_variables['captcha'] = "rsc";
 					}
+					
+					if ( $captcha_type == 'turnstile' ) {
+                        $functions_variables['captcha']           = 'turnstile';
+                        $functions_variables['turnstile_sitekey'] = $this->get_option( 'turnstile_sitekey' );
+                    }
+
 				}
 				
 				$functions_variables['ajax_error'] = __('An Ajax error occurred, please submit again.', 'wp-mailinglist');
@@ -10048,34 +10088,50 @@ function qp_scheduling() {
 			return false;
 		}
 
-		function admin_bounce_notification($subscriber = array()) {
-			if ($this -> get_option('adminemailonbounce') == "Y") {
-				if (!empty($subscriber)) {
+		function admin_bounce_notification($subscriber = null) {
+			if ($this->get_option('adminemailonbounce') == "Y") {
+				// Ensure $subscriber is a valid object with required properties
+				if (is_object($subscriber) && !empty($subscriber->email)) {
 					$emailsused = array();
-					$adminemail = $this -> get_option('adminemail');
-					$subject = wp_unslash($this -> et_subject('bounce', $subscriber));
-					$fullbody = $this -> et_message('bounce', $subscriber);
-					$message = $this -> render_email(false, array('subscriber' => $subscriber, 'mailinglist' => $mailinglist), false, $this -> htmltf($subscriber -> format), true, $this -> et_template('bounce'), false, $fullbody);
-                    $to = new stdClass();
-
+					$adminemail = $this->get_option('adminemail');
+					$subject = wp_unslash($this->et_subject('bounce', $subscriber));
+					$fullbody = $this->et_message('bounce', $subscriber);
+					$message = $this->render_email(
+						false,
+						array('subscriber' => $subscriber, 'mailinglist' => null),
+						false,
+						$this->htmltf(isset($subscriber->format) ? $subscriber->format : 'html'),
+						true,
+						$this->et_template('bounce'),
+						false,
+						$fullbody
+					);
+		
+					// Initialize $to as a stdClass object
+					$to = new stdClass();
+		
 					if (strpos($adminemail, ",") !== false) {
 						$adminemails = explode(",", $adminemail);
 						foreach ($adminemails as $adminemail) {
-							if (empty($emailsused) || !in_array($adminemail, $emailsused)) {
-								$to -> email = $adminemail;
-								$this -> execute_mail($to, false, $subject, $message, false, false, false, false, "bounce");
+							$adminemail = trim($adminemail);
+							if (!empty($adminemail) && (empty($emailsused) || !in_array($adminemail, $emailsused))) {
+								$to->email = $adminemail;
+								$this->execute_mail($to, false, $subject, $message, false, false, false, false, "bounce");
 								$emailsused[] = $adminemail;
 							}
 						}
 					} else {
-						$to -> email = $adminemail;
-						$this -> execute_mail($to, false, $subject, $message, false, false, false, false, "bounce");
+						$to->email = $adminemail;
+						$this->execute_mail($to, false, $subject, $message, false, false, false, false, "bounce");
 					}
-
+		
 					return true;
+				} else {
+					error_log('admin_bounce_notification: Invalid subscriber object');
+					return false;
 				}
 			}
-
+		
 			return false;
 		}
 
@@ -12635,6 +12691,13 @@ function qp_scheduling() {
 			$options['captcha_chars'] = "4";
 			$options['captcha_font'] = "14";
 			$options['captchainterval'] = "hourly";
+			$options['recaptcha_publickey']  = '';
+			$options['recaptcha_privatekey'] = '';
+
+			$options['recaptcha3_publickey']  = '';
+			$options['recaptcha3_privatekey'] = '';
+			$options['recaptcha3_score'] = "0.5";
+			
 			$this -> captchacleanup_scheduling();
 			$options['commentformcheckbox'] = "Y";
 			$options['commentformlabel'] = __('Receive news updates via email from this site', 'wp-mailinglist');
@@ -14231,6 +14294,9 @@ function qp_scheduling() {
 						case 'captcha'								:
 							$path = 'really-simple-captcha' . DS . 'really-simple-captcha.php';
 							break;
+                        case 'hcaptcha-for-forms-and-more'								:
+                            $path = 'hcaptcha-for-forms-and-more' . DS . 'hcaptcha.php';
+                            break;
 					}
 				}
 
@@ -14316,10 +14382,21 @@ function qp_scheduling() {
 						case 'recaptcha'		:
 							return "recaptcha";
 							break;
-						case 'none'				:
-						default 				:
-							return false;
+                        case 'recaptcha3':
+                            return "recaptcha3";
+                            break;
+						case 'hcaptcha':
+                            if ($this->is_plugin_active('hcaptcha-for-forms-and-more')) {
+                                return "hcaptcha";
+                            }
+                            break;
+						case 'turnstile':
+							return 'turnstile';
 							break;
+                        case 'none':
+                        default:
+                            return false;
+                            break;
 					}
 				}
 			}

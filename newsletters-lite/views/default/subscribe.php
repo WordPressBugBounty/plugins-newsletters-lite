@@ -583,46 +583,84 @@ if(!empty($form-> buttontext)) {
                 if (!class_exists('FLBuilderModel') || (class_exists('FLBuilderModel') && !FLBuilderModel::is_builder_enabled())) {
 
                     ?>
-				<?php if (!empty($form -> captcha)) : ?>
-					<?php if ($captcha_type = $this -> use_captcha()) : ?>		
-						<?php if ($captcha_type == "rsc") : ?>
-							<div class="form-group<?php echo (!empty($errors['captcha_code'])) ? ' has-error' : ''; ?> newsletters-fieldholder newsletters-captcha newsletters-captcha-wrapper">
-						    	<?php 
-						    	
-						    	$captcha = new ReallySimpleCaptcha();
-						    	$captcha -> bg = $Html -> hex2rgb($this -> get_option('captcha_bg')); 
-						    	$captcha -> fg = $Html -> hex2rgb($this -> get_option('captcha_fg'));
-						    	$captcha_size = $this -> get_option('captcha_size');
-						    	$captcha -> img_size = array($captcha_size['w'], $captcha_size['h']);
-						    	$captcha -> char_length = $this -> get_option('captcha_chars');
-						    	$captcha -> font_size = $this -> get_option('captcha_font');
-						    	$captcha_word = $captcha -> generate_random_word();
-						    	$captcha_prefix = mt_rand();
-						    	$captcha_filename = $captcha -> generate_image($captcha_prefix, $captcha_word);
-						        $captcha_file = plugins_url() . '/really-simple-captcha/tmp/' . $captcha_filename; 
-						    	
-						    	?>
-						    	<?php if (!empty($form_styling['fieldlabels'])) : ?>
-					            	<label class="control-label" for="<?php echo esc_html($this -> pre); ?>captcha_code"><?php esc_html_e('Please fill in the code below:', 'wp-mailinglist'); ?></label>
-					            <?php endif; ?>
-					            <img class="newsletters-captcha-image" src="<?php echo esc_url_raw($captcha_file); ?>" alt="captcha" />
-					            <input size="<?php echo esc_attr(wp_unslash($captcha -> char_length)); ?>" <?php echo esc_attr($Html -> tabindex('newsletters-' . $form -> id)); ?> class="form-control <?php echo esc_html($this -> pre); ?>captchacode <?php echo esc_html($this -> pre); ?>text <?php echo (!empty($errors['captcha_code'])) ? 'newsletters_fielderror' : ''; ?>" type="text" name="captcha_code" id="<?php echo esc_html($this -> pre); ?>captcha_code" value="" />
-					            <input type="hidden" name="captcha_prefix" value="<?php echo esc_html( $captcha_prefix); ?>" />
-					            
-					            <?php if (!empty($errors['captcha_code']) && !empty($form_styling['fielderrors'])) : ?>
-									<div id="newsletters-<?php echo esc_attr($number); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
-										<i class="fa fa-exclamation-triangle"></i> <?php echo esc_html($errors['captcha_code']); ?>
-									</div>
-								<?php endif; ?>
-							</div>
-						<?php elseif ($captcha_type == "recaptcha") : ?>
-							<?php $recaptcha_type = $this -> get_option('recaptcha_type'); ?>
-							<div class="newsletters-captcha-wrapper form-group newsletters-fieldholder <?php echo ($recaptcha_type == "invisible") ? 'newsletters-fieldholder-hidden hidden' : ''; ?>">
-								<div id="newsletters-<?php echo esc_html($form -> id); ?>-recaptcha-challenge" class="newsletters-recaptcha-challenge"></div>
-							</div>
-						<?php endif; ?>
-				    <?php endif; ?>
-				<?php endif; ?>
+                    <?php if (!empty($form -> captcha)) : ?>
+                        <?php if ($captcha_type = $this -> use_captcha()) : ?>		
+                            <?php if ($captcha_type == "rsc") : ?>
+                                <div class="form-group<?php echo (!empty($errors['captcha_code'])) ? ' has-error' : ''; ?> newsletters-fieldholder newsletters-captcha newsletters-captcha-wrapper">
+                                    <?php 
+                                    
+                                    $captcha = new ReallySimpleCaptcha();
+                                    $captcha -> bg = $Html -> hex2rgb($this -> get_option('captcha_bg')); 
+                                    $captcha -> fg = $Html -> hex2rgb($this -> get_option('captcha_fg'));
+                                    $captcha_size = $this -> get_option('captcha_size');
+                                    $captcha -> img_size = array($captcha_size['w'], $captcha_size['h']);
+                                    $captcha -> char_length = $this -> get_option('captcha_chars');
+                                    $captcha -> font_size = $this -> get_option('captcha_font');
+                                    $captcha_word = $captcha -> generate_random_word();
+                                    $captcha_prefix = mt_rand();
+                                    $captcha_filename = $captcha -> generate_image($captcha_prefix, $captcha_word);
+                                    $captcha_file = plugins_url() . '/really-simple-captcha/tmp/' . $captcha_filename; 
+                                    
+                                    ?>
+                                    <?php if (!empty($form_styling['fieldlabels'])) : ?>
+                                        <label class="control-label" for="<?php echo esc_html($this -> pre); ?>captcha_code"><?php esc_html_e('Please fill in the code below:', 'wp-mailinglist'); ?></label>
+                                    <?php endif; ?>
+                                    <img class="newsletters-captcha-image" src="<?php echo esc_url_raw($captcha_file); ?>" alt="captcha" />
+                                    <input size="<?php echo esc_attr(wp_unslash($captcha -> char_length)); ?>" <?php echo esc_attr($Html -> tabindex('newsletters-' . $form -> id)); ?> class="form-control <?php echo esc_html($this -> pre); ?>captchacode <?php echo esc_html($this -> pre); ?>text <?php echo (!empty($errors['captcha_code'])) ? 'newsletters_fielderror' : ''; ?>" type="text" name="captcha_code" id="<?php echo esc_html($this -> pre); ?>captcha_code" value="" />
+                                    <input type="hidden" name="captcha_prefix" value="<?php echo esc_html( $captcha_prefix); ?>" />
+                                    
+                                    <?php if (!empty($errors['captcha_code']) && !empty($form_styling['fielderrors'])) : ?>
+                                        <div id="newsletters-<?php echo esc_attr($number); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
+                                            <i class="fa fa-exclamation-triangle"></i> <?php echo esc_html($errors['captcha_code']); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php elseif ($captcha_type == "recaptcha") : ?>
+                                <?php $recaptcha_type = $this -> get_option('recaptcha_type'); ?>
+                                <div class="newsletters-captcha-wrapper form-group newsletters-fieldholder <?php echo ($recaptcha_type == "invisible") ? 'newsletters-fieldholder-hidden hidden' : ''; ?>">
+                                    <div id="newsletters-<?php echo esc_html($form -> id); ?>-recaptcha-challenge" class="newsletters-recaptcha-challenge"></div>
+                                </div>
+                            <?php elseif ($captcha_type == "recaptcha3") : ?>
+                                    <input type="hidden" name="g-recaptcha-response" id="newsletters-<?php echo $form->id; ?>-recaptcha-response" value="" />
+                            <?php elseif ($captcha_type == "hcaptcha") : ?>
+                                <?php if (function_exists('HCaptcha\Helpers\HCaptcha::form_display')) : ?>
+                                    <div class="form-group newsletters-fieldholder newsletters-captcha-wrapper">
+                                        <?php
+                                        $args = [
+                                            'action' => 'hcaptcha_wpmailinglist',
+                                            'name'   => 'hcaptcha_wpmailinglist_nonce',
+                                            'id'     => [
+                                                'source'  => ['wp-mailinglist'],
+                                                'form_id' => $form->id,
+                                            ],
+                                        ];
+                                        HCaptcha\Helpers\HCaptcha::form_display($args);
+                                        ?>
+                                        <?php if (!empty($errors['captcha_code'])) : ?>
+                                            <div id="newsletters-<?php echo $form->id; ?>-captcha-error" class="newsletters-field-error alert alert-danger">
+                                                <i class="fa fa-exclamation-triangle"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php elseif ( $captcha_type == 'turnstile' ) : ?>
+                                    <div
+                                        id="newsletters-<?php echo $form->id; ?>-turnstile-challenge"
+                                        class="newsletters-turnstile-challenge"
+                                        data-sitekey="<?php echo esc_attr( $this->get_option( 'turnstile_sitekey' ) ); ?>"
+                                        data-theme="light"
+                                        data-size="normal"
+
+                                    ></div>
+
+                                    <input type="hidden"
+                                        name="cf-turnstile-response"
+                                        id="newsletters-<?php echo $form->id; ?>-turnstile-response"
+                                        value=""/>
+
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    <?php endif; ?>
 				<?php } ?>
 				<div class="newslettername-wrapper" style="display:none;">
 			    	<input type="text" name="newslettername" value="" id="newsletters-<?php echo esc_html($form -> id); ?>newslettername" class="newslettername" />
@@ -662,6 +700,25 @@ if(!empty($form-> buttontext)) {
 			</form>
 			
 			<?php do_action('newsletters_subscribe_after_form', $instance); ?>
+            <?php if ($captcha_type = $this->use_captcha()) : ?>
+                <?php if ($captcha_type == "recaptcha3") : ?>
+                    <script type="text/javascript">
+                        jQuery(document).ready(function($) {
+                            $('#newsletters-<?php echo $form->id; ?>-form').on('submit', function(e) {
+                                e.preventDefault();
+                                var $form = $(this);
+
+                                grecaptcha.ready(function() {
+                                    grecaptcha.execute('<?php echo esc_js($this->get_option('recaptcha_publickey')); ?>', {action: 'subscribe'}).then(function(token) {
+                                        $('#newsletters-<?php echo $form->id; ?>-recaptcha-response').val(token);
+                                        $form.off('submit').submit(); // Remove handler and submit form
+                                    });
+                                });
+                            });
+                        });
+                    </script>
+                <?php endif; ?>
+            <?php endif; ?>
 		<?php endif; ?>
 	<?php endif; ?>
 </div>

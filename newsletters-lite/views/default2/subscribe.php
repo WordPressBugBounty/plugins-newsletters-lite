@@ -646,9 +646,47 @@ if(!isset($errors)) {$errors = array();}
                                             </div>
                                         <?php endif; ?>
                                     </div>
+                            <?php elseif ($captcha_type == "recaptcha3") : ?>
+                                <input type="hidden" name="g-recaptcha-response" id="newsletters-<?php echo $form->id; ?>-recaptcha-response" value="" />
+                            <?php elseif ($captcha_type == "hcaptcha") : ?>
+                                <?php if (function_exists('HCaptcha\Helpers\HCaptcha::form_display')) : ?>
+                                    <div class="form-group newsletters-fieldholder newsletters-captcha-wrapper">
+                                        <?php
+                                        $args = [
+                                            'action' => 'hcaptcha_wpmailinglist',
+                                            'name'   => 'hcaptcha_wpmailinglist_nonce',
+                                            'id'     => [
+                                                'source'  => ['wp-mailinglist'],
+                                                'form_id' => $form->id,
+                                            ],
+                                        ];
+                                        HCaptcha\Helpers\HCaptcha::form_display($args);
+                                        ?>
+                                        <?php if (!empty($errors['captcha_code'])) : ?>
+                                            <div id="newsletters-<?php echo $form->id; ?>-captcha-error" class="newsletters-field-error alert alert-danger">
+                                                <i class="fa fa-exclamation-triangle"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 <?php endif; ?>
+                            <?php elseif ( $captcha_type == 'turnstile' ) : ?>
+                                <div
+                                    id="newsletters-<?php echo $widget_id; ?>-turnstile-challenge"
+                                    class="newsletters-turnstile-challenge"
+                                    data-sitekey="<?php echo esc_attr( $this->get_option( 'turnstile_sitekey' ) ); ?>"
+                                    data-theme="light"
+                                    data-size="normal"
+
+                                ></div>
+
+                                <input type="hidden"
+                                    name="cf-turnstile-response"
+                                    id="newsletters-<?php echo $widget_id; ?>-turnstile-response"
+                                    value=""/>
+
                             <?php endif; ?>
                         <?php endif; ?>
+                    <?php endif; ?>
                 <?php 
                 }?>
 				<div class="newslettername-wrapper" style="display:none;">
@@ -693,7 +731,27 @@ if(!isset($errors)) {$errors = array();}
 			if (isset($instance)) { 
 				do_action('newsletters_subscribe_after_form', $instance); 
 			}
-			?>			
+			?>
+
+			 <?php if ($captcha_type = $this->use_captcha()) : ?>
+                <?php if ($captcha_type == "recaptcha3") : ?>
+                    <script type="text/javascript">
+                        jQuery(document).ready(function($) {
+                            $('#newsletters-<?php echo $form->id; ?>-form').on('submit', function(e) {
+                                e.preventDefault();
+                                var $form = $(this);
+
+                                grecaptcha.ready(function() {
+                                    grecaptcha.execute('<?php echo esc_js($this->get_option('recaptcha3_publickey')); ?>', {action: 'subscribe'}).then(function(token) {
+                                        $('#newsletters-<?php echo $form->id; ?>-recaptcha-response').val(token);
+                                        $form.off('submit').submit(); // Remove handler and submit form
+                                    });
+                                });
+                            });
+                        });
+                    </script>
+                <?php endif; ?>
+            <?php endif; ?>
 		<?php endif; ?>
 	<?php endif; ?>
 </div>

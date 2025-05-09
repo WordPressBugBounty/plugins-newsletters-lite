@@ -563,218 +563,186 @@ if (!class_exists('wpmlHistory')) {
 		 * @param BOOLEAN. Determines whether $data should be validated or not
 		 *
 		 */
-		function save($data = array(), $validate = true, $insertpost = true)
-        {
+		public function save($data = array(), $validate = true, $insertpost = true)
+		{
 			global $wpdb, $Html, $Db, $HistoriesList, $user_ID;
 
 			$errors = false;
-			
+
 			$defaults = array(
-
-				'theme_id'			=>		0,
-				'attachment'		=>		"N",
-				'attachmentfile'	=>		"",
-				'sent'				=>		0,
-				'created' 			=> 		$Html -> gen_date(), 
-				'modified' 			=> 		$Html -> gen_date()
+				'theme_id' => 0,
+				'attachment' => 'N',
+				'attachmentfile' => '',
+				'sent' => 0,
+				'created' => $Html->gen_date(),
+				'modified' => $Html->gen_date()
 			);
-			
-			$data = (empty($data[$this -> model])) ? $data : $data[$this -> model];		
-			$data = apply_filters('newsletters_db_data_before_validate', $data, $this -> model);
-			
+
+			// Normalize data: ensure it's not nested under model key
+			$data = (empty($data[$this->model])) ? $data : $data[$this->model];
+			// Apply filter for data validation/modification
+			$data = apply_filters('newsletters_db_data_before_validate', $data, $this->model);
+
+			// Merge with defaults
 			$r = wp_parse_args($data, $defaults);
-			$this -> data = (array) $this -> data;
-			//$this -> data[$this -> model] = $this -> array_to_object($r);		
-			$this -> data = (object) $r;
+			$this->data = (array) $this->data;
+			$this->data = (object) $r;
 			extract($r, EXTR_SKIP);
-		
-			//check if validation is necessary
-			if ($validate == true) {
-                if (empty($subject)) {
-                    $this -> errors['subject'] = __('No subject specified', 'wp-mailinglist');
-                }
-                if (empty($message)) {
-                    $this -> errors['message'] = __('No message specified', 'wp-mailinglist');
-                }
+
+			// Validate if required
+			if ($validate) {
+				if (empty($subject)) {
+					$this->errors['subject'] = __('No subject specified', 'wp-mailinglist');
+				}
+				if (empty($message)) {
+					$this->errors['message'] = __('No message specified', 'wp-mailinglist');
+				}
 			}
-			
-			//ensure that there are no errors.
-			if (empty($this -> errors)) {		
-				//check if an ID was passed.
-				$this -> table_fields = apply_filters('newsletters_db_table_fields', $this -> table_fields, $this -> model);
-				
+
+			if (empty($this->errors)) {
+				// Apply filter for table fields
+				$this->table_fields = apply_filters('newsletters_db_table_fields', $this->table_fields, $this->model);
+
 				if (!empty($id)) {
-					$query = "UPDATE `" . $wpdb -> prefix . "" . $this -> table_name . "` SET";
-					$c = 1;
-					unset($this -> table_fields['key']);
-					unset($this -> table_fields['created']);
-					unset($this -> table_fields['spamscore']);
-					unset($this -> table_fields['p_id']);
-					
-					foreach (array_keys($this -> table_fields) as $field) {				
+					// Update existing record
+					$query = "UPDATE `" . $wpdb->prefix . $this->table_name . "` SET ";
+					$fields = [];
+					unset($this->table_fields['key']);
+					unset($this->table_fields['created']);
+					unset($this->table_fields['spamscore']);
+					unset($this->table_fields['p_id']);
+
+					foreach (array_keys($this->table_fields) as $field) {
 						switch ($field) {
-                            case 'user_id'            :
-								if (empty($user_id)) {
-									$user_id = get_current_user_id();
-								}
+							case 'user_id':
+								$user_id = empty($user_id) ? get_current_user_id() : $user_id;
 								break;
-                            case 'mailinglists'        :
+							case 'mailinglists':
 								if (!empty($mailinglists) && is_array($mailinglists)) {
 									$mailinglists = maybe_serialize($mailinglists);
 								}
 								break;
-                            case 'modified'            :
-                                ${$field} = $Html->gen_date();
+							case 'modified':
+								${$field} = $Html->gen_date();
 								break;
 						}
-                        if (isset(${$field}) && !is_array(${$field})) {
-
-						$query .= " `" . $field . "` = '" . esc_sql(${$field}) . "'";
-						
-                            if ($c < count($this->table_fields)) {
-							$query .= ", ";
+						if (isset(${$field}) && !is_array(${$field})) {
+							$fields[] = "`" . $field . "` = '" . esc_sql(${$field}) . "'";
 						}
-                        }
-
-						$c++;
 					}
-					
-					$query .= " WHERE `id` = '" . $id . "'";
+					$query .= implode(', ', $fields);
+					$query .= " WHERE `id` = '" . esc_sql($id) . "'";
 				} else {
-					$query1 = "INSERT INTO `" . $wpdb -> prefix . "" . $this -> table_name . "` (";
-					$query2 = "";
-					$c = 1;
-					
-					unset($this -> table_fields['key']);
-					unset($this -> table_fields['id']);
-					unset($this -> table_fields['spamscore']);
-					unset($this -> table_fields['p_id']);
-					
-					foreach (array_keys($this -> table_fields) as $field) {				
+					// Insert new record
+					$fields = [];
+					$values = [];
+					unset($this->table_fields['key']);
+					unset($this->table_fields['id']);
+					unset($this->table_fields['spamscore']);
+					unset($this->table_fields['p_id']);
+
+					foreach (array_keys($this->table_fields) as $field) {
 						switch ($field) {
-                            case 'mailinglists'        :
+							case 'mailinglists':
 								if (!empty($mailinglists) && is_array($mailinglists)) {
 									$mailinglists = maybe_serialize($mailinglists);
 								}
 								break;
-                            case 'user_id'            :
-								if (empty($user_id)) {
-									$user_id = get_current_user_id();
-								}
+							case 'user_id':
+								$user_id = empty($user_id) ? get_current_user_id() : $user_id;
 								break;
 						}
-                        if (isset(${$field}) && !is_array(${$field})) {
-						$query1 .= "`" . $field . "`";
-						$query2 .= "'" . esc_sql(${$field}) . "'";
-						
-                            if ($c < count($this->table_fields)) {
-							$query1 .= ", ";
-							$query2 .= ", ";
+						if (isset(${$field}) && !is_array(${$field})) {
+							$fields[] = "`" . $field . "`";
+							$values[] = "'" . esc_sql(${$field}) . "'";
 						}
-                        }
-						$c++;
 					}
-					
-					$query1 .= ") VALUES (";
-					$query = $query1 . $query2 . ")";
+
+					$query = "INSERT INTO `" . $wpdb->prefix . $this->table_name . "` (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $values) . ")";
 				}
 
-				$result = $wpdb -> query($query);
-							
-				//execute the INSERT or UPDATE query
+				$result = $wpdb->query($query);
+
 				if ($result !== false && $result >= 0) {
-					//the query was successful
-					$this -> insertid = (empty($id)) ? $wpdb -> insert_id : $id;
-					$history_id = $this -> insertid;
-					
-					/* attachments */
+					$this->insertid = empty($id) ? $wpdb->insert_id : $id;
+					$history_id = $this->insertid;
+
+					// Handle attachments
 					if (!empty($newattachments)) {
-						global $Db, $HistoriesAttachment;
-						
-						foreach ($newattachments as $akey => $newattachment) {
-							$newattachment['history_id'] = $this -> insertid;						
-							$Db -> model = $HistoriesAttachment -> model;
-							$Db -> save($newattachment, true);
+						foreach ($newattachments as $newattachment) {
+							$newattachment['history_id'] = $this->insertid;
+							$Db->model = $HistoriesAttachment->model;
+							$Db->save($newattachment, true);
 						}
 					}
-					
-					/* Custom post type */
-					$this -> delete_all_cache();
-					if ($history = $this -> get($history_id, false)) {
-						
-						// Should a 'newsletter' post be inserted?
-                        if (isset($insertpost) && $insertpost == true) {
-							$custompostslug = $this -> get_option('custompostslug');
-							
-							$post_status = (empty($history -> sent)) ? 'draft' : 'publish';
-							
+
+					// Handle custom post type
+					$this->delete_all_cache();
+					if ($history = $this->get($history_id, false)) {
+						if (isset($insertpost) && $insertpost) {
+							$custompostslug = $this->get_option('custompostslug');
+							$post_status = empty($history->sent) ? 'draft' : 'publish';
+
 							$post_data = array(
-								'ID'							=>	((empty($history -> p_id)) ? false : $history -> p_id),
-								'post_content'					=>	$history -> message,
-								'post_title'					=>	$history -> subject,
-								'post_status'					=>	$post_status,
-								'post_type'						=>	$custompostslug,
-								'post_author'					=>	$user_ID,
-								'post_date'						=>	$Html -> gen_date(),
-								'post_date_gmt'					=>	get_gmt_from_date($Html -> gen_date()),
+								'ID' => empty($history->p_id) ? false : $history->p_id,
+								'post_content' => $history->message,
+								'post_title' => $history->subject,
+								'post_status' => $post_status,
+								'post_type' => $custompostslug,
+								'post_author' => $user_ID,
+								'post_date' => $Html->gen_date(),
+								'post_date_gmt' => get_gmt_from_date($Html->gen_date()),
 							);
-							
-							// Content areas on this newsletter, append to the post content
-							if ($contents = $this -> Content() -> find_all(array('history_id' => $history -> id))) {
+
+							if ($contents = $this->Content()->find_all(array('history_id' => $history->id))) {
 								foreach ($contents as $content) {
-									$post_data['post_content'] .= "\r\n\r\n" . $content -> content;
+									$post_data['post_content'] .= "\r\n\r\n" . $content->content;
 								}
 							}
-							
-							$p_id = wp_insert_post($post_data, true);
-							
-							if (!is_wp_error($p_id)) {								
-								//set the history_id on the post
-                                $imagespost = $this -> get_option('imagespost');
-                                if($p_id != $imagespost) {
-                                    //set the history_id on the post
-								update_post_meta($p_id, '_newsletters_history_id', $history_id);
-                                update_post_meta($p_id, 'grapejs_content' , isset($data['grapejs_content']) ? $data['grapejs_content']  : '');
-                                update_post_meta($p_id, 'using_grapeJS' , isset($data['using_grapeJS']) ? $data['using_grapeJS']  : '');
-                                }
 
-                                //custom post has been inserted/updated
-								$Db -> model = $this -> model;
-								$Db -> save_field('p_id', $p_id, array('id' => $history_id));
-								
+							$p_id = wp_insert_post($post_data, true);
+
+							if (!is_wp_error($p_id)) {
+								$imagespost = $this->get_option('imagespost');
+								if ($p_id != $imagespost) {
+									update_post_meta($p_id, '_newsletters_history_id', $history_id);
+									update_post_meta($p_id, 'grapejs_content', isset($data['grapejs_content']) ? $data['grapejs_content'] : '');
+									update_post_meta($p_id, 'using_grapeJS', isset($data['using_grapeJS']) ? $data['using_grapeJS'] : '');
+								}
+								$Db->model = $this->model;
+								$Db->save_field('p_id', $p_id, array('id' => $history_id));
 								do_action('newsletters_history_post_updated', $p_id, $history, $post_data);
 							} else {
-								$error = $p_id -> get_error_message();
-								$this -> log_error($error);
+								$this->log_error($p_id->get_error_message());
 							}
 						}
 					}
-					
-					/* mailing lists */
-					$Db -> model = $HistoriesList -> model;
-					$Db -> delete_all(array('history_id' => $this -> insertid));
-                    $mailinglists = maybe_unserialize(isset($mailinglists) ?  $mailinglists : '');
-					if (!empty($mailinglists) && is_array($mailinglists)) {								
+
+					// Handle mailing lists
+					$Db->model = $HistoriesList->model;
+					$Db->delete_all(array('history_id' => $this->insertid));
+					$mailinglists = maybe_unserialize(isset($mailinglists) ? $mailinglists : '');
+					if (!empty($mailinglists) && is_array($mailinglists)) {
 						foreach ($mailinglists as $list_id) {
-							$Db -> model = $HistoriesList -> model;
-							
-							if (!$Db -> find(array('history_id' => $this -> insertid, 'list_id' => $list_id))) {
+							$Db->model = $HistoriesList->model;
+							if (!$Db->find(array('history_id' => $this->insertid, 'list_id' => $list_id))) {
 								$hl_data = array(
-									'HistoriesList'			=>	array(
-										'history_id'			=>	$this -> insertid,
-										'list_id'				=>	$list_id,
+									'HistoriesList' => array(
+										'history_id' => $this->insertid,
+										'list_id' => $list_id,
 									)
 								);
-								
-								$Db -> save($hl_data, true);
+								$Db->save($hl_data, true);
 							}
 						}
 					}
-					
+
 					return true;
 				}
+
+				return false;
 			}
-			
+
 			return false;
 		}
 		

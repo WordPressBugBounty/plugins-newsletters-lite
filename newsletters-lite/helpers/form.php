@@ -136,10 +136,19 @@ class wpmlFormHelper extends wpMailPlugin
 
 		
 		<?php if (!empty($boxes)) : ?>
-			<?php foreach ($boxes as $bkey => $bval) : ?>
-				<?php  $text = $this -> language_use($language, $this -> get_option($bval)); ?>
-                <label><input <?php echo (is_array($Html -> field_value($name)) && in_array($bkey, $Html -> field_value($name))) ? 'checked="checked"' : ''; ?> type="checkbox" name="<?php echo $name; ?>" id="<?php echo $Html -> field_id($name); ?>checklist<?php echo $bkey; ?>" value="<?php echo esc_attr(wp_unslash($bkey)); ?>" /> <?php echo __($text); ?></label><?php echo $separator; ?>
-			<?php endforeach; ?>
+			<?php foreach ( $boxes as $value => $label ) :
+				?>
+				<label>
+					<input type="checkbox"
+						   id="<?php echo $Html->field_id( $name ); ?>check_<?php echo $value; ?>"
+						   name="<?php echo $name; ?>"
+						   value="<?php echo esc_attr( $value ); ?>"
+						   <?php checked( in_array( $value, (array) $Html->field_value( $name ), true ) ); ?>
+					/>
+					<?php echo esc_html__( $label, 'wp-mailinglist' ); ?>
+				</label><?php echo $separator; ?>
+				<?php
+			endforeach; ?>
 		<?php endif; ?>
 		
 		<?php

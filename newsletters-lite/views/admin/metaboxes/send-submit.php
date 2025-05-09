@@ -311,7 +311,7 @@ $previewemail = (empty($_REQUEST['previewemail'])) ? $this -> get_option('admine
 	<div id="major-publishing-actions">
 		<?php if (!empty($_POST['ishistory'])) : ?>
 			<div id="delete-action">
-				<a href="?page=<?php echo esc_html( $this -> sections -> history); ?>&amp;method=delete&amp;id=<?php echo sanitize_text_field(wp_unslash($_POST['ishistory'])); ?>" onclick="if (!confirm('<?php esc_html_e('Are you sure you wish to remove this newsletter from your history?', 'wp-mailinglist'); ?>')) { return false; }" title="<?php esc_html_e('Remove this newsletter from your history', 'wp-mailinglist'); ?>" class="submitdelete deletion"><?php esc_html_e('Delete Email', 'wp-mailinglist'); ?></a>
+				<a href="<?php echo esc_url(wp_nonce_url('?page=' . esc_html($this->sections->history) . '&method=delete&id=' . sanitize_text_field(wp_unslash($_POST['ishistory'])), $this->sections->history . '_delete')); ?>" onclick="if (!confirm('<?php echo esc_js(__('Are you sure you wish to remove this newsletter from your history?', 'wp-mailinglist')); ?>')) { return false; }" title="<?php echo esc_attr(__('Remove this newsletter from your history', 'wp-mailinglist')); ?>" class="submitdelete deletion"><?php esc_html_e('Delete Email', 'wp-mailinglist'); ?></a>
 				<?php echo ( $Html -> help(__('Since this is a saved sent/draft email, you can click this "Delete Email" link to permanently delete it from your history. Please note that this is undoable.', 'wp-mailinglist'))); ?>
 			</div>
 		<?php endif; ?>

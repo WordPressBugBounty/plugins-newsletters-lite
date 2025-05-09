@@ -102,7 +102,14 @@ if (!class_exists('newslettersDefault')) {
 				'deps'					=>	array('jquery'),
 				'footer'				=>	false,
 			);
-			
+			$defaultscripts['turnstile'] = array(
+				'name'     => 'Cloudflare Turnstile',
+				'url'      => false, // handled dynamically
+				'version'  => false,
+				'deps'     => array( 'jquery' ),
+				'footer'   => false,
+			);
+
 			return $defaultscripts;
 		}
 		

@@ -57,9 +57,10 @@ $emails_percentage = (($emails / 1000) * 100);
 					<li><?php echo sprintf(__('<strong>%s of 1</strong> (%s&#37;) mailing lists used', 'wp-mailinglist'), $lists, $lists_percentage); ?></li>
 					<li><?php echo sprintf(__('<strong>%s of 500</strong> (%s&#37;) subscribers used', 'wp-mailinglist'), $subscribers, $subscribers_percentage); ?></li>
 					<li><?php echo sprintf(__('<strong>%s of 1000</strong> (%s&#37;) emails per month', 'wp-mailinglist'), $emails, $emails_percentage); ?></li>
-                    <li><?php esc_html_e('No API mail type', 'wp-mailinglist'); ?></li>
-                    <li><?php esc_html_e('No drag and drop newsletter & template builder', 'wp-mailinglist'); ?></li>
-                    <li><?php esc_html_e('No dynamic custom fields', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('No API Mail Type', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('No Drag & Drop Newsletter & Template Builder', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('No reCAPTCHA v3, hCaptcha, and Cloudflare Turnstile', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('No dynamic Custom Fields', 'wp-mailinglist'); ?></li>
 				</ul>
 			</div>
 			<div class="col">
@@ -70,9 +71,10 @@ $emails_percentage = (($emails / 1000) * 100);
 					<li><?php esc_html_e('Unlimited mailing lists', 'wp-mailinglist'); ?></li>
 					<li><?php esc_html_e('Unlimited subscribers', 'wp-mailinglist'); ?></li>
 					<li><?php esc_html_e('Unlimited email sending', 'wp-mailinglist'); ?></li>
-                    <li><?php esc_html_e('API mail type', 'wp-mailinglist'); ?></li>
-                    <li><?php esc_html_e('Drag and drop newsletter & template builder', 'wp-mailinglist'); ?></li>
-                    <li><?php esc_html_e('Dynamic custom fields', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('API Mail Type', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('Drag & Drop Newsletter & Template Builder', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('reCAPTCHA v3, hCaptcha, Cloudflare Turnstile', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('Dynamic Custom Fields', 'wp-mailinglist'); ?></li>
 				</ul>
 			</div>
 			<div class="col last-feature">
@@ -106,10 +108,10 @@ $emails_percentage = (($emails / 1000) * 100);
 			  fjs.parentNode.insertBefore(js, fjs);
 			}(document, 'script', 'facebook-jssdk'));</script>
 			
-			<div class="fb-like" data-href="https://www.facebook.com/tribulantsoftware" data-layout="button" data-action="like" data-show-faces="false" data-share="false"></div>
+			<div class="fb-like" data-href="https://www.facebook.com/TribulantSoftware/" data-layout="button" data-action="like" data-show-faces="false" data-share="false"></div>
 			
 			<!-- Twitter Follow -->
-			<a href="https://twitter.com/tribulant" class="twitter-follow-button" data-show-count="false" data-show-screen-name="false">Follow @tribulant</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+			<a href="https://x.com/tribulant" class="twitter-follow-button" data-show-count="false" data-show-screen-name="false">Follow @tribulant</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
 			
 			<!-- Google+ Follow -->
 			<!-- Place this tag in your head or just before your close body tag. -->

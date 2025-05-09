@@ -25,7 +25,7 @@ $disable_drag_and_drop_builder = $this -> get_option('disable_drag_drop_builder'
 
         </th>
         <td>
-            <label><input <?php echo (!empty($disable_drag_and_drop_builder)) ? 'checked="checked"' : ''; ?> type="checkbox" name="disable_drag_drop_builder" value="1" id="disable_drag_drop_builder" /> <?php _e('Disable the drag & drop builder (Beta) in the Create Newsletter page', 'wp-mailinglist'); ?></label>
+            <label><input <?php echo (!empty($disable_drag_and_drop_builder)) ? 'checked="checked"' : ''; ?> type="checkbox" name="disable_drag_drop_builder" value="1" id="disable_drag_drop_builder" /> <?php _e('Disable the Drag & Drop Builder in the Create Newsletter page', 'wp-mailinglist'); ?></label>
             <br/><br/><span class="howto" ><?php echo __('By ticking this setting, you disable the Drag & Drop Builder on the Create Newsletter page. You may find some issues with it active while it is still in beta stage. Please report any bug by visiting our website and submitting a ticket on the Support page. This does not disable it when creating/editing a template.', 'wp-mailinglist'); ?></span>
 
         </td>

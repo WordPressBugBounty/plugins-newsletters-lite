@@ -85,12 +85,12 @@ grapesjs.plugins.add('gjs-plugin-wordpress', (editor, opts = {}) => {
 	});
 	
 	var pnm = editor.Panels;
-	pnm.addButton('options', [{
-		id: 'clean-all',
-		className: 'fa fa-trash icon-blank',
-		command: 'clean-all',
-		attributes: {title: 'Empty canvas'}
-	}]);
+	//pnm.addButton('options', [{
+	//	id: 'clean-all',
+	//	className: 'fa fa-trash icon-blank',
+	//	command: 'clean-all',
+	//	attributes: {title: 'Empty canvas'}
+	//}]);
 	
 	// Commands
 	var cmd = editor.Commands;

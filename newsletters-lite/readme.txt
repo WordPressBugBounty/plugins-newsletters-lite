@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.7.2
-Stable tag: 4.9.9.8
+Tested up to: 6.8.1
+Stable tag: 4.9.9.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -45,6 +45,11 @@ Some of the features in the WordPress Newsletter plugin include (see PRO Version
 * WordPress Multisite Compatible 
 * Email Tracking 
 * IP Logging of Subscribers 
+* Google reCAPTCHA v2 
+* Google reCAPTCHA v3 
+* hCaptcha 
+* Cloudflare Turnstile 
+* Really Simple CAPTCHA 
 * Newsletter Themes 
 * POP/IMAP Bounce Handling 
 * Latest Posts Subscriptions 
@@ -159,13 +164,14 @@ curl_close($ch);
 
 = PRO Version =
 
-The Newsletters LITE version has nearly all of the features that the PRO version has but it has some limitations.
+The Newsletters LITE version has nearly all of the features that the PRO version has but it has some limitations:
 
 * One mailing list.
 * 500 max subscribers.
 * Send up to 1000 emails per month.
-* Mail Type: local server and SMTP. No API integration with our <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/10570/sending-apis/">mail service providers</a>.
-* The "Drag & drop newsletter & template builder" cannot be used.
+* Mail Type: Local Server and SMTP. No API integration with our <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/10570/sending-apis/">mail service providers</a>.
+* The "Drag & Drop Newsletter & Template Builder" cannot be used.
+* Limited to Really Simple CAPTCHA and Google reCAPTCHA v2. The rest (reCAPTCHA v3, hCaptcha, Cloudflare Turnstile) cannot be used.
 * No new custom dynamic fields can be added but you can edit current ones.
 
 These limits should be sufficient for a personal blogger or a small business.
@@ -229,6 +235,17 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.9.9.9 =
+* ADD: 'wpml_groups_select' filter which works with conjunction of Total Control extension to limit the groups per each user mailinglist restriction.
+* ADD: PRO only. Google reCAPTCHA v3, hCaptcha, and Cloudflare Turnstile.
+* IMPROVE: PRO only. Updated Drag & Drop builder and removed the beta tag, officially launching this builder. And, more buttons available.
+* FIX: Send Batch in the queue showed subscriber not exist after sending the email.
+* FIX: SQL injection vulnerability issue on wpmlhistory shortcode order attribute.
+* FIX: Newsletters - Google Analytics DB error when saving Latest Posts Subscriptions when addon is active. (Requires Newsletters - Google Analyics 1.7.2+).
+* FIX: Delete newsletter in newsletter editor showing "The link has expired" error.
+* FIX: Get bounce fatal error on PHP 8.x.
+* FIX: Inline code style was missing in a template's help text.
 
 = 4.9.9.8 =
 * ADD: Option to sanitize the email content under Configuration > General > Sending Settings. This is enabled by default to prevent a potential vulnerability and may use more CPU. Can be disabled.

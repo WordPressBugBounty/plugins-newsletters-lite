@@ -95,33 +95,48 @@ class wpmlFormHelper extends wpMailPlugin
 		return $textarea;
 	}
 	
-	function radio($name = null, $buttons = array(), $options = array())
-    {
+	public function radio( $name = null, $buttons = array(), $options = array() ) {
 		global $Html;
-		
-		$defaults = array('error' => true, 'onclick' => 'return;', 'separator' => '<br/>');
-		$r = wp_parse_args($options, $defaults);
-		extract($r, EXTR_SKIP);
-		$value = $Html -> field_value($name);
-		
-		ob_start(); ?>
-		
-		<?php if (!empty($buttons)) : ?>
-			<?php $language =  $this -> language_default(); ?>
-			<?php foreach ($buttons as $bkey => $bval) : ?>
-				<?php  $text = $this -> language_use($language, $this -> get_option($bval)); ?>
-                <label><input id="<?php echo $Html -> field_id($name); ?><?php echo $bval; ?>" <?php echo ((!empty($value) && $value == $bkey) || (empty($value) && !empty($default) && $bkey == $default)) ? 'checked="checked"' : ''; ?> onclick="<?php echo $onclick; ?>" type="radio" name="<?php echo $name; ?>" value="<?php echo esc_attr(wp_unslash($bkey)); ?>" /> <?php echo __($text); ?></label><?php echo $separator; ?>
-			<?php endforeach; ?>
-		<?php endif; ?>
-		
-		<?php
-		
-		if ($error != false) {
-			echo  $Html -> field_error($name);
+	
+		$defaults = array(
+			'error'     => true,
+			'onclick'   => 'return;',
+			'separator' => '<br/>',
+			'default'   => null,
+		);
+		$r = wp_parse_args( $options, $defaults );
+		extract( $r, EXTR_SKIP );
+	
+		$current = $Html->field_value( $name );
+	
+		ob_start();
+	
+		if ( ! empty( $buttons ) ) {
+			foreach ( $buttons as $value => $label ) {
+	
+				$is_checked = ( ( $current !== '' && $current == $value )
+								|| ( $current === '' && $default !== null && $value == $default ) );
+				?>
+				<label>
+					<input
+						type="radio"
+						id="<?php echo $Html->field_id( $name ); ?>_<?php echo esc_attr( $value ); ?>"
+						name="<?php echo $name; ?>"
+						value="<?php echo esc_attr( $value ); ?>"
+						onclick="<?php echo $onclick; ?>"
+						<?php echo $is_checked ? 'checked="checked"' : ''; ?>
+					/>
+					<?php echo esc_html__( $label, 'wp-mailinglist' ); ?>
+				</label><?php echo $separator; ?>
+				<?php
+			}
 		}
-		
-		$radio = ob_get_clean();
-		return $radio;
+	
+		if ( $error ) {
+			echo $Html->field_error( $name );
+		}
+	
+		return ob_get_clean();
 	}
 	
 	function checkbox($name = null, $boxes = array(), $options = array()) {

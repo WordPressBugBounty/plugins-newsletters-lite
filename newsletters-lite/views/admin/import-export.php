@@ -336,9 +336,23 @@ if ($this -> import_process -> queued_items()) {
 			<?php
             $this -> render('error', array('errors' => $exporterrors), true, 'admin'); ?>
 							
-			<?php if (!empty($exportfile)) : ?>
-				<div class="updated fade"><p><i class="fa fa-check"></i> <?php esc_html_e('Subscribers have been exported.', 'wp-mailinglist'); ?> <a href="<?php echo esc_url_raw(home_url()); ?>/?<?php echo esc_html($this -> pre); ?>method=exportdownload&file=<?php echo urlencode($exportfile); ?>" title="<?php esc_html_e('Download the subscribers CSV document to your computer', 'wp-mailinglist'); ?>"><?php esc_html_e('Download CSV', 'wp-mailinglist'); ?> <i class="fa fa-download"></i></a></p></div>
-			<?php endif; ?>		
+			<?php if ( ! empty( $exportfile ) ) : ?>
+				<div class="updated fade">
+					<p><i class="fa fa-check"></i>
+						<?php _e( 'Subscribers have been exported.', 'wp-mailinglist' ); ?>
+						<a href="<?php echo esc_url(
+							wp_nonce_url(
+								home_url( '/?' . $this->pre . 'method=exportdownload&file=' . urlencode( $exportfile ) ),
+								'newsletters_exportdownload',
+								'wpml_nonce'
+							)
+						); ?>" title="<?php _e( 'Download the subscribers CSV document to your computer', 'wp-mailinglist' ); ?>">
+							<?php _e( 'Download CSV', 'wp-mailinglist' ); ?> <i class="fa fa-download"></i>
+						</a>
+					</p>
+				</div>
+			<?php endif; ?>
+
 			<form action="?page=<?php echo esc_html( $this -> sections -> importexport); ?>&amp;method=export#export" method="post" enctype="multipart/form-data" id="export-form">
 				<input type="hidden" name="export_filetype" value="csv" />
 			

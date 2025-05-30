@@ -35,6 +35,7 @@
                 	<div id="newattachments"></div>
                     
                     <h4><a href="" id="addattachment" class="button button-secondary" onclick="add_attachment(); return false;"><i class="fa fa-paperclip"></i> <?php esc_html_e('Add an attachment', 'wp-mailinglist'); ?></a></h4>
+					<p style="color: red; width: 80%;"><?php _e('If you attach a file and then save this draft, whether or not you send it, the attachment will be lost. Before sending the newsletter, be sure to reattach the file. If you attach the file and send the newsletter without first saving the draft, the attachment will be sent successfully.', 'wp-mailinglist'); ?></p>
                 </td>
             </tr>
         </tbody>

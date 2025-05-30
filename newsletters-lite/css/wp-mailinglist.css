@@ -1546,3 +1546,14 @@ h2.hndle.ui-sortable-handle {
 .newsletters_delete_handle {order: 1; top: 0;}
 .newsletters_edit_handle {order: 2; top: 0; margin-right: 10px;}
 .handle-actions {order: 3; }
+
+
+
+button.button.newsletters-media-button {
+    display: inline-flex;
+    flex-direction: row;
+    align-content: center;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}

@@ -112,6 +112,7 @@ if (!class_exists('wpMailCheckinit')) {
             $this -> add_action('wp_dashboard_setup', 'dashboard_setup');
 
             $serial_validation_status = $this -> ci_serial_valid();
+            $this -> add_action( 'admin_post_wpml_resend_email',  'admin_resend_email'  );
 
             //Filter hooks
             if (!$serial_validation_status) {
@@ -462,6 +463,25 @@ if (!class_exists('wpMailCheckinit')) {
 
         }
 
+
+        public function render_newsletters_media_button( $editor_id ) {
+            
+            // same capability check you use for the TinyMCE button
+            if ( ! current_user_can( 'edit_posts' ) && ! current_user_can( 'edit_pages' ) ) {
+                return;
+            }
+        
+            printf(
+                '<button type="button" class="button newsletters-media-button" 
+                        data-editor="%1$s" 
+                        title="%2$s">
+                        <span class="dashicons dashicons-email-alt"></span> %3$s
+                </button>',
+                esc_attr( $editor_id ),
+                esc_attr__( 'Insert Newsletter element', 'wp-mailinglist' ),
+                esc_html__( 'Shortcode Generator', 'wp-mailinglist' )
+            );
+        }
 
 
     }

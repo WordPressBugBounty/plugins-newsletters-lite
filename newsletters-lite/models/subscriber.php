@@ -906,8 +906,9 @@ if (!class_exists('wpmlSubscriber')) {
 						}
 
 						$subscriber -> mailinglists = (empty($data['list_id'])) ? $data['mailinglists'] : $data['list_id'];
-						$this -> admin_subscription_notification($subscriber);
-
+						if ($subscriber -> active == 'Y') {
+							$this -> admin_subscription_notification($subscriber);
+					    }
 						return $subscriber -> id;
 					}
 				} else {

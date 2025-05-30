@@ -22,7 +22,7 @@ $captcha_type = $this->get_option( 'captcha_type' );
     <tr>
         <th>
             <label for="captcha_type_select"><?php _e( 'CAPTCHA Type', 'wp-mailinglist' ); ?></label>
-            <?php echo $Html->help( __( 'Choose which CAPTCHA system you want to use or select “None”.', 'wp-mailinglist' ) ); ?>
+            <?php echo $Html->help( __( 'Choose which CAPTCHA system you want to use. Otherwise, select “None”.', 'wp-mailinglist' ) ); ?>
         </th>
 
         <td class="captcha_select_custom_height">
@@ -35,11 +35,11 @@ $captcha_type = $this->get_option( 'captcha_type' );
                     <?php selected( $captcha_type, 'hcaptcha' ); ?>
                     <?php disabled ( ! $isSerialKeyValid || ! $this->is_plugin_active( 'hcaptcha-for-forms-and-more' ) ); ?>
                 ><?php _e( 'hCaptcha', 'wp-mailinglist' ); echo $isSerialKeyValid ? '' : ' (PRO)'; ?></option>
-                <option value="recaptcha"  <?php selected( $captcha_type, 'recaptcha' ); ?>><?php _e( 'reCAPTCHA v2', 'wp-mailinglist' ); ?></option>
+                <option value="recaptcha"  <?php selected( $captcha_type, 'recaptcha' ); ?>><?php _e( 'Google reCAPTCHA v2', 'wp-mailinglist' ); ?></option>
                 <option value="recaptcha3"
                     <?php selected( $captcha_type, 'recaptcha3' ); ?>
                     <?php disabled ( ! $isSerialKeyValid ); ?>
-                ><?php _e( 'reCAPTCHA v3', 'wp-mailinglist' ); echo $isSerialKeyValid ? '' : ' (PRO)'; ?></option>
+                ><?php _e( 'Google reCAPTCHA v3', 'wp-mailinglist' ); echo $isSerialKeyValid ? '' : ' (PRO)'; ?></option>
                 <!-- Disabled until plugin available -->
                 <option value="rsc"
                         id="captcha_type_rsc"
@@ -56,12 +56,7 @@ $captcha_type = $this->get_option( 'captcha_type' );
 
 
             </select>
-            <?php if (!$isSerialKeyValid) { ?>
-                <span class="howto">
-                    <?php echo  sprintf(__('Items marked with (PRO) require you to %s.', 'wp-mailinglist'),  '<a href="' . admin_url('admin.php?page=' . $this->sections->lite_upgrade) . '" target="_blank">upgrade to PRO</a>'); ?>
-                </span>
-            <?php } ?>
-
+            
             <?php
             $rsc_path      = 'really-simple-captcha/really-simple-captcha.php';
             $hcaptcha_path = 'hcaptcha-for-forms-and-more/hcaptcha.php';
@@ -87,12 +82,12 @@ $captcha_type = $this->get_option( 'captcha_type' );
 				<?php if ( ! $this->is_plugin_active( 'hcaptcha-for-forms-and-more', true ) ) : ?>
                     <button type="button" class="install-now button button-secondary"
                             href="<?php echo wp_nonce_url( admin_url( 'plugin-install.php?tab=plugin-information&plugin=hcaptcha-for-forms-and-more&TB_iframe=true&width=600&height=550' ) ); ?>">
-						<i class="fa fa-download"></i> <?php _e( 'Install hCaptcha', 'wp-mailinglist' ); ?>
+						<i class="fa fa-download"></i> <?php _e( 'Install hCaptcha for WP', 'wp-mailinglist' ); ?>
 					</button>
                 <?php elseif ( ! $this->is_plugin_active( 'hcaptcha-for-forms-and-more', false ) ) : ?>
                     <a class="button button-secondary"
                        href="<?php echo wp_nonce_url( admin_url( 'plugins.php?action=activate&plugin=' . $hcaptcha_path ), 'activate-plugin_' . $hcaptcha_path ); ?>">
-						<i class="fa fa-check"></i> <?php _e( 'Activate hCaptcha', 'wp-mailinglist' ); ?>
+						<i class="fa fa-check"></i> <?php _e( 'Activate hCaptcha for WP', 'wp-mailinglist' ); ?>
 					</a>
                 <?php endif; ?>
 			</span>
@@ -100,6 +95,12 @@ $captcha_type = $this->get_option( 'captcha_type' );
             <span class="howto">
 				<?php _e( 'Select a provider, then complete its settings below.', 'wp-mailinglist' ); ?>
 			</span>
+            <?php if (!$isSerialKeyValid) { ?>
+                <span class="howto">
+                    <?php echo  sprintf(__('Items marked with (PRO) require you to %s.', 'wp-mailinglist'),  '<a href="' . admin_url('admin.php?page=' . $this->sections->lite_upgrade) . '" target="_blank">upgrade to PRO</a>'); ?>
+                </span>
+            <?php } ?>
+
         </td>
     </tr>
     </tbody>
@@ -140,7 +141,7 @@ $recaptcha_customcss = $this -> get_option('recaptcha_customcss');
         <tr>
             <th></th>
             <td>
-                <p><?php echo sprintf(__('In order to use reCAPTCHA, the public and private keys below are required.<br/>Go to the %sreCAPTCHA sign up%s and %screate a set of keys%s for this domain.', 'wp-mailinglist'),'<a href="https://www.google.com/recaptcha/" target="_blank">', '</a>',  '<a href="https://www.google.com/recaptcha/admin/create" target="_blank">', '</a>'); ?></p>
+                <p><?php echo sprintf(__('In order to use Google reCAPTCHA, the public and private keys below are required.<br/>Go to the %sreCAPTCHA signup page%s and %screate a set of keys%s for this domain.', 'wp-mailinglist'),'<a href="https://www.google.com/recaptcha/" target="_blank">', '</a>',  '<a href="https://www.google.com/recaptcha/admin/create" target="_blank">', '</a>'); ?></p>
             </td>
         </tr>
         <tr>
@@ -424,7 +425,7 @@ $recaptcha3_secret  = $this->get_option( 'recaptcha3_privatekey' );
         <tr>
             <th></th>
             <td>
-                               <p><?php echo sprintf(__('hCaptcha is managed by the plugin %shCaptcha for WP%s. Install and configure it to use hCaptcha here.', 'wp-mailinglist'), '<a href="https://wordpress.org/plugins/hcaptcha-for-forms-and-more/" target="_blank">', '</a>'); ?></p>
+                <p><?php echo sprintf(__('hCaptcha is managed by the plugin %shCaptcha for WP%s. Install and configure it to use hCaptcha here.', 'wp-mailinglist'), '<a href="https://wordpress.org/plugins/hcaptcha-for-forms-and-more/" target="_blank">', '</a>'); ?></p>
             </td>
         </tr>
         </tbody>

@@ -7,7 +7,14 @@ $exportfile = 'failedsubscribers-' . date_i18n("Ymd") . '.csv';
 $exportfilepath = $Html -> uploads_path() . DS . $this -> plugin_name . DS . 'export' . DS;
 $exportfilefull = $exportfilepath . $exportfile;
 @unlink($exportfilefull);
-$downloadurl = $Html -> retainquery('wpmlmethod=exportdownload&file=' . urlencode($exportfile), home_url());
+$downloadurl = wp_nonce_url(
+    $Html->retainquery(
+        'wpmlmethod=exportdownload&file=' . urlencode( $exportfile ),
+        home_url()
+    ),
+    'newsletters_exportdownload',
+    'wpml_nonce'
+);
 	
 ?>
 

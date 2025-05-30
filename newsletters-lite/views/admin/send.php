@@ -378,6 +378,18 @@ $page = $screen -> id;
 						<?php if (version_compare(get_bloginfo('version'), "3.3") >= 0) : ?>
 							<?php 
 
+                             add_action( 'media_buttons',
+                             array( $this, 'render_newsletters_media_button' ),
+                             20,          // after “Add Media”
+                             1 );         // 1 = we want $editor_id
+                             wp_enqueue_script(
+                                 'newsletters-media-button',                                   // handle
+                                 $this->url() . '/js/newsletters-media-button.js',             // file
+                                 array( 'jquery', 'editor' ),                                  // deps
+                                 defined( 'NEWSLETTERS_VERSION' ) ? NEWSLETTERS_VERSION : null,
+                                 true                                                          // load in footer
+                             );
+
 							wp_editor(
                                 isset($_POST['content']) ? $_POST['content'] : '',
 								'content', 
@@ -392,7 +404,20 @@ $page = $screen -> id;
 								)
 							); ?>
 						<?php else : ?>
-                            <?php the_editor($_POST['content'], 'content', 'title', true, 2); ?>
+                            <?php
+                                 add_action( 'media_buttons',
+                                 array( $this, 'render_newsletters_media_button' ),
+                                 20,          // after “Add Media”
+                                 1 );         // 1 = we want $editor_id
+                                 wp_enqueue_script(
+                                     'newsletters-media-button',                                   // handle
+                                     $this->url() . '/js/newsletters-media-button.js',             // file
+                                     array( 'jquery', 'editor' ),                                  // deps
+                                     defined( 'NEWSLETTERS_VERSION' ) ? NEWSLETTERS_VERSION : null,
+                                     true                                                          // load in footer
+                                 );
+                                
+                                the_editor($_POST['content'], 'content', 'title', true, 2); ?>
 						<?php endif; ?>
 						
 						<table id="post-status-info" cellpadding="0" cellspacing="0">
@@ -503,12 +528,17 @@ function newsletters_autosave() {
 
     <?php if($builderon) { ?>
 
-    //if (jQuery('#usebuilder').hasClass('builderon'))
-    //{
-        formvalues['using_grapeJS'] = true;
-        formvalues['grapejs_content'] = editor.Commands.run('gjs-get-inlined-html');
-        formvalues['post_id'] = <?php echo $post_ID ; ?>;
-    //}
+        if ($('#usebuilder').hasClass('builderon')) {
+                formvalues['using_grapeJS'] = true;
+                formvalues['grapejs_content'] = editor.Commands.run('gjs-get-inlined-html');
+                formvalues['post_id'] = <?php echo $post_ID ; ?>;
+                formvalues['post_id']        = <?php echo $post_ID; ?>;
+            } else {
+                // make 100 % sure we do NOT accidentally send old builder markup
+                formvalues['using_grapeJS']  = false;
+                formvalues['grapejs_content']= '';
+            }
+
 
     <?php
     }
@@ -650,7 +680,7 @@ jQuery(document).ready(function() {
     }
     
     setTimeout(function() {
-    	var newsletters_autosave_interval = setInterval(newsletters_autosave, 60000);
+    	var newsletters_autosave_interval = setInterval(newsletters_autosave, 20000);
     }, 30000);
     
     jQuery(':submit').click(function(e) {

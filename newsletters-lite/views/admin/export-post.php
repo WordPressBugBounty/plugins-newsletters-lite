@@ -152,14 +152,31 @@
 						}
 					}
 				}
-			}).success(function() {
+			}).success(function () {
 				if (completed >= subscribercount) {
 					jQuery('#cancelexporting').hide();
 					warnMessage = null;
-					jQuery('#startexporting').html('<?php echo addslashes(__('Download CSV', 'wp-mailinglist')); ?> <i class="fa fa-download"></i>').removeAttr('disabled').removeAttr('onclick').attr("href", "<?php echo $Html -> retainquery('wpmlmethod=exportdownload&file=' . urlencode($exportfile), home_url()); ?>");
+					jQuery('#startexporting')
+						.html('<?php echo addslashes(__('Download CSV', 'wp-mailinglist')); ?> <i class="fa fa-download"></i>')
+						.removeAttr('disabled')
+						.removeAttr('onclick')
+						.attr(
+							"href",
+							"<?php echo esc_url(
+								wp_nonce_url(
+									$Html->retainquery(
+										'wpmlmethod=exportdownload&file=' . urlencode( $exportfile ),
+										home_url()
+									),
+									'newsletters_exportdownload',
+									'wpml_nonce'
+								)
+							); ?>"
+						);
 					jQuery('#exportmore').show();
 				}
-			}).fail(function() {
+			}).fail(function () {
+
 				completed += exportsubscribers.length;
 				failed += exportsubscribers.length;
 			}));

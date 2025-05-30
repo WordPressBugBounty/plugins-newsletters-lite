@@ -191,36 +191,30 @@ class wpmlAuthnewsHelper extends wpMailPlugin {
 		}
 	}
 
-	function javascript_cookie($cookiename = null, $value = null, $delete = false) {
-		if (!empty($cookiename) && !empty($value)) {
-			global $wpmljavascript;
-			ob_start();
+	/* auth.php – replace javascript_cookie() */
+	function javascript_cookie( $cookiename = null, $value = null, $delete = false ) {
 
-			?>
-
-			<script type="text/javascript">
-			jQuery(document).ready(function() {
-				<?php if (!empty($delete)) : ?>
-					datum = new Date();
-					datum.setTime(datum.getTime() - 7 *24*60*60*1000);
-					document.cookie = "<?php echo esc_html( $cookiename); ?>=<?php echo esc_html( $value); ?>; expires="  + datum.toUTCString();
-				<?php else : ?>
-					datum = new Date();
-					datum.setTime(datum.getTime() + 7 *24*60*60*1000);
-					document.cookie = "<?php echo esc_html( $cookiename); ?>=<?php echo esc_html( $value); ?>; expires=" + datum.toUTCString();
-				<?php endif; ?>
-			});
-			</script>
-
-			<?php
-
-			$newjavascript = ob_get_clean();
-			$wpmljavascript .= $newjavascript;
-			return $wpmljavascript;
+		if ( empty( $cookiename ) || is_null( $value ) ) {
+			return false;
 		}
 
-		return false;
+		$js  = '(function(){';
+		$js .= 'var d=new Date();';
+		$js .= 'd.setTime(d.getTime() '. ( $delete ? '-' : '+' ) .' 7*24*60*60*1000);';
+		$js .= 'document.cookie="'. $cookiename .'='. $value .'; expires="+d.toUTCString();';
+		$js .= '})();';
+
+		// register a dummy handle the first time we need it
+		if ( ! wp_script_is( 'wpml-authhelper', 'registered' ) ) {
+			wp_register_script( 'wpml-authhelper', '' );   // no actual file
+			wp_enqueue_script(  'wpml-authhelper' );
+		}
+
+		wp_add_inline_script( 'wpml-authhelper', $js );
+
+		return true;
 	}
+
 
 	function gen_subscriberauth() {
 		$subscriberauth = md5(microtime());

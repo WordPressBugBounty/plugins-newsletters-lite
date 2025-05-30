@@ -114,7 +114,7 @@ if (!class_exists('newsletters_lite')) {
 
             $args = array(
                 'id' => 'newsletterslite_noapi',
-                'title' => __('No API mail type' , 'wp-mailinglist'),
+                'title' => __('No API Mail Type' , 'wp-mailinglist'),
                 'parent' => 'newsletterslite',
                 'href' => false,
                 'meta' => array('class' => 'newsletters-lite-noapi'),
@@ -124,17 +124,26 @@ if (!class_exists('newsletters_lite')) {
 
             $args = array(
                 'id' => 'newsletterslite_nodraganddrop',
-                'title' => __('No drag and drop newsletter & template builder' , 'wp-mailinglist'),
+                'title' => __('No Drag & Drop Newsletter & Template Builder' , 'wp-mailinglist'),
                 'parent' => 'newsletterslite',
                 'href' => false,
                 'meta' => array('class' => 'newsletters-lite-nodraganddrop'),
             );
 
+            $args = array(
+                'id' => 'newsletterslite_nopremiumcaptchas',
+                'title' => __('No reCAPTCHA v3, hCaptcha, and Cloudflare Turnstile' , 'wp-mailinglist'),
+                'parent' => 'newsletterslite',
+                'href' => false,
+                'meta' => array('class' => 'newsletters-lite-nopremiumcaptchas'),
+            );
+
+
             $wp_admin_bar->add_node($args);
 
             $args = array(
                 'id' => 'newsletterslite_nodynamiccustomfield',
-                'title' => __('No dynamic custom fields' , 'wp-mailinglist'),
+                'title' => __('No dynamic Custom Fields' , 'wp-mailinglist'),
                 'parent' => 'newsletterslite',
                 'href' => false,
                 'meta' => array('class' => 'newsletters-lite-nodynamiccustomfield'),
@@ -341,7 +350,7 @@ if (!class_exists('newsletters_lite')) {
 			$field_count = $Db->count();
 			$serial_validation_status = $this->ci_serial_valid();
 
-			if ($field_count >= 3 && empty($data->id)) {
+			if ($field_count >= 5 && empty($data->id)) {
 				if (!is_array($serial_validation_status) && !$serial_validation_status) {
 
 					$error = sprintf(__('Additional custom fields are only available in the PRO version. %s to be able to manage unlimited custom fields.', 'wp-mailinglist'), '<a href="' . admin_url('admin.php?page=' . $this->sections->lite_upgrade) . '">Upgrade to PRO</a>');

@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.9.9.9
+Version: 4.10
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -709,10 +709,23 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                         $this -> render_error(sanitize_text_field(urldecode(wp_unslash($_GET[$this -> pre . 'message']))));
                     }
 
-                    if (!empty($_GET['newsletters_exportlink'])) {
-                        $message = sprintf(__('Your export is ready. %s', 'wp-mailinglist'), '<a class="button button-secondary" href="' . $Html -> retainquery('wpmlmethod=exportdownload&file=' .  sanitize_text_field(wp_unslash($_GET['newsletters_exportlink'])), $this -> url) . '"><i class="fa fa-download fa-fw"></i>' . __('Download', 'wp-mailinglist') . '</a>');
-                        $this -> render_message($message);
+                    if ( ! empty( $_GET['newsletters_exportlink'] ) ) {
+                        $download_url = wp_nonce_url(
+                            $Html->retainquery(
+                                'wpmlmethod=exportdownload&file=' . esc_html( $_GET['newsletters_exportlink'] ),
+                                $this->url
+                            ),
+                            'newsletters_exportdownload',
+                            'wpml_nonce'
+                        );
+                    
+                        $message = sprintf(
+                            __('Your export is ready. %s', 'wp-mailinglist'),
+                            '<a class="button button-secondary" href="' . esc_url( $download_url ) . '"><i class="fa fa-download fa-fw"></i>' . __('Download', 'wp-mailinglist') . '</a>'
+                        );
+                        $this->render_message( $message );
                     }
+                    
 
                     if (current_user_can('edit_plugins')) {
                         $folder = $Html -> uploads_path();
@@ -1582,46 +1595,53 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     switch ($method) {
                         case 'exportdownload'					:
                             if (current_user_can('newsletters_welcome')) {
-                                $file = sanitize_text_field(wp_unslash($_GET['file']));
-                                if (!empty($file)) {
-                                    $filename = urldecode($file);
-                                    $filepath = $Html -> uploads_path() . '/' . $this -> plugin_name . '/export/';
-                                    $filefull = $filepath . $filename;
 
-                                    if (file_exists($filefull)) {
-                                        if(ini_get('zlib.output_compression')) {
-                                            ini_set('zlib.output_compression', 'Off');
-                                        }
-
-                                        $contenttype = (function_exists('mime_content_type')) ? mime_content_type($filefull) : "text/csv";
-                                        header("Pragma: public");
-                                        header("Expires: 0");
-                                        header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
-                                        header("Cache-Control: public", false);
-                                        header("Content-Description: File Transfer");
-                                        header("Content-Type: text/csv");
-                                        header("Accept-Ranges: bytes");
-                                        header("Content-Disposition: attachment; filename=\"" . $filename . "\";");
-                                        header("Content-Transfer-Encoding: binary");
-                                        header("Content-Length: " . filesize($filefull));
-
-                                        if ($fh = fopen($filefull, 'rb')){
-                                            while (!feof($fh) && connection_status() == 0) {
-                                                @set_time_limit(0);
-                                                //phpcs:ignore
-                                                print(fread($fh, (1024 * 8)));
-                                            }
-
-                                            fclose($fh);
-                                            exit();
-                                            die();
-                                        }
-                                    } else {
-                                        $error = __('Export file could not be created', 'wp-mailinglist');
-                                    }
-                                } else {
-                                    $error = __('No export file was specified', 'wp-mailinglist');
+                                $nonce = isset( $_GET['wpml_nonce'] ) ? sanitize_key( $_GET['wpml_nonce'] ) : '';
+                                if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'newsletters_exportdownload' ) ) {
+                                    wp_die( __( 'Invalid or expired download link.', 'wp-mailinglist' ) );
                                 }
+
+                                $file = isset( $_GET['file'] )
+                                    ? sanitize_file_name( wp_unslash( $_GET['file'] ) )
+                                    : '';
+
+                                if ( empty( $file ) ) {
+                                    wp_die( __( 'No export file was specified.', 'wp-mailinglist' ) );
+                                }
+
+                                $export_dir  = realpath( $Html->uploads_path() . '/' . $this->plugin_name . '/export/' );
+                                $filefull    = realpath( $export_dir . '/' . $file );
+
+                                // realpath() can return false, or a path outside $export_dir (path-traversal)
+                                if ( ! $export_dir || ! $filefull || strpos( $filefull, $export_dir ) !== 0 || ! is_file( $filefull ) ) {
+                                    wp_die( __( 'Export file could not be found.', 'wp-mailinglist' ) );
+                                }
+
+                                /* ---------- 4. Stream the file (original code) ---------- */
+                                if ( ini_get( 'zlib.output_compression' ) ) {
+                                    ini_set( 'zlib.output_compression', 'Off' );
+                                }
+
+                                header( 'Pragma: public' );
+                                header( 'Expires: 0' );
+                                header( 'Cache-Control: must-revalidate, post-check=0, pre-check=0' );
+                                header( 'Cache-Control: public', false );
+                                header( 'Content-Description: File Transfer' );
+                                header( 'Content-Type: text/csv' );
+                                header( 'Accept-Ranges: bytes' );
+                                header( 'Content-Disposition: attachment; filename="' . $file . '"' );
+                                header( 'Content-Transfer-Encoding: binary' );
+                                header( 'Content-Length: ' . filesize( $filefull ) );
+
+                                if ( $fh = fopen( $filefull, 'rb' ) ) {
+                                    while ( ! feof( $fh ) && connection_status() === 0 ) {
+                                        @set_time_limit( 0 );
+                                        // phpcs:ignore WordPress.Security.EscapeOutput
+                                        print fread( $fh, 1024 * 8 );
+                                    }
+                                    fclose( $fh );
+                                }
+                                exit;
                             } else {
                                 $error = __('You do not have permission to access exports', 'wp-mailinglist');
                             }
@@ -1948,6 +1968,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                                     $message = __('Subscription has been activated', 'wp-mailinglist');
                                                     $subscriber = $Subscriber -> get($subscriber_id, false);
                                                     $subscriber -> mailinglist_id = $mailinglist -> id;
+                                                    $this -> admin_subscription_notification($subscriber);
 
                                                     $saveipaddress = $this -> get_option('saveipaddress');
                                                     if (!empty($saveipaddress)) {
@@ -4873,7 +4894,21 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     case 'settings'							:
                         if (!empty($_POST)) {
                             check_admin_referer($this -> sections -> forms . '_settings');
-                            if ($this -> Subscribeform() -> save(map_deep(wp_unslash($_POST), 'sanitize_text_field'))) {
+
+                            $data = map_deep(
+                                wp_unslash( $_POST ),
+                                function ( $value ) {
+                                    if ( is_array( $value ) ) {
+                                        return $value;                    // dive deeper
+                                    }
+
+                                    return ( strpos( $value, '<' ) !== false || strpos( $value, "\n" ) !== false )
+                                        ? wp_kses_post( $value )          // keep formatting
+                                        : sanitize_text_field( $value );  // strip it
+                                }
+                            );
+
+                            if ($this -> Subscribeform() -> save($data)) {
                                 $message = __('Form has been saved', 'wp-mailinglist');
                                 $this -> render_message($message);
                             } else {
@@ -5842,6 +5877,130 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                 }
             }
 
+            // Re-send a single stored e-mail to the same person it went to originally.
+            // Works for newsletters (GrapeJS or classic) and for one-off system mails.
+            public function admin_resend_email() {
+                // Step 0 – permission check and input sanitising
+                if ( ! current_user_can( 'manage_options' ) ) {
+                    wp_die( __( 'You do not have permission to do that.', 'wp-mailinglist' ) );
+                }
+                $email_id      = absint( $_GET['email_id']      ?? 0 );
+                $subscriber_id = absint( $_GET['subscriber_id'] ?? 0 );
+                $user_id       = absint( $_GET['user_id']       ?? 0 );
+                check_admin_referer( 'wpml_resend_email_' . $email_id );
+                global $Db, $Email, $Subscriber, $History, $HistoriesAttachment, $Html;
+                // Step 1 – look up the original row in newsletters_emails
+                $Db->model = $Email->model;
+                if ( ! $email = $Db->find( [ 'id' => $email_id ] ) ) {
+                    return $this->redirect_back( false, __( 'Original email not found.', 'wp-mailinglist' ) );
+                }
+                // Step 2 – figure out who to send to
+                $subscriber = null;
+                $user       = null;
+                if ( $subscriber_id ) {
+                    $subscriber = $Subscriber->get( $subscriber_id, false );
+                    if ( ! $subscriber ) {
+                        return $this->redirect_back( false, __( 'Subscriber no longer exists.', 'wp-mailinglist' ) );
+                    }
+                }
+                // If the e-mail was aimed at a WP user rather than a subscriber
+                if ( ! $subscriber && $user_id ) {
+                    if ( $wp_user = get_user_by( 'id', $user_id ) ) {
+                        $user = $wp_user;
+                        // Build a “ghost” subscriber object so execute_mail() always has an address
+                        $subscriber = (object) [
+                            'id'        => 0,
+                            'email'     => $wp_user->user_email,
+                            'firstname' => $wp_user->first_name,
+                            'lastname'  => $wp_user->last_name,
+                            'name'      => $wp_user->display_name ?: $wp_user->user_login,
+                            'user_id'   => $user_id,
+                            'format'    => 'html',
+                        ];
+                    } else {
+                        return $this->redirect_back( false, __( 'User no longer exists.', 'wp-mailinglist' ) );
+                    }
+                }
+                // Is this a newsletter or a transactional/system e-mail?
+                $is_newsletter = (int) $email->history_id > 0;
+                // System / transactional (confirmations, auth links, etc.)
+                if ( ! $is_newsletter ) {
+                    //TODO: Maybe later we can add transaction resend if it means something. 
+                // Newsletter (bulk campaign, autoresponder, GrapeJS, etc.)
+                } else {
+                    // 3a – full campaign (“history”) row plus any file attachments
+                    $Db->model = $History->model;
+                    $history   = $Db->find( [ 'id' => $email->history_id ] );
+                    if ( ! $history ) {
+                        return $this->redirect_back( false, __( 'Campaign record missing.', 'wp-mailinglist' ) );
+                    }
+                    $Db->model = $HistoriesAttachment->model;
+                    $attachments = [];
+                    if ( $atts = $Db->find_all( [ 'history_id' => $history->id ] ) ) {
+                        foreach ( $atts as $att ) {
+                            $attachments[] = [
+                                'id'       => $att->id,
+                                'title'    => $att->title,
+                                'filename' => $att->filename,
+                            ];
+                        }
+                    }
+                    // 3b – build the personalised HTML exactly as the bulk queue does
+                    $eunique = $Html->eunique( $subscriber ?: $user, $history->id );
+                    $message = $this->render_email(
+                        'send',
+                        [
+                            'message'     => $history->message,
+                            'subject'     => $history->subject,
+                            'subscriber'  => $subscriber,
+                            'user'        => $user,
+                            'history_id'  => $history->id,
+                            'post_id'     => $history->post_id,
+                            'eunique'     => $eunique,
+                        ],
+                        false,
+                        $this->htmltf( ! empty( $subscriber->format ) ? $subscriber->format : 'html' ),
+                        true,
+                        $history->theme_id,
+                        true
+                    );
+                    // The subject goes through tag-parsing inside execute_mail()
+                    $subject = wp_unslash( $history->subject );
+                    // 3c – finally send it
+                    $sent = $this->execute_mail(
+                        $subscriber,
+                        $user,
+                        $subject,
+                        $message,
+                        $attachments,
+                        $history->id,
+                        $eunique,
+                        true,
+                        'newsletter'
+                    );
+                }
+                // Step 4 – back to the list with one green or red notice
+                $this->redirect_back(
+                    $sent,
+                    $sent
+                        ? __( 'The email was resent successfully.', 'wp-mailinglist' )
+                        : __( 'Resend failed.',                      'wp-mailinglist' )
+                );
+            }
+            // Helper: redirect to the history screen and show a notice
+            private function redirect_back( $success, $msg ) {
+                $args = [
+                    $this->pre . ( $success ? 'updated' : 'error' ) => 1,
+                    $this->pre . 'message' => rawurlencode( $msg ),
+                ];
+                $target = add_query_arg(
+                    $args,
+                    wp_get_referer() ?: admin_url( 'admin.php?page=' . $this->sections->history )
+                );
+                wp_safe_redirect( $target );
+                exit;
+            }
+
             function admin_autoresponders() {
                 global $wpdb, $Db;
                 $Db -> model = $this -> Autoresponder() -> model;
@@ -6774,7 +6933,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
             }
 
             function admin_subscribers() {
-                global $wpdb, $Html, $Db, $Email, $Field, $Subscriber, $Unsubscribe, $Bounce, $SubscribersList, $Mailinglist;
+                global $wpdb, $Html, $Db, $Email, $Field, $Authnews, $Subscriber, $Unsubscribe, $Bounce, $SubscribersList, $Mailinglist;
                 $Db -> model = $Subscriber -> model;
 
                 $method = sanitize_text_field(isset($_GET['method']) ? $_GET['method'] : "");
@@ -6905,6 +7064,63 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                         }
 
                         $this -> redirect('?page=' . $this -> sections -> subscribers, $message_type, $message);
+                        break;
+                    case 'send_subscription_management_link':
+                
+                        check_admin_referer($this->sections->subscribers . '_send_subscription_management_link');
+                    
+                        $id = (int) sanitize_text_field($_GET['id']);
+                        if (!empty($id)) {
+                            $Db->model = $Subscriber->model;
+                    
+                            if ($subscriber = $Db->find(array('id' => $id))) {
+                                if ($Subscriber->email_validate($subscriber->email)) {
+                                    if ($subscriberauth = $this->gen_auth($subscriber->id)) {
+                                        // Set email cookie with expiration, as in sc_management
+                                        $Authnews->set_emailcookie($subscriber->email, "+30 days");
+                    
+                                        // Save authentication string to subscriber record
+                                        $Db->model = $Subscriber->model;
+                                        if (empty($subscriber->cookieauth)) {
+                                            $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
+                                        } else {
+                                            $subscriberauth = $subscriber->cookieauth;
+                                        }
+                    
+                                        // Set authentication cookie, as in sc_management
+                                        $Authnews->set_cookie($subscriberauth, "+30 days", true);
+                    
+                                        // Prepare and send the email
+                                        $subject = wp_unslash(__($this->et_subject('authenticate', $subscriber)));
+                                        $fullbody = $this->et_message('authenticate', $subscriber);
+                                        $message = $this->render_email(false, array('subscriber' => $subscriber), false, $this->htmltf($subscriber->format), true, $this->et_template('authenticate'), false, $fullbody);
+                                        $eunique = $Html->eunique($subscriber, false, "authentication");
+                    
+                                        if ($this->execute_mail($subscriber, false, $subject, $message, false, false, $eunique, false, "authentication")) {
+                                            $message_type = 'message';
+                                            $message = __('Manage Subscription email has been sent.', 'wp-mailinglist');
+                                        } else {
+                                            $message_type = 'error';
+                                            $message = __('Authentication email could not be sent.', 'wp-mailinglist');
+                                        }
+                                    } else {
+                                        $message_type = 'error';
+                                        $message = __('Authentication string could not be created.', 'wp-mailinglist');
+                                    }
+                                } else {
+                                    $message_type = 'error';
+                                    $message = __('Subscriber has an invalid email address.', 'wp-mailinglist');
+                                }
+                            } else {
+                                $message_type = 'error';
+                                $message = __('Subscriber not found.', 'wp-mailinglist');
+                            }
+                        } else {
+                            $message_type = 'error';
+                            $message = __('No subscriber was specified.', 'wp-mailinglist');
+                        }
+                    
+                        $this->redirect('?page=' . $this->sections->subscribers, $message_type, $message);
                         break;
                     case 'mass'			:
                         if (!empty($_POST['subscriberslist'])) {
@@ -7055,6 +7271,77 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
                                         $msg_type = 'message';
                                         $message = __('Selected subscribers deactivated', 'wp-mailinglist');
+                                        break;
+                                    case 'send_management_subscription_links':
+                                        if (!empty($_POST['subscriberslist'])) {
+                                            $success_count = 0;
+                                            $error_count = 0;
+                                            $subscribers = array_map('sanitize_text_field', $_POST['subscriberslist']);
+                                    
+                                            foreach ($subscribers as $subscriber_id) {
+                                                $Db->model = $Subscriber->model;
+                                    
+                                                if ($subscriber = $Db->find(array('id' => (int) $subscriber_id))) {
+                                                    if ($Subscriber->email_validate($subscriber->email)) {
+                                                        if ($subscriberauth = $this->gen_auth($subscriber->id)) {
+                                                            // Set email cookie with expiration
+                                                            $Authnews->set_emailcookie($subscriber->email, "+30 days");
+                                    
+                                                            // Save authentication string to subscriber record
+                                                            $Db->model = $Subscriber->model;
+                                                            if (empty($subscriber->cookieauth)) {
+                                                                $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
+                                                            } else {
+                                                                $subscriberauth = $subscriber->cookieauth;
+                                                            }
+                                    
+                                                            // Set authentication cookie
+                                                            $Authnews->set_cookie($subscriberauth, "+30 days", true);
+                                    
+                                                            // Prepare and send the email
+                                                            $subject = wp_unslash(__($this->et_subject('authenticate', $subscriber)));
+                                                            $fullbody = $this->et_message('authenticate', $subscriber);
+                                                            $message = $this->render_email(false, array('subscriber' => $subscriber), false, $this->htmltf($subscriber->format), true, $this->et_template('authenticate'), false, $fullbody);
+                                                            $eunique = $Html->eunique($subscriber, false, "authentication");
+                                    
+                                                            if ($this->execute_mail($subscriber, false, $subject, $message, false, false, $eunique, false, "authentication")) {
+                                                                $success_count++;
+                                                            } else {
+                                                                $error_count++;
+                                                            }
+                                                        } else {
+                                                            $error_count++;
+                                                        }
+                                                    } else {
+                                                        $error_count++;
+                                                    }
+                                                } else {
+                                                    $error_count++;
+                                                }
+                                            }
+                                    
+                                            if ($success_count > 0) {
+                                                $msg_type = 'message';
+                                                if ($success_count == 1) {
+                                                    $message = sprintf(__('%d Manage Subscription email has been sent.', 'wp-mailinglist'), $success_count);
+                                                }
+                                                else {
+                                                    $message = sprintf(__('%d Manage Subscription emails have been sent.', 'wp-mailinglist'), $success_count);
+
+                                                }
+                                                if ($error_count > 0) {
+                                                    $message .= ' ' . sprintf(__('%d subscribers failed due to invalid email or other errors.', 'wp-mailinglist'), $error_count);
+                                                }
+                                            } else {
+                                                $msg_type = 'error';
+                                                $message = __('No subscriber management links could be sent.', 'wp-mailinglist');
+                                            }
+                                        } else {
+                                            $msg_type = 'error';
+                                            $message = __('No subscribers were selected.', 'wp-mailinglist');
+                                        }
+                                    
+                                        $this->redirect($this->referer, $msg_type, $message);
                                         break;
                                 }
                             } else {

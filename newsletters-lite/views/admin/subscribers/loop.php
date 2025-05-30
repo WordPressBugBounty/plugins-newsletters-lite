@@ -46,6 +46,7 @@ if(class_exists('newsletterscontrol'))
 					<optgroup label="<?php esc_html_e('Status', 'wp-mailinglist'); ?>">
 						<option value="active"><?php esc_html_e('Activate', 'wp-mailinglist'); ?></option>
 						<option value="inactive"><?php esc_html_e('Deactivate', 'wp-mailinglist'); ?></option>
+						<option value="send_management_subscription_links"><?php _e('Send Manage Subscription Email', 'wp-mailinglist'); ?></option>
 					</optgroup>
 					<optgroup  label="<?php esc_html_e('Mailing Lists', 'wp-mailinglist'); ?>">
 						<option value="assignlists"><?php esc_html_e('Add Lists (appends)...', 'wp-mailinglist'); ?></option>

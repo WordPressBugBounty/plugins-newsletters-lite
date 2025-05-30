@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.9.9.9';
+		var $version = '4.10';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -4683,8 +4683,16 @@ function qp_scheduling() {
 					$host = sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST']));
 					$host_hash = md5($host);
 					if (!empty($host)) {
-						delete_transient("wpml" . 'serial_validation_time_' . $host_hash);
-						delete_transient("wpml" . 'serial_valid_' . $host_hash);
+						$time_key  = 'wpmlserial_validation_time_' . $host_hash;
+						$valid_key = 'wpmlserial_valid_'           . $host_hash;
+
+						delete_transient( $time_key );
+						delete_transient( $valid_key );
+
+						if ( is_multisite() ) {
+							delete_site_transient( $time_key );
+							delete_site_transient( $valid_key );
+						}
 					}
 					$errors[] = __('Serial key has been deleted.', 'wp-mailinglist');
 				} else {
@@ -5534,181 +5542,181 @@ function qp_scheduling() {
 		}
 		
 		function autoresponders_form_send($subscriber = null, $form = null) {
-			global $wpdb, $Db, $HistoriesAttachment, $Subscriber, $SubscribersList, $Html, $Email;
+            global $wpdb, $Db, $HistoriesAttachment, $Subscriber, $SubscribersList, $Html, $Email;
 
-			do_action('newsletters_autoresponders_form_send', $subscriber, $form);
-			
-			if (!empty($subscriber) && !empty($form)) {
-				$subscriber_id = $subscriber -> id;
-				if ($autorespondersforms = $this -> AutorespondersForm() -> find_all(array('form_id' => $form -> id))) {
-					foreach ($autorespondersforms as $autorespondersform) {
-						if ($autoresponder = $this -> Autoresponder() -> find(array('id' => $autorespondersform -> autoresponder_id, 'sendauto' => 1))) {
-							if (!empty($autoresponder -> status) && $autoresponder -> status == "active") {
-								//Send the 0 delay autoresponders right now
-								if (!defined('NEWSLETTERS_IMPORTING') && (empty($autoresponder -> delay) || $autoresponder -> delay <= 0)) {
-									$Db -> model = $SubscribersList -> model;
-									$subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'form_id' => $form -> id));
-									
-									if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
-										$Db -> model = $this -> Autoresponderemail() -> model;
-										if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
-											$history = $this -> History() -> find(array('id' => $autoresponder -> history_id));
-											$history -> attachments = array();
-											$attachmentsquery = "SELECT id, title, filename FROM " . $wpdb -> prefix . $HistoriesAttachment -> table . " WHERE history_id = '" . $history -> id . "'";
-	
-											if ($attachments =  $wpdb -> get_results($attachmentsquery)) {
-												foreach ($attachments as $attachment) {
-													$history -> attachments[] = array(
-														'id'					=>	$attachment -> id,
-														'title'					=>	$attachment -> title,
-														'filename'				=>	$attachment -> filename,
-													);
-												}
-											}
-	
-											$eunique = $Html -> eunique($subscriber, $history -> id);
-	
-											$autoresponderemail_data = array(
-												'autoresponder_id'				=>	$autoresponder -> id,
-												'form_id'						=>	$form -> id,
-												'subscriber_id'					=>	$subscriber -> id,
-												'senddate'						=>	date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval)),
-												'status'						=>	'unsent',
-											);
-	
-											$this -> Autoresponderemail() -> save($autoresponderemail_data, true);
-											global $wpdb;
-											$ae_id = $wpdb -> insert_id;
-	
-											$Db -> model = $Email -> model;
-											$message = $this -> render_email('send', array('message' => $history -> message, 'subject' => $history -> subject, 'subscriber' => $subscriber, 'history_id' => $history -> id, 'post_id' => $history -> post_id, 'eunique' => $eunique), false, $this -> htmltf($subscriber -> format), true, $history -> theme_id);
-	
-											if ($this -> execute_mail($subscriber, false, $history -> subject, $message, $history -> attachments, $history -> id, $eunique, true, "newsletter")) {
-												$this -> Autoresponderemail() -> save_field('status', "sent", array('id' => $ae_id));
-												$this -> History() -> save_field('sent', 1, array('id' => $history -> id));
-											}
-										}
-									}
-								//Save the 1+ delay autoresponders to send later
-								} else {																		
-									$Db -> model = $this -> Autoresponderemail() -> model;
-									if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
-										if (empty($autoresponder -> delay) || empty($autoresponder -> delayinterval)) {												
-											$senddate = date_i18n("Y-m-d H:i:s");
-										} else {												
-											//$senddate = date_i18n("Y-m-d H:i:s", strtotime($subscriber -> created . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
-											$senddate = date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
-										}
+            do_action('newsletters_autoresponders_form_send', $subscriber, $form);
 
-										$autoresponderemail_data = array(
-											'autoresponder_id'				=>	$autoresponder -> id,
-											'form_id'						=>	$form -> id,
-											'subscriber_id'					=>	$subscriber -> id,
-											'status'						=>	'unsent',
-											'senddate'						=>	$senddate,
-										);
-										
-										$this -> Autoresponderemail() -> save($autoresponderemail_data, true);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+            if (!empty($subscriber) && !empty($form)) {
+                $subscriber_id = $subscriber -> id;
+                if ($autorespondersforms = $this -> AutorespondersForm() -> find_all(array('form_id' => $form -> id))) {
+                    foreach ($autorespondersforms as $autorespondersform) {
+                        if ($autoresponder = $this -> Autoresponder() -> find(array('id' => $autorespondersform -> autoresponder_id, 'sendauto' => 1))) {
+                            if (!empty($autoresponder -> status) && $autoresponder -> status == "active") {
+                                //Send the 0 delay autoresponders right now
+                                if (!defined('NEWSLETTERS_IMPORTING') && (empty($autoresponder -> delay) || $autoresponder -> delay <= 0)) {
+                                    $Db -> model = $SubscribersList -> model;
+                                    $subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'form_id' => $form -> id));
 
-		function autoresponders_send($subscriber = null, $mailinglist = null) {
-			global $wpdb, $Db, $HistoriesAttachment, $Subscriber, $SubscribersList, $Html, $Email;
+                                    if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
+                                        $Db -> model = $this -> Autoresponderemail() -> model;
+                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
+                                            $history = $this -> History() -> find(array('id' => $autoresponder -> history_id));
+                                            $history -> attachments = array();
+                                            $attachmentsquery = "SELECT id, title, filename FROM " . $wpdb -> prefix . $HistoriesAttachment -> table . " WHERE history_id = '" . $history -> id . "'";
 
-			do_action('newsletters_autoresponders_send', $subscriber, $mailinglist);
+                                            if ($attachments =  $wpdb -> get_results($attachmentsquery)) {
+                                                foreach ($attachments as $attachment) {
+                                                    $history -> attachments[] = array(
+                                                        'id'					=>	$attachment -> id,
+                                                        'title'					=>	$attachment -> title,
+                                                        'filename'				=>	$attachment -> filename,
+                                                    );
+                                                }
+                                            }
 
-			if (!empty($subscriber) && !empty($mailinglist)) {
-				$subscriber_id = $subscriber -> id;
-				if ($autoresponserslists = $this -> AutorespondersList() -> find_all(array('list_id' => $mailinglist -> id))) {
-					foreach ($autoresponserslists as $al) {
-						$Db -> model = $this -> Autoresponder() -> model;
-						if ($autoresponder = $Db -> find(array('id' => $al -> autoresponder_id, 'sendauto' => 1))) {							
-							if (!empty($autoresponder -> status) && $autoresponder -> status == "active") {
-								//Send the 0 delay autoresponders right now
-								if (!defined('NEWSLETTERS_IMPORTING') && (empty($autoresponder -> delay) || $autoresponder -> delay <= 0)) {									
-									$Db -> model = $SubscribersList -> model;
-									$subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'list_id' => $mailinglist -> id));
-									if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
-										$Db -> model = $this -> Autoresponderemail() -> model;
-										if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
-											$history = $this -> History() -> find(array('id' => $autoresponder -> history_id));
-											$history -> attachments = array();
-											$attachmentsquery = "SELECT id, title, filename FROM " . $wpdb -> prefix . $HistoriesAttachment -> table . " WHERE history_id = '" . $history -> id . "'";
+                                            $eunique = $Html -> eunique($subscriber, $history -> id);
 
-											if ($attachments =  $wpdb -> get_results($attachmentsquery)) {
-												foreach ($attachments as $attachment) {
-													$history -> attachments[] = array(
-														'id'					=>	$attachment -> id,
-														'title'					=>	$attachment -> title,
-														'filename'				=>	$attachment -> filename,
-													);
-												}
-											}
+                                            $autoresponderemail_data = array(
+                                                'autoresponder_id'				=>	$autoresponder -> id,
+                                                'form_id'						=>	$form -> id,
+                                                'subscriber_id'					=>	$subscriber -> id,
+                                                'senddate'						=>	date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval)),
+                                                'status'						=>	'unsent',
+                                            );
 
-											$subscriber -> mailinglist_id = $mailinglist -> id;
-											$eunique = $Html -> eunique($subscriber, $history -> id);
+                                            $this -> Autoresponderemail() -> save($autoresponderemail_data, true);
+                                            global $wpdb;
+                                            $ae_id = $wpdb -> insert_id;
 
-											$autoresponderemail_data = array(
-												'autoresponder_id'				=>	$autoresponder -> id,
-												'list_id'						=>	$mailinglist -> id,
-												'subscriber_id'					=>	$subscriber -> id,
-												'senddate'						=>	date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval)),
-												'status'						=>	'unsent',
-											);
+                                            $Db -> model = $Email -> model;
+                                            $message = $this -> render_email('send', array('message' => $history -> message, 'subject' => $history -> subject, 'subscriber' => $subscriber, 'history_id' => $history -> id, 'post_id' => $history -> post_id, 'eunique' => $eunique), false, $this -> htmltf($subscriber -> format), true, $history -> theme_id);
 
-											$this -> Autoresponderemail() -> save($autoresponderemail_data, true);
-											global $wpdb;
-											$ae_id = $wpdb -> insert_id;
+                                            if ($this -> execute_mail($subscriber, false, $history -> subject, $message, $history -> attachments, $history -> id, $eunique, true, "newsletter")) {
+                                                $this -> Autoresponderemail() -> save_field('status', "sent", array('id' => $ae_id));
+                                                $this -> History() -> save_field('sent', 1, array('id' => $history -> id));
+                                            }
+                                        }
+                                    }
+                                    //Save the 1+ delay autoresponders to send later
+                                } else {
+                                    $Db -> model = $this -> Autoresponderemail() -> model;
+                                    if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
+                                        if (empty($autoresponder -> delay) || empty($autoresponder -> delayinterval)) {
+                                            $senddate = date_i18n("Y-m-d H:i:s");
+                                        } else {
+                                            //$senddate = date_i18n("Y-m-d H:i:s", strtotime($subscriber -> created . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
+                                            $senddate = date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
+                                        }
 
-											$Db -> model = $Email -> model;
-											$message = $this -> render_email('send', array('message' => $history -> message, 'subject' => $history -> subject, 'subscriber' => $subscriber, 'history_id' => $history -> id, 'post_id' => $history -> post_id, 'eunique' => $eunique), false, $this -> htmltf($subscriber -> format), true, $history -> theme_id);
+                                        $autoresponderemail_data = array(
+                                            'autoresponder_id'				=>	$autoresponder -> id,
+                                            'form_id'						=>	$form -> id,
+                                            'subscriber_id'					=>	$subscriber -> id,
+                                            'status'						=>	'unsent',
+                                            'senddate'						=>	$senddate,
+                                        );
 
-											if ($this -> execute_mail($subscriber, false, $history -> subject, $message, $history -> attachments, $history -> id, $eunique, true, "newsletter")) {
-												$this -> Autoresponderemail() -> save_field('status', "sent", array('id' => $ae_id));
-												$this -> History() -> save_field('sent', 1, array('id' => $history -> id));
-											}
-										}
-									}
-								//Save the 1+ delay autoresponders to send later
-								} else {																											
-									$Db -> model = $SubscribersList -> model;
-									$subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'list_id' => $mailinglist -> id));
-									if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
-										$Db -> model = $this -> Autoresponderemail() -> model;
-										if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
-											if (empty($autoresponder -> delay) || empty($autoresponder -> delayinterval)) {																								
-												$senddate = date_i18n("Y-m-d H:i:s");
-											} else {			
-												$created_date = (!empty($subscriber -> created) && $subscriber -> created != "0000-00-00 00:00:00") ? $subscriber -> created : false;
-																					
-												$senddate = date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
-												//$senddate = date_i18n("Y-m-d H:i:s", strtotime($created_date . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
-											}
+                                        $this -> Autoresponderemail() -> save($autoresponderemail_data, true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-											$autoresponderemail_data = array(
-												'autoresponder_id'				=>	$autoresponder -> id,
-												'list_id'						=>	$mailinglist -> id,
-												'subscriber_id'					=>	$subscriber -> id,
-												'status'						=>	'unsent',
-												'senddate'						=>	$senddate,
-											);
-											
-											$this -> Autoresponderemail() -> save($autoresponderemail_data, true);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+        function autoresponders_send($subscriber = null, $mailinglist = null) {
+            global $wpdb, $Db, $HistoriesAttachment, $Subscriber, $SubscribersList, $Html, $Email;
+
+            do_action('newsletters_autoresponders_send', $subscriber, $mailinglist);
+
+            if (!empty($subscriber) && !empty($mailinglist)) {
+                $subscriber_id = $subscriber -> id;
+                if ($autoresponserslists = $this -> AutorespondersList() -> find_all(array('list_id' => $mailinglist -> id))) {
+                    foreach ($autoresponserslists as $al) {
+                        $Db -> model = $this -> Autoresponder() -> model;
+                        if ($autoresponder = $Db -> find(array('id' => $al -> autoresponder_id, 'sendauto' => 1))) {
+                            if (!empty($autoresponder -> status) && $autoresponder -> status == "active") {
+                                //Send the 0 delay autoresponders right now
+                                if (!defined('NEWSLETTERS_IMPORTING') && (empty($autoresponder -> delay) || $autoresponder -> delay <= 0)) {
+                                    $Db -> model = $SubscribersList -> model;
+                                    $subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'list_id' => $mailinglist -> id));
+                                    if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
+                                        $Db -> model = $this -> Autoresponderemail() -> model;
+                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
+                                            $history = $this -> History() -> find(array('id' => $autoresponder -> history_id));
+                                            $history -> attachments = array();
+                                            $attachmentsquery = "SELECT id, title, filename FROM " . $wpdb -> prefix . $HistoriesAttachment -> table . " WHERE history_id = '" . $history -> id . "'";
+
+                                            if ($attachments =  $wpdb -> get_results($attachmentsquery)) {
+                                                foreach ($attachments as $attachment) {
+                                                    $history -> attachments[] = array(
+                                                        'id'					=>	$attachment -> id,
+                                                        'title'					=>	$attachment -> title,
+                                                        'filename'				=>	$attachment -> filename,
+                                                    );
+                                                }
+                                            }
+
+                                            $subscriber -> mailinglist_id = $mailinglist -> id;
+                                            $eunique = $Html -> eunique($subscriber, $history -> id);
+
+                                            $autoresponderemail_data = array(
+                                                'autoresponder_id'				=>	$autoresponder -> id,
+                                                'list_id'						=>	$mailinglist -> id,
+                                                'subscriber_id'					=>	$subscriber -> id,
+                                                'senddate'						=>	date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval)),
+                                                'status'						=>	'unsent',
+                                            );
+
+                                            $this -> Autoresponderemail() -> save($autoresponderemail_data, true);
+                                            global $wpdb;
+                                            $ae_id = $wpdb -> insert_id;
+
+                                            $Db -> model = $Email -> model;
+                                            $message = $this -> render_email('send', array('message' => $history -> message, 'subject' => $history -> subject, 'subscriber' => $subscriber, 'history_id' => $history -> id, 'post_id' => $history -> post_id, 'eunique' => $eunique), false, $this -> htmltf($subscriber -> format), true, $history -> theme_id);
+
+                                            if ($this -> execute_mail($subscriber, false, $history -> subject, $message, $history -> attachments, $history -> id, $eunique, true, "newsletter")) {
+                                                $this -> Autoresponderemail() -> save_field('status', "sent", array('id' => $ae_id));
+                                                $this -> History() -> save_field('sent', 1, array('id' => $history -> id));
+                                            }
+                                        }
+                                    }
+                                    //Save the 1+ delay autoresponders to send later
+                                } else {
+                                    $Db -> model = $SubscribersList -> model;
+                                    $subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'list_id' => $mailinglist -> id));
+                                    if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
+                                        $Db -> model = $this -> Autoresponderemail() -> model;
+                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
+                                            if (empty($autoresponder -> delay) || empty($autoresponder -> delayinterval)) {
+                                                $senddate = date_i18n("Y-m-d H:i:s");
+                                            } else {
+                                                $created_date = (!empty($subscriber -> created) && $subscriber -> created != "0000-00-00 00:00:00") ? $subscriber -> created : false;
+
+                                                $senddate = date_i18n("Y-m-d H:i:s", strtotime($Html -> gen_date("Y-m-d H:i:s", false, false, true) . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
+                                                //$senddate = date_i18n("Y-m-d H:i:s", strtotime($created_date . " +" . $autoresponder -> delay . " " . $autoresponder -> delayinterval));
+                                            }
+
+                                            $autoresponderemail_data = array(
+                                                'autoresponder_id'				=>	$autoresponder -> id,
+                                                'list_id'						=>	$mailinglist -> id,
+                                                'subscriber_id'					=>	$subscriber -> id,
+                                                'status'						=>	'unsent',
+                                                'senddate'						=>	$senddate,
+                                            );
+
+                                            $this -> Autoresponderemail() -> save($autoresponderemail_data, true);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 		function paidsubscription_form($subscriber = null, $mailinglist = null, $autosubmit = true, $target = "_self", $extend = false, $pmethod = "paypal") {
 			global $Html;
@@ -6221,7 +6229,7 @@ function qp_scheduling() {
 							break;
 					}
 
-					echo html_entity_decode(str_replace("\'", "'", str_replace('\n', '', esc_js($wpmljavascript))));
+                    wp_add_inline_script( 'jquery', $wpmljavascript );
 					$this -> render('management' . DS . 'logout-auth', false, true, 'default');
 					break;
 				case 'loginauth'			:
@@ -7443,70 +7451,127 @@ function qp_scheduling() {
 
 				if (apply_filters('newsletters_enqueuescript_' . $this -> plugin_name, true)) { wp_enqueue_script($this -> plugin_name, $this -> render_url('js/wp-mailinglist.js', 'admin', false), array('jquery'), false, true); }
 				
-				if ($captcha_type = $this -> use_captcha()) {
+				if ( $captcha_type = $this->use_captcha() ) {
+
 					$functions_variables['has_captcha'] = true;
-					
-					if (!empty($loadrecaptcha) && !empty($captcha_type) && $captcha_type == "recaptcha") {						
-						$functions_variables['captcha'] = "recaptcha";
-						
-						$recaptcha_publickey = $this -> get_option('recaptcha_publickey');
-						$recaptcha_privatekey = $this -> get_option('recaptcha_privatekey');
-						$recaptcha_type = $this -> get_option('recaptcha_type');
-						$recaptcha_language = $this -> get_option('recaptcha_language');
-						$recaptcha_theme = $this -> get_option('recaptcha_theme');
-						
-						$functions_variables['recaptcha_sitekey'] = $recaptcha_publickey;
-						$functions_variables['recaptcha_secretkey'] = $recaptcha_privatekey;
-						$functions_variables['recaptcha_type'] = (empty($recaptcha_type) || $recaptcha_type == "robot") ? 'robot' : 'invisible';
-						$functions_variables['recaptcha_language'] = (empty($recaptcha_language)) ? 'en' : $recaptcha_language;
-						$functions_variables['recaptcha_theme'] = (empty($recaptcha_theme)) ? 'light' : $recaptcha_theme;
-						
-						$handle = "google-recaptcha";
-						if (!empty($recaptcha_type) && $recaptcha_type == "invisible") {
-							$handle = "google-invisible-recaptcha";
+
+					if ( $captcha_type === 'recaptcha' && ! empty( $loadrecaptcha ) ) {
+
+						$functions_variables['captcha'] = 'recaptcha';
+
+						$sitekey   = $this->get_option( 'recaptcha_publickey' );
+						$secret    = $this->get_option( 'recaptcha_privatekey' );
+						$type_opt  = $this->get_option( 'recaptcha_type' );      // robot | invisible
+						$language  = $this->get_option( 'recaptcha_language' ) ?: 'en';
+						$theme     = $this->get_option( 'recaptcha_theme' ) ?: 'light';
+
+						/* Multilingual override */
+						if ( $this->language_do() && ( $lang = $this->language_current() ) ) {
+							$language = $lang;
 						}
-						
-						// Multilingual reCAPTCHA
-						if ($this -> language_do()) {
-							if ($language = $this -> language_current()) {
-								$recaptcha_language = $language;
+
+						$functions_variables += array(
+							'recaptcha_sitekey'   => $sitekey,
+							'recaptcha_secretkey' => $secret,
+							'recaptcha_type'      => ( $type_opt === 'invisible' ? 'invisible' : 'robot' ),
+							'recaptcha_language'  => $language,
+							'recaptcha_theme'     => $theme,
+						);
+
+						/* ----- Visible (checkbox) -------------------------- */
+						if ( $type_opt !== 'invisible' ) {
+
+							wp_enqueue_script(
+								'newsletters-recaptcha',
+								'https://www.google.com/recaptcha/api.js?hl=' . esc_attr( $language ),
+								array(),
+								null,
+								true
+							);
+
+						/* ----- Invisible ― FIXED badge bottom-right -------- */
+						} else {
+
+							if ( ! wp_script_is( 'newsletters-recaptcha', 'enqueued' ) ) {
+
+								wp_enqueue_script(
+									'newsletters-recaptcha',
+									'https://www.google.com/recaptcha/api.js?render=explicit&hl=' .
+									esc_attr( $language ) .
+									'&onload=newsletterRecaptchaInit',
+									array(),
+									null,
+									true
+								);
+
+								/* Render every placeholder once, badge bottom-right */
+								wp_add_inline_script(
+									'newsletters-recaptcha',
+									sprintf(
+										'
+										function newsletterRecaptchaInit() {
+											document.querySelectorAll(".newsletters-recaptcha-challenge").forEach(function(el){
+												if ( el.dataset.grecaptchaWidgetId !== undefined ) { return; }
+												var id = grecaptcha.render(el,{
+													sitekey:"%1$s",
+													size:"invisible",
+													badge:"bottomright"
+												});
+												el.dataset.grecaptchaWidgetId = id;
+												
+												var badge = el.querySelector(".grecaptcha-badge");
+												if (badge && !badge.dataset.movedToBody){
+													document.body.appendChild(badge);
+													badge.dataset.movedToBody = "1";
+												}
+											});
+										}
+										',
+										esc_js( $sitekey )
+									)
+								);
 							}
 						}
-						
-						$handle = 'newsletters-recaptcha';
-						wp_enqueue_script($handle, 'https://www.google.com/recaptcha/api.js?render=explicit&hl=' . esc_attr(wp_unslash($recaptcha_language)), array('jquery'), false, false);
-					}  elseif ($captcha_type == "recaptcha3") {
-                        $functions_variables['captcha'] = "recaptcha3";
 
-                        $recaptcha_publickey = $this->get_option('recaptcha3_publickey');
-                        $recaptcha_privatekey = $this->get_option('recaptcha3_privatekey');
-                        $recaptcha_language = $this->get_option('recaptcha3_language');
-                        $recaptcha3_score = $this->get_option('recaptcha3_score');
+					} elseif ( $captcha_type === 'recaptcha3' ) {
 
+						$functions_variables['captcha'] = 'recaptcha3';
 
-                        $functions_variables['recaptcha3_sitekey'] = $recaptcha_publickey;
-                        $functions_variables['recaptcha3_secretkey'] = $recaptcha_privatekey;
-                        $functions_variables['recaptcha3_language'] = (empty($recaptcha_language)) ? 'en' : $recaptcha_language;
-                        $functions_variables['recaptcha3_score'] = (empty($recaptcha3_score)) ? '0.5' : $recaptcha3_score;
+						$sitekey   = $this->get_option( 'recaptcha3_publickey' );
+						$secret    = $this->get_option( 'recaptcha3_privatekey' );
+						$language  = $this->get_option( 'recaptcha3_language' ) ?: 'en';
+						$score     = $this->get_option( 'recaptcha3_score' )    ?: '0.5';
 
-                        // Multilingual reCAPTCHA
-                        if ($this->language_do()) {
-                            if ($language = $this->language_current()) {
-                                $recaptcha_language = $language;
-                            }
-                        }
+						if ( $this->language_do() && ( $lang = $this->language_current() ) ) {
+							$language = $lang;
+						}
 
-                        $handle = 'newsletters-recaptcha3';
-                        wp_enqueue_script($handle, 'https://www.google.com/recaptcha/api.js?render=' . esc_attr(wp_unslash($recaptcha_publickey)) . '&hl=' . esc_attr(wp_unslash($recaptcha_language)), array('jquery'), false, false);
-                    } elseif ($captcha_type == "rsc") {
-						$functions_variables['captcha'] = "rsc";
+						$functions_variables += array(
+							'recaptcha3_sitekey'   => $sitekey,
+							'recaptcha3_secretkey' => $secret,
+							'recaptcha3_language'  => $language,
+							'recaptcha3_score'     => $score,
+						);
+
+						wp_enqueue_script(
+							'newsletters-recaptcha3',
+							'https://www.google.com/recaptcha/api.js?render=' .
+							esc_attr( $sitekey ) .
+							'&hl=' . esc_attr( $language ),
+							array(),
+							null,
+							true
+						);
+
+					} elseif ( $captcha_type === 'rsc' ) {
+
+						$functions_variables['captcha'] = 'rsc';
+
+					} elseif ( $captcha_type === 'turnstile' ) {
+
+						$functions_variables['captcha']           = 'turnstile';
+						$functions_variables['turnstile_sitekey'] = $this->get_option( 'turnstile_sitekey' );
 					}
-					
-					if ( $captcha_type == 'turnstile' ) {
-                        $functions_variables['captcha']           = 'turnstile';
-                        $functions_variables['turnstile_sitekey'] = $this->get_option( 'turnstile_sitekey' );
-                    }
-
 				}
 				
 				$functions_variables['ajax_error'] = __('An Ajax error occurred, please submit again.', 'wp-mailinglist');
@@ -14131,7 +14196,7 @@ function qp_scheduling() {
 		                }
 		            }
 
-		            $html = ($dom->saveHTML());
+		            $html = urldecode($dom->saveHTML());
 		            $html = trim(preg_replace(array("/^\<\!DOCTYPE.*?<html><body>/si", "!</body></html>$!si"), "", $html));
 		        }
 		    }

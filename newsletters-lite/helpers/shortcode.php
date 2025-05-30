@@ -512,84 +512,118 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			return $output;
 		}
 
-		function posts_multiple($atts = array(), $content = null)
-		{
-			global $shortcode_posts, $shortcode_post_language, $shortcode_post_showdate;
-			$output = "";
-
-			$defaults = array(
-				'numberposts' 			=> 	10,
-				'showdate'				=>	"Y",
-				'orderby' 				=> 	"post_date",
-				'order' 				=> 	"DESC",
-				'category' 				=> 	null,
-				'language'				=>	false,
-				'post_type'				=>	"post",
-				'eftype'				=>	"excerpt",
-				'target'				=>	"_self",
-				'thumbnail_size'		=>	"thumbnail",
-				'thumbnail_align'		=>	"left",
-				'thumbnail_hspace'		=>	"15",
-				'thumbnail_class'		=>	"newsletters-thumbnail",
-				'hidethumbnail'			=> 'N'
-
-			);
-
-			$arguments = shortcode_atts($defaults, $atts);
-            if (empty($arguments['category'])) {
-                $arguments['category'] = false;
+		public function posts_multiple( $atts = array(), $content = null ) {
+            global $shortcode_posts, $shortcode_post_language, $shortcode_post_showdate;
+            $output = '';
+    
+            $defaults = array(
+                'numberposts'      => 10,
+                'showdate'         => 'Y',
+                'orderby'          => 'post_date',
+                'order'            => 'DESC',
+                'category'         => null,
+                'taxonomy'         => null,          // eg: "genre"  or  "genre,format"
+                'terms'            => null,          // eg: "jazz,improv"
+                'language'         => false,
+                'post_type'        => 'post',
+                'eftype'           => 'excerpt',
+                'target'           => '_self',
+                'thumbnail_size'   => 'thumbnail',
+                'thumbnail_align'  => 'left',
+                'thumbnail_hspace' => '15',
+                'thumbnail_class'  => 'newsletters-thumbnail',
+                'hidethumbnail'    => 'N',
+            );
+        
+            $args = shortcode_atts( $defaults, $atts );
+        
+            // normalise post_type (comma-separated → array)
+            if ( ! empty( $args['post_type'] ) && strpos( $args['post_type'], ',' ) !== false ) {
+                $args['post_type'] = array_map( 'trim', explode( ',', $args['post_type'] ) );
             }
+        
+            // WordPress still expects 'category' to be false, not null
+            if ( empty( $args['category'] ) ) {
+                $args['category'] = false;
+            }
+        
+            if ( ! empty( $args['taxonomy'] ) ) {
+        
+                $taxonomies = array_map( 'trim', explode( ',', $args['taxonomy'] ) );
+        
+                // term slugs – either explicit terms="…" or fall back to category="…"
+                $term_source = ! empty( $args['terms'] ) ? $args['terms'] : $args['category'];
+                $term_slugs  = array_filter( array_map( 'trim', explode( ',', $term_source ) ) );
+        
+                $tax_query   = array( 'relation' => 'AND' );
+        
+                foreach ( $taxonomies as $tax_slug ) {
 
-			if (!empty($arguments['post_type'])) {
-				if (($new_post_types = @explode(",", $arguments['post_type'])) !== false) {
-					$arguments['post_type'] = $new_post_types;
-				}
-			}
-
-			$currentlanguage = $arguments['language'];
-			$arguments['suppress_filters'] = 0;
-			extract($arguments);
-
-			if (!empty($currentlanguage)) {
-				$this -> language_set($currentlanguage);
-			}
-
-			global $wpml_eftype, $wpml_target;
-			$wpml_eftype = $eftype;
-			$wpml_target = $target;
-
-			global $shortcode_thumbnail;
-			$shortcode_thumbnail = array(
-				'size'				=>	$thumbnail_size,
-				'align'				=>	$thumbnail_align,
-				'hspace'			=>	$thumbnail_hspace,
-				'class'				=>	$thumbnail_class,
-			);
-			
-			$arguments = apply_filters('newsletters_shortcode_posts_multiple_arguments', $arguments);
-
-			if ($posts = get_posts($arguments)) {
-				$shortcode_post_showdate = $showdate;
-
-				if ($this -> language_do()) {
-					$shortcode_post_language = $currentlanguage;
-					foreach ($posts as $pkey => $post) {
-						$posts[$pkey] = $this -> language_use($currentlanguage, $post, false);
-					}
-
-					$shortcode_posts = $posts;
-					$output = do_shortcode($this -> et_message('posts', false, $language, '' ,  $arguments['hidethumbnail']));
-					//$output = do_shortcode('[newsletters_posts_loop_wrapper]');
-				} else {
-					$shortcode_posts = $posts;
-					$output = do_shortcode($this -> et_message('posts', '' , '' , '', $arguments['hidethumbnail']), false, '');
-					//$output = do_shortcode('[newsletters_posts_loop_wrapper]');
-				}
-			}
-
-			wp_reset_query();
-			return $output;
-		}
+                    if ( empty( $term_slugs ) ) {
+                        // no terms – match any post that has *some* term in this taxonomy
+                        $tax_query[] = array(
+                            'taxonomy' => $tax_slug,
+                            'operator' => 'EXISTS',
+                        );
+                    } else {
+                        // normal, term-specific clause
+                        $tax_query[] = array(
+                            'taxonomy' => $tax_slug,
+                            'field'    => 'slug',
+                            'terms'    => $term_slugs,
+                        );
+                    }
+                }
+                
+        
+                $args['tax_query'] = $tax_query;
+        
+                // prevent the plain 'category' parameter from also firing
+                unset( $args['category'] );
+            }
+        
+            $currentlanguage          = $args['language'];
+            $args['suppress_filters'] = 0;               // allow WPML/Polylang, etc.
+        
+            if ( ! empty( $currentlanguage ) ) {
+                $this->language_set( $currentlanguage );
+            }
+        
+            global $wpml_eftype, $wpml_target;
+            $wpml_eftype  = $args['eftype'];
+            $wpml_target  = $args['target'];
+        
+            global $shortcode_thumbnail;
+            $shortcode_thumbnail = array(
+                'size'   => $args['thumbnail_size'],
+                'align'  => $args['thumbnail_align'],
+                'hspace' => $args['thumbnail_hspace'],
+                'class'  => $args['thumbnail_class'],
+            );
+        
+            $args = apply_filters( 'newsletters_shortcode_posts_multiple_arguments', $args );
+        
+            
+            if ( $posts = get_posts( $args ) ) {
+        
+                $shortcode_post_showdate = $args['showdate'];
+        
+                if ( $this->language_do() ) {
+                    $shortcode_post_language = $currentlanguage;
+                    foreach ( $posts as $idx => $p ) {
+                        $posts[ $idx ] = $this->language_use( $currentlanguage, $p, false );
+                    }
+                }
+        
+                $shortcode_posts = $posts;
+                $output          = do_shortcode(
+                    $this->et_message( 'posts', false, $currentlanguage, '', $args['hidethumbnail'] )
+                );
+            }
+        
+            wp_reset_query();
+            return $output;
+        }
 
 		function shortcode_posts($atts = array(), $content = null, $tag = null)
 		{

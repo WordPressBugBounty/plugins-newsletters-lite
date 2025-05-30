@@ -330,6 +330,81 @@ if (!class_exists('wpmlField')) {
 
                     $FieldsList -> save($cfieldslistdata);
                 }
+
+
+                /* --------------------------------------------------------------------
+                * since version 4.10
+                * Default “First Name” field
+                * ------------------------------------------------------------------*/
+                if ( ! $firstname = $this->firstname_field() ) {
+                    $this->init_fieldtypes();                                 // prep types
+
+                    /* data for wpml_fields  --------------------------------------- */
+                    $firstname_data = array(
+                        $this->model => array(
+                            'title'        => __( 'First Name', 'wp-mailinglist' ),
+                            'slug'         => 'firstname',                      // lower-case, no spaces
+                            'watermark'    => __( 'John', 'wp-mailinglist' ),
+                            'type'         => 'text',
+                            'required'     => 'N',                              // keep optional
+                            'errormessage' => __( 'Please fill in your first name', 'wp-mailinglist' ),
+                            'display'      => 'always',
+                            'order'        => '2',
+                        ),
+                    );
+
+                    $this->save( $firstname_data );
+                    $firstname_id = $this->insertid;                           // id of new field
+                } else {
+                    $firstname_id = $firstname->id;                            // already exists
+                }
+
+                /* ensure a row in wpml_fields_lists ----------------------------- */
+                $fquery   = "SELECT id FROM {$wpdb->prefix}{$FieldsList->table}
+                            WHERE field_id = '{$firstname_id}' LIMIT 1";
+                if ( ! $wpdb->get_var( $fquery ) ) {
+                    $FieldsList->save( array(
+                        'field_id' => $firstname_id,
+                        'list_id'  => '0',
+                        'special'  => '',
+                    ) );
+                }
+
+                /* --------------------------------------------------------------------
+                * since version 4.10
+                * Default “Last Name” field
+                * ------------------------------------------------------------------*/
+                if ( ! $lastname = $this->lastname_field() ) {
+                    $this->init_fieldtypes();
+
+                    $lastname_data = array(
+                        $this->model => array(
+                            'title'        => __( 'Last Name', 'wp-mailinglist' ),
+                            'slug'         => 'lastname',
+                            'watermark'    => __( 'Doe', 'wp-mailinglist' ),
+                            'type'         => 'text',
+                            'required'     => 'N',
+                            'errormessage' => __( 'Please fill in your last name', 'wp-mailinglist' ),
+                            'display'      => 'always',
+                            'order'        => '3',
+                        ),
+                    );
+
+                    $this->save( $lastname_data );
+                    $lastname_id = $this->insertid;
+                } else {
+                    $lastname_id = $lastname->id;
+                }
+
+                $lquery   = "SELECT id FROM {$wpdb->prefix}{$FieldsList->table}
+                            WHERE field_id = '{$lastname_id}' LIMIT 1";
+                if ( ! $wpdb->get_var( $lquery ) ) {
+                    $FieldsList->save( array(
+                        'field_id' => $lastname_id,
+                        'list_id'  => '0',
+                        'special'  => '',
+                    ) );
+                }
             }
 
             return true;
@@ -419,6 +494,60 @@ if (!class_exists('wpmlField')) {
             }
 
             return false;
+        }
+
+        //Since version 4.10
+        /* helper to fetch First Name field */
+        function firstname_field() {
+            global $wpdb;
+        
+            $query = "SELECT * FROM {$wpdb->prefix}{$this->table} WHERE slug = 'firstname' LIMIT 1";
+            $hash  = md5( $query );
+        
+            // 1 – return from cache if present
+            if ( $cached = $this->get_cache( $hash ) ) {
+                return $cached;                 // object
+            }
+        
+            // 2 – fetch from DB, cache & return
+            if ( $row = $wpdb->get_row( $query ) ) {
+                $row->error = $row->errormessage;
+                $this->set_cache( $hash, $row );
+                return $row;                    // object
+            }
+        
+            // 3 – not found
+            return false;
+        }
+        //Since version 4.10
+        function firstname_field_id() {
+            return ( $f = $this->firstname_field() ) ? $f->id : false;
+        }
+        
+        //Since version 4.10
+        /* helper to fetch Last Name field */
+        function lastname_field() {
+            global $wpdb;
+        
+            $query = "SELECT * FROM {$wpdb->prefix}{$this->table} WHERE slug = 'lastname' LIMIT 1";
+            $hash  = md5( $query );
+        
+            if ( $cached = $this->get_cache( $hash ) ) {
+                return $cached;
+            }
+        
+            if ( $row = $wpdb->get_row( $query ) ) {
+                $row->error = $row->errormessage;
+                $this->set_cache( $hash, $row );
+                return $row;
+            }
+        
+            return false;
+        }
+
+        //Since version 4.10
+        function lastname_field_id() {
+            return ( $l = $this->lastname_field() ) ? $l->id : false;
         }
 
         function find($conditions = array())

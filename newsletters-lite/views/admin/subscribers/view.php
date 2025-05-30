@@ -16,6 +16,7 @@
 			<?php if (!empty($orders)) : ?>
 				<a href="#orders" class="button"><i class="fa fa-money"></i> <?php esc_html_e('Paid Orders', 'wp-mailinglist'); ?></a>
 			<?php endif; ?>
+			<a href="?page=<?php echo esc_attr($this->sections->subscribers); ?>&method=send_subscription_management_link&id=<?php echo esc_attr($subscriber->id); ?>&_wpnonce=<?php echo wp_create_nonce($this->sections->subscribers . '_send_subscription_management_link'); ?>" class="button"><i class="fa fa-user"></i> <?php _e('Send Manage Subscription Email', 'wp-mailinglist'); ?></a>
 		</div>
 	</div>
 	<?php $class = ''; ?>
@@ -155,13 +156,13 @@
 				<td><?php echo (empty($subscriber -> format) || $subscriber -> format == "html") ? __('HTML', 'wp-mailinglist') : __('Text', 'wp-mailinglist'); ?></td>
 			</tr>
 			<tr class="<?php echo $class = (empty($class)) ? 'alternate' : ''; ?>">
-				<th><?php esc_html_e('Registered', 'wp-mailinglist'); ?></th>
+				<th><?php esc_html_e('Registered as WordPress User', 'wp-mailinglist'); ?></th>
 				<td><?php echo (empty($subscriber -> registered) || $subscriber -> registered == "N") ? __('No', 'wp-mailinglist') : __('Yes', 'wp-mailinglist'); ?></td>
 			</tr>
 			<?php if ($subscriber -> registered == "Y") : ?>
 				<?php $user = $Subscriber -> get_user_by_email($subscriber -> email); ?>
 				<tr class="<?php echo $class = (empty($class)) ? 'alternate' : ''; ?>">
-					<th><?php esc_html_e('Registered Username', 'wp-mailinglist'); ?></th>
+					<th><?php esc_html_e('Registered WordPress Username', 'wp-mailinglist'); ?></th>
 					<td><?php echo (empty($user -> user_login)) ? $user -> data -> user_login : $user -> user_login; ?></td>
 				</tr>
 			<?php endif; ?>

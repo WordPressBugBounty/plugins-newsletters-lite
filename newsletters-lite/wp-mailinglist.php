@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.10
+Version: 4.11
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -1676,14 +1676,34 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
                             exit();
                             break;
-                        case 'themebyname'		:
+                        case 'themebyname':
                             if (!empty($_GET['name'])) {
-                                ob_start();
-                                include $this -> plugin_base() . DS . 'includes' . DS . 'themes' . DS . sanitize_text_field(wp_unslash($_GET['name'])) . DS . 'index.html';
-                                $content = ob_get_clean();
-                                echo wp_kses_post($content);
-                                exit();
+                                // Sanitize the theme name to remove dangerous characters and prevent directory traversal
+                                $theme_name = sanitize_file_name(basename($_GET['name']));
+                        
+                                // Disallow any path traversal attempts explicitly
+                                if (strpos($theme_name, '..') !== false || empty($theme_name)) {
+                                    wp_die('Invalid theme name.', 'Error', ['response' => 403]);
+                                }
+                        
+                                // Construct the file path securely
+                                $theme_path = $this->plugin_base() . DS . 'includes' . DS . 'themes' . DS . $theme_name . DS . 'index.html';
+                        
+                                // Verify the file exists and is within the themes directory
+                                if (file_exists($theme_path) && strpos(realpath($theme_path), realpath($this->plugin_base() . DS . 'includes' . DS . 'themes')) === 0) {
+                                    ob_start();
+                                    include $theme_path;
+                                    $content = ob_get_clean();
+                                    echo $content;
+                                } else {
+                                    // Handle invalid or non-existent theme
+                                    wp_die('Theme not found or access denied.', 'Error', ['response' => 403]);
+                                }
+                            } else {
+                                // Handle missing theme name
+                                wp_die('Theme name not provided.', 'Error', ['response' => 400]);
                             }
+                            exit();
                             break;
                         case 'themepreview'		:
                             $id = sanitize_text_field(wp_unslash($_GET['id']));
@@ -5889,6 +5909,17 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                 $user_id       = absint( $_GET['user_id']       ?? 0 );
                 check_admin_referer( 'wpml_resend_email_' . $email_id );
                 global $Db, $Email, $Subscriber, $History, $HistoriesAttachment, $Html;
+
+                $serial_validation_status = $this -> ci_serial_valid(); 
+                $serial_status_valid = true;
+                if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_array($serial_validation_status)) {
+                    $serial_status_valid = false;
+                }
+                if ( !$serial_status_valid ) {
+                    return $this->redirect_back( false, __( 'You need a valid serial key to proceed with this action.', 'wp-mailinglist' ) );
+                    
+                }
+
                 // Step 1 – look up the original row in newsletters_emails
                 $Db->model = $Email->model;
                 if ( ! $email = $Db->find( [ 'id' => $email_id ] ) ) {
@@ -7068,58 +7099,73 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     case 'send_subscription_management_link':
                 
                         check_admin_referer($this->sections->subscribers . '_send_subscription_management_link');
-                    
+                        
+                        $serial_validation_status = $this -> ci_serial_valid(); 
+                        $serial_status_valid = true;
+                        if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_array($serial_validation_status)) {
+                            $serial_status_valid = false;
+                        }
+
                         $id = (int) sanitize_text_field($_GET['id']);
-                        if (!empty($id)) {
-                            $Db->model = $Subscriber->model;
-                    
-                            if ($subscriber = $Db->find(array('id' => $id))) {
-                                if ($Subscriber->email_validate($subscriber->email)) {
-                                    if ($subscriberauth = $this->gen_auth($subscriber->id)) {
-                                        // Set email cookie with expiration, as in sc_management
-                                        $Authnews->set_emailcookie($subscriber->email, "+30 days");
-                    
-                                        // Save authentication string to subscriber record
-                                        $Db->model = $Subscriber->model;
-                                        if (empty($subscriber->cookieauth)) {
-                                            $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
-                                        } else {
-                                            $subscriberauth = $subscriber->cookieauth;
-                                        }
-                    
-                                        // Set authentication cookie, as in sc_management
-                                        $Authnews->set_cookie($subscriberauth, "+30 days", true);
-                    
-                                        // Prepare and send the email
-                                        $subject = wp_unslash(__($this->et_subject('authenticate', $subscriber)));
-                                        $fullbody = $this->et_message('authenticate', $subscriber);
-                                        $message = $this->render_email(false, array('subscriber' => $subscriber), false, $this->htmltf($subscriber->format), true, $this->et_template('authenticate'), false, $fullbody);
-                                        $eunique = $Html->eunique($subscriber, false, "authentication");
-                    
-                                        if ($this->execute_mail($subscriber, false, $subject, $message, false, false, $eunique, false, "authentication")) {
-                                            $message_type = 'message';
-                                            $message = __('Manage Subscription email has been sent.', 'wp-mailinglist');
+                        if($serial_status_valid)
+                        {
+
+                            if (!empty($id)) {
+                                $Db->model = $Subscriber->model;
+                        
+                                if ($subscriber = $Db->find(array('id' => $id))) {
+                                    if ($Subscriber->email_validate($subscriber->email)) {
+                                        if ($subscriberauth = $this->gen_auth($subscriber->id)) {
+                                            // Set email cookie with expiration, as in sc_management
+                                            $Authnews->set_emailcookie($subscriber->email, "+30 days");
+                        
+                                            // Save authentication string to subscriber record
+                                            $Db->model = $Subscriber->model;
+                                            if (empty($subscriber->cookieauth)) {
+                                                $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
+                                            } else {
+                                                $subscriberauth = $subscriber->cookieauth;
+                                            }
+                        
+                                            // Set authentication cookie, as in sc_management
+                                            $Authnews->set_cookie($subscriberauth, "+30 days", true);
+                        
+                                            // Prepare and send the email
+                                            $subject = wp_unslash(__($this->et_subject('authenticate', $subscriber)));
+                                            $fullbody = $this->et_message('authenticate', $subscriber);
+                                            $message = $this->render_email(false, array('subscriber' => $subscriber), false, $this->htmltf($subscriber->format), true, $this->et_template('authenticate'), false, $fullbody);
+                                            $eunique = $Html->eunique($subscriber, false, "authentication");
+                        
+                                            if ($this->execute_mail($subscriber, false, $subject, $message, false, false, $eunique, false, "authentication")) {
+                                                $message_type = 'message';
+                                                $message = __('Manage Subscription email has been sent.', 'wp-mailinglist');
+                                            } else {
+                                                $message_type = 'error';
+                                                $message = __('Authentication email could not be sent.', 'wp-mailinglist');
+                                            }
                                         } else {
                                             $message_type = 'error';
-                                            $message = __('Authentication email could not be sent.', 'wp-mailinglist');
+                                            $message = __('Authentication string could not be created.', 'wp-mailinglist');
                                         }
                                     } else {
                                         $message_type = 'error';
-                                        $message = __('Authentication string could not be created.', 'wp-mailinglist');
+                                        $message = __('Subscriber has an invalid email address.', 'wp-mailinglist');
                                     }
                                 } else {
                                     $message_type = 'error';
-                                    $message = __('Subscriber has an invalid email address.', 'wp-mailinglist');
+                                    $message = __('Subscriber not found.', 'wp-mailinglist');
                                 }
                             } else {
                                 $message_type = 'error';
-                                $message = __('Subscriber not found.', 'wp-mailinglist');
+                                $message = __('No subscriber was specified.', 'wp-mailinglist');
                             }
-                        } else {
-                            $message_type = 'error';
-                            $message = __('No subscriber was specified.', 'wp-mailinglist');
                         }
-                    
+                        else
+                        {
+                            $message_type = 'error';
+                            $message = __('You need a valid serial key to proceed with this action.', 'wp-mailinglist');
+                        }
+
                         $this->redirect('?page=' . $this->sections->subscribers, $message_type, $message);
                         break;
                     case 'mass'			:
@@ -7273,39 +7319,49 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                         $message = __('Selected subscribers deactivated', 'wp-mailinglist');
                                         break;
                                     case 'send_management_subscription_links':
-                                        if (!empty($_POST['subscriberslist'])) {
-                                            $success_count = 0;
-                                            $error_count = 0;
-                                            $subscribers = array_map('sanitize_text_field', $_POST['subscriberslist']);
-                                    
-                                            foreach ($subscribers as $subscriber_id) {
-                                                $Db->model = $Subscriber->model;
-                                    
-                                                if ($subscriber = $Db->find(array('id' => (int) $subscriber_id))) {
-                                                    if ($Subscriber->email_validate($subscriber->email)) {
-                                                        if ($subscriberauth = $this->gen_auth($subscriber->id)) {
-                                                            // Set email cookie with expiration
-                                                            $Authnews->set_emailcookie($subscriber->email, "+30 days");
-                                    
-                                                            // Save authentication string to subscriber record
-                                                            $Db->model = $Subscriber->model;
-                                                            if (empty($subscriber->cookieauth)) {
-                                                                $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
-                                                            } else {
-                                                                $subscriberauth = $subscriber->cookieauth;
-                                                            }
-                                    
-                                                            // Set authentication cookie
-                                                            $Authnews->set_cookie($subscriberauth, "+30 days", true);
-                                    
-                                                            // Prepare and send the email
-                                                            $subject = wp_unslash(__($this->et_subject('authenticate', $subscriber)));
-                                                            $fullbody = $this->et_message('authenticate', $subscriber);
-                                                            $message = $this->render_email(false, array('subscriber' => $subscriber), false, $this->htmltf($subscriber->format), true, $this->et_template('authenticate'), false, $fullbody);
-                                                            $eunique = $Html->eunique($subscriber, false, "authentication");
-                                    
-                                                            if ($this->execute_mail($subscriber, false, $subject, $message, false, false, $eunique, false, "authentication")) {
-                                                                $success_count++;
+                                        $serial_validation_status = $this -> ci_serial_valid(); 
+                                        $serial_status_valid = true;
+                                        if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_array($serial_validation_status)) {
+                                            $serial_status_valid = false;
+                                        }
+                                        if($serial_status_valid)
+                                        {
+                                            if (!empty($_POST['subscriberslist'])) {
+                                                $success_count = 0;
+                                                $error_count = 0;
+                                                $subscribers = array_map('sanitize_text_field', $_POST['subscriberslist']);
+                                        
+                                                foreach ($subscribers as $subscriber_id) {
+                                                    $Db->model = $Subscriber->model;
+                                        
+                                                    if ($subscriber = $Db->find(array('id' => (int) $subscriber_id))) {
+                                                        if ($Subscriber->email_validate($subscriber->email)) {
+                                                            if ($subscriberauth = $this->gen_auth($subscriber->id)) {
+                                                                // Set email cookie with expiration
+                                                                $Authnews->set_emailcookie($subscriber->email, "+30 days");
+                                        
+                                                                // Save authentication string to subscriber record
+                                                                $Db->model = $Subscriber->model;
+                                                                if (empty($subscriber->cookieauth)) {
+                                                                    $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
+                                                                } else {
+                                                                    $subscriberauth = $subscriber->cookieauth;
+                                                                }
+                                        
+                                                                // Set authentication cookie
+                                                                $Authnews->set_cookie($subscriberauth, "+30 days", true);
+                                        
+                                                                // Prepare and send the email
+                                                                $subject = wp_unslash(__($this->et_subject('authenticate', $subscriber)));
+                                                                $fullbody = $this->et_message('authenticate', $subscriber);
+                                                                $message = $this->render_email(false, array('subscriber' => $subscriber), false, $this->htmltf($subscriber->format), true, $this->et_template('authenticate'), false, $fullbody);
+                                                                $eunique = $Html->eunique($subscriber, false, "authentication");
+                                        
+                                                                if ($this->execute_mail($subscriber, false, $subject, $message, false, false, $eunique, false, "authentication")) {
+                                                                    $success_count++;
+                                                                } else {
+                                                                    $error_count++;
+                                                                }
                                                             } else {
                                                                 $error_count++;
                                                             }
@@ -7315,32 +7371,34 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                                     } else {
                                                         $error_count++;
                                                     }
-                                                } else {
-                                                    $error_count++;
                                                 }
-                                            }
-                                    
-                                            if ($success_count > 0) {
-                                                $msg_type = 'message';
-                                                if ($success_count == 1) {
-                                                    $message = sprintf(__('%d Manage Subscription email has been sent.', 'wp-mailinglist'), $success_count);
-                                                }
-                                                else {
-                                                    $message = sprintf(__('%d Manage Subscription emails have been sent.', 'wp-mailinglist'), $success_count);
+                                        
+                                                if ($success_count > 0) {
+                                                    $msg_type = 'message';
+                                                    if ($success_count == 1) {
+                                                        $message = sprintf(__('%d Manage Subscription email has been sent.', 'wp-mailinglist'), $success_count);
+                                                    }
+                                                    else {
+                                                        $message = sprintf(__('%d Manage Subscription emails have been sent.', 'wp-mailinglist'), $success_count);
 
-                                                }
-                                                if ($error_count > 0) {
-                                                    $message .= ' ' . sprintf(__('%d subscribers failed due to invalid email or other errors.', 'wp-mailinglist'), $error_count);
+                                                    }
+                                                    if ($error_count > 0) {
+                                                        $message .= ' ' . sprintf(__('%d subscribers failed due to invalid email or other errors.', 'wp-mailinglist'), $error_count);
+                                                    }
+                                                } else {
+                                                    $msg_type = 'error';
+                                                    $message = __('No subscriber management links could be sent.', 'wp-mailinglist');
                                                 }
                                             } else {
                                                 $msg_type = 'error';
-                                                $message = __('No subscriber management links could be sent.', 'wp-mailinglist');
+                                                $message = __('No subscribers were selected.', 'wp-mailinglist');
                                             }
-                                        } else {
-                                            $msg_type = 'error';
-                                            $message = __('No subscribers were selected.', 'wp-mailinglist');
                                         }
-                                    
+                                        else {
+                                            $msg_type = 'error';
+                                            $message = __('You need a valid serial key to proceed with this action.', 'wp-mailinglist');
+                                        }
+
                                         $this->redirect($this->referer, $msg_type, $message);
                                         break;
                                 }
@@ -8303,212 +8361,288 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
             }
 
             function admin_themes() {
-                global $wpdb, $Db, $Theme, $Html;
-                $Db -> model = $Theme -> model;
-                $method = sanitize_text_field(isset($_GET['method']) ? $_GET['method'] : "");
+		        global $wpdb, $Db, $Theme, $Html;
 
-                if ($this -> is_php_module('mod_security')) {
-                    $error = __('Please note that Apache mod_security is turned on. Saving a template may not be allowed due to the raw HTML. Please ask your hosting provider.', 'wp-mailinglist');
-                    $this -> render_error($error);
-                }
+		        $Db->model = $Theme->model;
+		        $method    = sanitize_text_field( isset( $_GET['method'] ) ? $_GET['method'] : '' );
 
-                switch ($method) {
-                    case 'defaulttemplate'		:
-                        if (empty($_POST['defaulttemplate'])) {
-                            $this -> update_option('defaulttemplate', false);
-                            $this -> redirect($this -> referer, 'message', __('Default template turned off', 'wp-mailinglist'));
-                        } else {
-                            $this -> update_option('defaulttemplate', true);
-                            $this -> redirect($this -> referer, 'message', __('Default template turned on', 'wp-mailinglist'));
-                        }
-                        break;
-                    case 'save'			:
-                        if (!empty($_POST)) {
-                            //if ($Db -> save(map_deep(wp_unslash($_POST), 'sanitize_text_field'))) {
-                            //if ($Db -> save(map_deep($_POST, 'wp_kses_post'))) {
-                            if ($Db -> save($_POST)) {
-                                $message = __('Template has been saved', 'wp-mailinglist');
+		        /* Warn if mod_security may block POSTed HTML --------------------------- */
+		        if ( $this->is_php_module( 'mod_security' ) ) {
+			        $error = __(
+				        'Please note that Apache mod_security is turned on. Saving a template may not be allowed due to the raw HTML. Please ask your hosting provider.',
+				        'wp-mailinglist'
+			        );
+			        $this->render_error( $error );
+		        }
 
-                                if (!empty($_POST['continueediting'])) {
-                                    $this -> redirect(admin_url('admin.php?page=' . $this -> sections -> themes . '&method=save&id=' . $Theme -> insertid . '&continueediting=1'), 'message', $message);
-                                } else {
-                                    $this -> redirect(admin_url('admin.php?page=' . $this -> sections -> themes, 'message', $message));
-                                }
-                            } else {
-                                $this -> render_error(__('Template could not be saved', 'wp-mailinglist'));
-                                $this -> render('themes' . DS . 'save', false, true, 'admin');
-                            }
-                        } else {
-                            $id = (int) sanitize_text_field(isset($_GET['id']) ? $_GET['id'] : 0);
-                            $Db -> find(array('id' => $id));
-                            if (!empty($Theme -> data -> content)) {
-                                $Theme -> data -> paste = $Theme -> data -> content;
-                            }
-                            $this -> render('themes' . DS . 'save', false, true, 'admin');
-                        }
-                        break;
-                    case 'duplicate'	:
-                        $id = (int) sanitize_text_field($_GET['id']);
-                        if (!empty($id)) {
-                            $query = "SHOW TABLE STATUS LIKE '" . $wpdb -> prefix . $Theme -> table . "'";
-                            $tablestatus = $wpdb -> get_row($query);
-                            $nextid = $tablestatus -> Auto_increment;
-                            $query = "CREATE TEMPORARY TABLE `themetmp` SELECT * FROM `" . $wpdb -> prefix . $Theme -> table . "` WHERE `id` = '" . esc_sql($id) . "'";
-                            $wpdb -> query($query);
-                            $query = "UPDATE `themetmp` SET `id` = '" . $nextid . "', `title` = CONCAT(title, ' " . __('Copy', 'wp-mailinglist') . "'), `def` = 'N', `defsystem` = 'N', `created` = '" . $Html -> gen_date() . "', `modified` = '" . $Html -> gen_date() . "' WHERE `id` = '" . esc_sql($id) . "'";
-                            $wpdb -> query($query);
-                            $query = "INSERT INTO `" . $wpdb -> prefix . $Theme -> table . "` SELECT * FROM `themetmp` WHERE `id` = '" . $nextid . "'";
-                            $wpdb -> query($query);
-                            $query = "DROP TEMPORARY TABLE `themetmp`;";
-                            $wpdb -> query($query);
+		        switch ( $method ) {
+			        /* ------------------------------------------------------------------ *
+					 * Turn off / on the *plugin-wide* default template
+					 * ------------------------------------------------------------------ */
+			        case 'defaulttemplate':
+				        check_admin_referer( $this->sections->themes . '_default_template' );
 
-                            $msgtype = 'message';
-                            $message = __('Template has been duplicated', 'wp-mailinglist');
-                        } else {
-                            $msgtype = 'error';
-                            $message = __('No template was specified', 'wp-mailinglist');
-                        }
+				        if ( empty( $_POST['defaulttemplate'] ) ) {
+					        $this->update_option( 'defaulttemplate', false );
+					        $this->redirect( $this->referer, 'message', __( 'Default template turned off', 'wp-mailinglist' ) );
+				        } else {
+					        $this->update_option( 'defaulttemplate', true );
+					        $this->redirect( $this->referer, 'message', __( 'Default template turned on', 'wp-mailinglist' ) );
+				        }
+				        break;
 
-                        $this -> redirect($this -> referer, $msgtype, $message);
-                        break;
-                    case 'delete'		:
-                        $id = (int) sanitize_text_field($_GET['id']);
-                        if (!empty($id)) {
-                            if ($Db -> delete($id)) {
-                                $msgtype = 'message';
-                                $message = __('Template has been removed', 'wp-mailinglist');
-                            } else {
-                                $msgtype = 'error';
-                                $message = __('Template could not be removed', 'wp-mailinglist');
-                            }
-                        } else {
-                            $msgtype = 'error';
-                            $message = __('No template was specified', 'wp-mailinglist');
-                        }
+			        /* ------------------------------------------------------------------ *
+					 * Create / edit a single template
+					 * ------------------------------------------------------------------ */
+			        case 'save':
+				        if ( ! empty( $_POST ) ) {
+					        // if ( $Db->save( map_deep( wp_unslash( $_POST ), 'sanitize_text_field' ) ) ) {
+					        if ( $Db->save( $_POST ) ) {
+						        $message = __( 'Template has been saved', 'wp-mailinglist' );
 
-                        $this -> redirect('?page=' . $this -> sections -> themes, $msgtype, $message);
-                        break;
-                    case 'remove_default'					:
-                        $id = (int) sanitize_text_field(wp_unslash($_GET['id']));
-                        if (!empty($id)) {
-                            $Db -> model = $Theme -> model;
-                            $Db -> save_field('def', "N", array('id' => $id));
+						        if ( ! empty( $_POST['continueediting'] ) ) {
+							        $this->redirect(
+								        admin_url(
+									        'admin.php?page=' . $this->sections->themes .
+									        '&method=save&id=' . $Theme->insertid . '&continueediting=1'
+								        ),
+								        'message',
+								        $message
+							        );
+						        } else {
+							        $this->redirect(
+								        admin_url( 'admin.php?page=' . $this->sections->themes, 'message', $message )
+							        );
+						        }
+					        } else {
+						        $this->render_error( __( 'Template could not be saved', 'wp-mailinglist' ) );
+						        $this->render( 'themes' . DS . 'save', false, true, 'admin' );
+					        }
+				        } else {
+					        $id = (int) sanitize_text_field( isset( $_GET['id'] ) ? $_GET['id'] : 0 );
+					        $Db->find( array( 'id' => $id ) );
 
-                            $msg_type = 'message';
-                            $message = __('Selected template removed as sending default', 'wp-mailinglist');
-                        } else {
-                            $msg_type = 'error';
-                            $message = __('No template was specified', 'wp-mailinglist');
-                        }
+					        if ( ! empty( $Theme->data->content ) ) {
+						        $Theme->data->paste = $Theme->data->content;
+					        }
+					        $this->render( 'themes' . DS . 'save', false, true, 'admin' );
+				        }
+				        break;
 
-                        $this -> redirect("?page=" . $this -> sections -> themes, $msg_type, $message);
-                        break;
-                    case 'remove_defaultsystem'				:
-                        $id = (int) sanitize_text_field($_GET['id']);
-                        if (!empty($id)) {
-                            $Db -> model = $Theme -> model;
-                            $Db -> save_field('defsystem', "N", array('id' => $id));
+			        /* ------------------------------------------------------------------ *
+					 * Duplicate --------------------------------------------------------- */
+			        case 'duplicate':
+				        check_admin_referer( $this->sections->themes . '_duplicate' );
 
-                            $msg_type = 'message';
-                            $message = __('Selected template removed as system default', 'wp-mailinglist');
-                        } else {
-                            $msg_type = 'error';
-                            $message = __('No template was specified', 'wp-mailinglist');
-                        }
+				        $id = (int) sanitize_text_field( $_GET['id'] );
+				        if ( ! empty( $id ) ) {
+					        $tablestatus = $wpdb->get_row( "SHOW TABLE STATUS LIKE '" . $wpdb->prefix . $Theme->table . "'" );
+					        $nextid      = $tablestatus->Auto_increment;
 
-                        $this -> redirect("?page=" . $this -> sections -> themes, $msg_type, $message);
-                        break;
-                    case 'default'		:
-                        $id = (int) sanitize_text_field(wp_unslash($_GET['id']));
-                        if (!empty($id)) {
-                            $Db -> model = $Theme -> model;
-                            $Db -> save_field('def', "N");
+					        $wpdb->query(
+						        "CREATE TEMPORARY TABLE `themetmp`
+					 SELECT * FROM `" . $wpdb->prefix . $Theme->table . "`
+					 WHERE `id` = '" . esc_sql( $id ) . "'"
+					        );
+					        $wpdb->query(
+						        "UPDATE `themetmp`
+					 SET `id` = '" . $nextid . "',
+					     `title` = CONCAT(title, ' " . __( 'Copy', 'wp-mailinglist' ) . "'),
+					     `def` = 'N', `defsystem` = 'N',
+					     `created` = '" . $Html->gen_date() . "',
+					     `modified` = '" . $Html->gen_date() . "'
+					 WHERE `id` = '" . esc_sql( $id ) . "'"
+					        );
+					        $wpdb->query(
+						        "INSERT INTO `" . $wpdb->prefix . $Theme->table . "`
+					 SELECT * FROM `themetmp` WHERE `id` = '" . $nextid . "'"
+					        );
+					        $wpdb->query( 'DROP TEMPORARY TABLE `themetmp`;' );
 
-                            $Db -> model = $Theme -> model;
-                            $Db -> save_field('def', "Y", array('id' => $id));
+					        $msgtype = 'message';
+					        $message = __( 'Template has been duplicated', 'wp-mailinglist' );
+				        } else {
+					        $msgtype = 'error';
+					        $message = __( 'No template was specified', 'wp-mailinglist' );
+				        }
 
-                            $msg_type = 'message';
-                            $message = __('Selected template has been set as the sending default', 'wp-mailinglist');
-                        } else {
-                            $msg_type = 'error';
-                            $message = __('No template was specified', 'wp-mailinglist');
-                        }
+				        $this->redirect( $this->referer, $msgtype, $message );
+				        break;
 
-                        $this -> redirect("?page=" . $this -> sections -> themes, $msg_type, $message);
-                        break;
-                    case 'defaultsystem'	:
-                        $id = (int) sanitize_text_field(wp_unslash($_GET['id']));
-                        if (!empty($id)) {
-                            $Db -> model = $Theme -> model;
-                            $Db -> save_field('defsystem', "N");
+			        /* ------------------------------------------------------------------ *
+					 * Delete ------------------------------------------------------------ */
+			        case 'delete':
+				        check_admin_referer( $this->sections->themes . '_delete' );
 
-                            $Db -> model = $Theme -> model;
-                            $Db -> save_field('defsystem', "Y", array('id' => $id));
+				        $id = (int) sanitize_text_field( $_GET['id'] );
+				        if ( ! empty( $id ) ) {
+					        if ( $Db->delete( $id ) ) {
+						        $msgtype = 'message';
+						        $message = __( 'Template has been removed', 'wp-mailinglist' );
+					        } else {
+						        $msgtype = 'error';
+						        $message = __( 'Template could not be removed', 'wp-mailinglist' );
+					        }
+				        } else {
+					        $msgtype = 'error';
+					        $message = __( 'No template was specified', 'wp-mailinglist' );
+				        }
 
-                            $msg_type = 'message';
-                            $message = __('Selected template has been set as the system default', 'wp-mailinglist');
-                        } else {
-                            $msg_type = 'error';
-                            $message = __('No template was specified', 'wp-mailinglist');
-                        }
+				        $this->redirect( '?page=' . $this->sections->themes, $msgtype, $message );
+				        break;
 
-                        $this -> redirect("?page=" . $this -> sections -> themes, $msg_type, $message);
-                        break;
-                    case 'mass'			:
-                        if (!empty($_POST['action'])) {
-                            $themes = array_map('sanitize_text_field', $_POST['themeslist']);
+			        /* ------------------------------------------------------------------ *
+					 * Remove “send default” -------------------------------------------- */
+			        case 'remove_default':
+				        check_admin_referer( $this->sections->themes . '_remove_default' );
 
-                            if (!empty($themes)) {
-                                switch ($_POST['action']) {
-                                    case 'delete'				:
-                                        foreach ($themes as $theme_id) {
-                                            $Db -> model = $Theme -> model;
-                                            $Db -> delete($theme_id);
-                                        }
+				        $id = (int) sanitize_text_field( wp_unslash( $_GET['id'] ) );
+				        if ( ! empty( $id ) ) {
+					        $Db->model = $Theme->model;
+					        $Db->save_field( 'def', 'N', array( 'id' => $id ) );
 
-                                        $msg_type = 'message';
-                                        $message = 18;
-                                        break;
-                                }
-                            } else {
-                                $msg_type = 'error';
-                                $message = 17;
-                            }
-                        } else {
-                            $msg_type = 'error';
-                            $message = 16;
-                        }
+					        $msg_type = 'message';
+					        $message  = __( 'Selected template removed as sending default', 'wp-mailinglist' );
+				        } else {
+					        $msg_type = 'error';
+					        $message  = __( 'No template was specified', 'wp-mailinglist' );
+				        }
 
-                        $this -> redirect($this -> url, $msg_type, $message);
-                        break;
-                    default				:
-                        $perpage = (empty($_COOKIE[$this -> pre . 'themesperpage'])) ? 15 : $_COOKIE[$this -> pre . 'themesperpage'];
-                        $searchterm = (!empty($_GET[$this -> pre . 'searchterm'])) ? sanitize_text_field($_GET[$this -> pre . 'searchterm']) : false;
-                        $searchterm = (!empty($_POST['searchterm'])) ? sanitize_text_field($_POST['searchterm']) : $searchterm;
+				        $this->redirect( '?page=' . $this->sections->themes, $msg_type, $message );
+				        break;
 
-                        if (!empty($_POST['searchterm'])) {
-                            $this -> redirect($this -> url . '&' . $this -> pre . 'searchterm=' . esc_html($searchterm));
-                        }
+			        /* ------------------------------------------------------------------ *
+					 * Remove “system default” ------------------------------------------ */
+			        case 'remove_defaultsystem':
+				        check_admin_referer( $this->sections->themes . '_remove_default_system' );
 
-                        $conditions = (!empty($searchterm)) ? array('title' => "LIKE '%" . $searchterm . "%'") : false;
+				        $id = (int) sanitize_text_field( $_GET['id'] );
+				        if ( ! empty( $id ) ) {
+					        $Db->model = $Theme->model;
+					        $Db->save_field( 'defsystem', 'N', array( 'id' => $id ) );
 
-                        $orderfield = (empty($_GET['orderby'])) ? 'modified' : esc_html($_GET['orderby']);
-                        $orderdirection = (empty($_GET['order'])) ? 'DESC' : strtoupper(esc_html($_GET['order']));
-                        $order = array($orderfield, $orderdirection);
+					        $msg_type = 'message';
+					        $message  = __( 'Selected template removed as system default', 'wp-mailinglist' );
+				        } else {
+					        $msg_type = 'error';
+					        $message  = __( 'No template was specified', 'wp-mailinglist' );
+				        }
 
-                        if (!empty($_GET['showall'])) {
-                            $Db -> model = $Theme -> model;
-                            $themes = $Db -> find_all(false, "*", $order);
-                            $data[$Theme -> model] = $themes;
-                            $data['Paginate'] = false;
-                        } else {
-                            $data = $this -> paginate($Theme -> model, null, $this -> sections -> themes, $conditions, $searchterm, $perpage, $order);
-                        }
+				        $this->redirect( '?page=' . $this->sections->themes, $msg_type, $message );
+				        break;
 
-                        $this -> render('themes' . DS . 'index', array('themes' => $data[$Theme -> model], 'paginate' => $data['Paginate']), true, 'admin');
-                        break;
-                }
-            }
+			        /* ------------------------------------------------------------------ *
+					 * Set as “send default” -------------------------------------------- */
+			        case 'default':
+				        check_admin_referer( $this->sections->themes . '_default' );
+
+				        $id = (int) sanitize_text_field( wp_unslash( $_GET['id'] ) );
+				        if ( ! empty( $id ) ) {
+					        $Db->model = $Theme->model;
+					        $Db->save_field( 'def', 'N' );
+					        $Db->save_field( 'def', 'Y', array( 'id' => $id ) );
+
+					        $msg_type = 'message';
+					        $message  = __( 'Selected template has been set as the sending default', 'wp-mailinglist' );
+				        } else {
+					        $msg_type = 'error';
+					        $message  = __( 'No template was specified', 'wp-mailinglist' );
+				        }
+
+				        $this->redirect( '?page=' . $this->sections->themes, $msg_type, $message );
+				        break;
+
+			        /* ------------------------------------------------------------------ *
+					 * Set as “system default” ------------------------------------------ */
+			        case 'defaultsystem':
+				        check_admin_referer( $this->sections->themes . '_default_system' );
+
+				        $id = (int) sanitize_text_field( wp_unslash( $_GET['id'] ) );
+				        if ( ! empty( $id ) ) {
+					        $Db->model = $Theme->model;
+					        $Db->save_field( 'defsystem', 'N' );
+					        $Db->save_field( 'defsystem', 'Y', array( 'id' => $id ) );
+
+					        $msg_type = 'message';
+					        $message  = __( 'Selected template has been set as the system default', 'wp-mailinglist' );
+				        } else {
+					        $msg_type = 'error';
+					        $message  = __( 'No template was specified', 'wp-mailinglist' );
+				        }
+
+				        $this->redirect( '?page=' . $this->sections->themes, $msg_type, $message );
+				        break;
+
+			        /* ------------------------------------------------------------------ *
+					 * Bulk-actions (mass) ---------------------------------------------- */
+			        case 'mass':
+				        check_admin_referer( $this->sections->themes . '_mass' );
+
+				        if ( ! empty( $_POST['action'] ) ) {
+					        $themes = array_map( 'sanitize_text_field', (array) $_POST['themeslist'] );
+
+					        if ( ! empty( $themes ) ) {
+						        switch ( $_POST['action'] ) {
+							        case 'delete':
+								        foreach ( $themes as $theme_id ) {
+									        $Db->model = $Theme->model;
+									        $Db->delete( $theme_id );
+								        }
+
+								        $msg_type = 'message';
+								        $message  = 18;   // i18n key in plugin
+								        break;
+						        }
+					        } else {
+						        $msg_type = 'error';
+						        $message  = 17;
+					        }
+				        } else {
+					        $msg_type = 'error';
+					        $message  = 16;
+				        }
+
+				        $this->redirect( $this->url, $msg_type, $message );
+				        break;
+
+			        /* ------------------------------------------------------------------ *
+					 * Default listing view --------------------------------------------- */
+			        default:
+				        $perpage     = empty( $_COOKIE[ $this->pre . 'themesperpage' ] ) ? 15 : $_COOKIE[ $this->pre . 'themesperpage' ];
+				        $searchterm  = ! empty( $_GET[ $this->pre . 'searchterm' ] ) ? sanitize_text_field( $_GET[ $this->pre . 'searchterm' ] ) : false;
+				        $searchterm  = ! empty( $_POST['searchterm'] ) ? sanitize_text_field( $_POST['searchterm'] ) : $searchterm;
+
+				        if ( ! empty( $_POST['searchterm'] ) ) {
+					        $this->redirect( $this->url . '&' . $this->pre . 'searchterm=' . esc_html( $searchterm ) );
+				        }
+
+				        $conditions = ! empty( $searchterm ) ? array( 'title' => "LIKE '%" . $searchterm . "%'" ) : false;
+
+				        $orderfield      = empty( $_GET['orderby'] ) ? 'modified' : esc_html( $_GET['orderby'] );
+				        $orderdirection  = empty( $_GET['order'] ) ? 'DESC' : strtoupper( esc_html( $_GET['order'] ) );
+				        $order           = array( $orderfield, $orderdirection );
+
+				        if ( ! empty( $_GET['showall'] ) ) {
+					        $Db->model  = $Theme->model;
+					        $themes     = $Db->find_all( false, '*', $order );
+					        $data[ $Theme->model ] = $themes;
+					        $data['Paginate']      = false;
+				        } else {
+					        $data = $this->paginate( $Theme->model, null, $this->sections->themes, $conditions, $searchterm, $perpage, $order );
+				        }
+
+				        $this->render(
+					        'themes' . DS . 'index',
+					        array(
+						        'themes'    => $data[ $Theme->model ],
+						        'paginate'  => $data['Paginate'],
+					        ),
+					        true,
+					        'admin'
+				        );
+				        break;
+		        }
+	        }
 
             function admin_templates() {
                 global $wpdb, $Db;

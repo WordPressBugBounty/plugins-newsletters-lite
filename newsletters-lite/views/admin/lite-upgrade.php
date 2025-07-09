@@ -61,6 +61,7 @@ $emails_percentage = (($emails / 1000) * 100);
 					<li><?php esc_html_e('No Drag & Drop Newsletter & Template Builder', 'wp-mailinglist'); ?></li>
 					<li><?php esc_html_e('No reCAPTCHA v3, hCaptcha, and Cloudflare Turnstile', 'wp-mailinglist'); ?></li>
 					<li><?php esc_html_e('No dynamic Custom Fields', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('No Resend', 'wp-mailinglist'); ?></li>
 				</ul>
 			</div>
 			<div class="col">
@@ -75,6 +76,7 @@ $emails_percentage = (($emails / 1000) * 100);
 					<li><?php esc_html_e('Drag & Drop Newsletter & Template Builder', 'wp-mailinglist'); ?></li>
 					<li><?php esc_html_e('reCAPTCHA v3, hCaptcha, Cloudflare Turnstile', 'wp-mailinglist'); ?></li>
 					<li><?php esc_html_e('Dynamic Custom Fields', 'wp-mailinglist'); ?></li>
+					<li><?php esc_html_e('Resend Certain Emails', 'wp-mailinglist'); ?></li>
 				</ul>
 			</div>
 			<div class="col last-feature">

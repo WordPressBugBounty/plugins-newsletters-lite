@@ -70,6 +70,35 @@ if ( ! class_exists( 'WPML_WP_Background_Process' ) ) {
 		}
 
 		/**
+		 * Executes a closure in try/catch, re-queues the job and unlocks the
+		 * worker if anything – Exception **or** Error – is thrown.
+		 *
+		 * @param  callable $callback The original task body.
+		 * @param  array    $item     The current queue item.
+		 * @param  object   $worker   $this from inside task().
+		 * @return mixed             The callback’s return value or false on error.
+		 */
+		function wpml_safe_task( callable $callback, $item, $worker ) {
+			try {
+				return $callback();
+			} catch ( Exception $e ) {
+			} catch ( Error $e ) {     // PHP-7 "Error" objects
+				// Record the reason for later inspection.
+				$item['error'] = $e->getMessage();
+	
+				// Put the job at the tail of the queue.
+				$worker->push_to_queue( $item );
+	
+				// **Very** important – otherwise the transient lock lives for
+				// queue_lock_time seconds and the whole queue looks “stuck”.
+				$worker->unlock_process();
+	
+				// Let the batch continue with the next job.
+				return false;
+			}
+		}
+		
+		/**
 		 * Dispatch
 		 *
 		 * @access public

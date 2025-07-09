@@ -4,7 +4,7 @@ Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
 Tested up to: 6.8.1
-Stable tag: 4.10
+Stable tag: 4.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -173,6 +173,7 @@ The Newsletters LITE version has nearly all of the features that the PRO version
 * The "Drag & Drop Newsletter & Template Builder" cannot be used.
 * Limited to Really Simple CAPTCHA and Google reCAPTCHA v2. The rest (reCAPTCHA v3, hCaptcha, Cloudflare Turnstile) cannot be used.
 * No new custom dynamic fields can be added but you can edit current ones.
+* No Resend button for emails and for the Send Manage Subscription Email link.
 
 These limits should be sufficient for a personal blogger or a small business.
 
@@ -236,19 +237,30 @@ If you downloaded it from the WordPress.org website:
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
 
+= 4.11 =
+* ADD: `eflength` argument to posts_multiple shortcode to control excerpt length.
+* ADD: `category_allexcept` argument to exclude specified categories in posts query.
+* ADD: `eflength_incl_excerpt` attribute to [newsletters_posts] to optionally limit manual excerpts to the eflength word count.
+* IMPROVE: Modified et_message to apply custom excerpt length via filter when eflength is set, and fallback to WordPress default excerpt length when eflength is not provided.
+* IMPROVE: Make Resend button and Send Manage Subscription Email PRO features.
+* IMPROVE: Get the readmore text from the configurations first in newsletters_posts shortcode.
+* FIX: Resolved Local File Inclusion vulnerability in themebyname action by sanitizing input and restricting file inclusion to the themes directory (credits: Nguyen Xuan Chien via Patchstack).
+* FIX: CSRF vulnerability (reported by Nguyen Xuan Chien, Patchstack) that allowed an attacker to trick a logged-in administrator into deleting or duplicating any template. All state-changing theme actions now require a valid WordPress nonce.
+* FIX: Plus signs in newsletter links no longer turn into spaces. Switched to rawurldecode() to preserve “+” characters.
+
 = 4.10 =
 * ADD: Support for specifying taxonomy and terms in newsletters_posts shortcode. Only in shortcode text. Find more info here: https://tribulant.com/docs/wordpress-mailing-list-plugin/95/wp-newsletters-shortcodes/
 * ADD: Shortcode Generator button in the newsletter editor beside Add Media button. For now, it only highlights the text editor button. This makes the feature more noticeable.
 * ADD: Resend button to a subscriber's view page under Emails and when viewing a previously sent newsletter in Sent & Draft Emails. This lets you resend most emails to a subscriber. Useful when subscribers let you know that they did not receive an email.
 * ADD: Send Manage Subscription Email to Subscribers' bulk actions and the view page. You can now quickly send the manage subscription email to any subscriber. Useful when subscribers do not know how to manage their subscriptions, did not confirm their subscription, or never received an email.
-* ADD: Add First Name and Last Name to the default Custom Fields for both paid and free users. It will not override existing firstname and lastname fields, in case they exist.
+* ADD: First Name and Last Name to the default Custom Fields for both paid and free users. It will not override existing firstname and lastname slugs/fields, in case they exist.
 * IMPROVE: Queue background processes, improving the reliability of sending large number of emails.
 * IMPROVE: Add missing information about limits to the lite version's top admin menu bar.
-* IMPROVE: Decreased Create Newsletter autosave interval to 20 seconds. Previously it was 60 seconds.
+* IMPROVE: Decreased Create Newsletter autosave interval to 20 seconds. Previously, it was 60 seconds.
 * IMPROVE: Added an attachment warning message when creating a newsletter and attaching a file.
 * IMPROVE: Move reCAPTCHA v2 invisible badge to bottom right corner of the page.
 * IMPROVE: In case double opt-in is enabled, admin email notification will now be sent after a subscriber confirms his subscription to a mailing list.
-* FIX: Drag and Drop builder autosave caused unwanted drafts.
+* FIX: Drag & Drop Builder autosave caused unwanted drafts.
 * FIX: Radio button labels missing in multilingual websites on various edit pages.
 * FIX: Patched authenticated Local File Inclusion (LFI) in the *exportdownload* routine (CVE-2025-4857, responsibly reported by @m3ssap0 via Wordfence).
 * FIX: Added nonce verification, strict filename sanitisation (`sanitize_file_name()`), and directory-scope validation with `realpath()`.

@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.10';
+		var $version = '4.11';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -13540,45 +13540,143 @@ function qp_scheduling() {
 
 		function et_message($type = null, $subscriber = null, $language = null, $processvariables = true, $hidethubmnail = null) {
 			$message = false;
-
+		
 			if (!empty($type)) {
-				$template = $this -> get_option('etmessage_' . $type);
-				if('Y' == $hidethubmnail) {
-					$template = str_replace( "[newsletters_post_thumbnail]", "", $template);
+				$template = $this->get_option('etmessage_' . $type);
+				if ('Y' == $hidethubmnail) {
+					$template = str_replace("[newsletters_post_thumbnail]", "", $template);
 				}
-
-				if ($this -> language_do()) {
+		
+				if ($this->language_do()) {
 					if (empty($language)) {
-						$language = $this -> language_current();
+						$language = $this->language_current();
 					}
 				}
+		
+				global $wpml_eflength, $wpml_eflength_incl_excerpt, $shortcode_posts; // New: eflength_incl_excerpt
+				$excerpt_length_applied = false; // Track if we applied a custom length
+		
+				// Define named function for excerpt_length filter, only if not already defined
+				if (!function_exists('newsletters_excerpt_length')) {
+					function newsletters_excerpt_length($length) {
+						global $wpml_eflength;
+						return (int) $wpml_eflength;
+					}
+				}
+		
+				// Apply filters for 'posts' or 'latestposts' if $wpml_eflength is set
+				if (in_array($type, array('posts', 'latestposts')) && !is_null($wpml_eflength) && is_numeric($wpml_eflength) && (int) $wpml_eflength > 0) {
+					$excerpt_length_applied = true;
+					add_filter('excerpt_length', 'newsletters_excerpt_length', 999);
+					// Custom excerpt trimming with ellipsis and read more button
+					add_filter('get_the_excerpt', function($excerpt) use ($wpml_eflength, $wpml_eflength_incl_excerpt) {
+						global $post, $shortcode_post_language;
+						if (!is_null($wpml_eflength) && is_numeric($wpml_eflength) && (int) $wpml_eflength > 0) {
+							// Check if post has a manual excerpt
+							$has_manual_excerpt = !empty($post->post_excerpt);
+							// Count words in the original excerpt
+							$word_count = str_word_count(strip_tags($excerpt));
+		
+							// Apply eflength based on eflength_incl_excerpt
+							if (!$has_manual_excerpt || $wpml_eflength_incl_excerpt) {
+								$trimmed_excerpt = wp_trim_words($excerpt, (int) $wpml_eflength, '');
+								// Add ellipsis and "Read More" button only if excerpt was trimmed
+								if ($word_count > (int) $wpml_eflength) {
+									$excerpt_more = $this -> get_option('excerpt_more');
+									if (is_array($excerpt_more)) {
+										$excerpt_more = $this -> language_join($excerpt_more);
+									}
+									$excerpt_more = ($this -> language_do()) ? $this -> language_use($shortcode_post_language, $excerpt_more) : $excerpt_more;
 
+									$readmore_text = !empty($excerpt_more) ? $excerpt_more : __('Read More', 'wp-mailinglist');
+									$readmore_button = '<a href="' . get_permalink($post) . '" class="newsletters-readmore">' . $readmore_text . '</a>';
+									$readmore_button = apply_filters('newsletters_readmore_button', $readmore_button, $post, $readmore_text);
+									// Avoid adding ... if already present at the end
+									$trimmed_excerpt = rtrim($trimmed_excerpt);
+									if (!preg_match('/\.\.\.$/', $trimmed_excerpt)) {
+									    $trimmed_excerpt .= __('...', 'wp-mailinglist');
+									}
+									return $trimmed_excerpt . ' ' . $readmore_button;
+								 }
+								 return $trimmed_excerpt;
+							}
+							// Manual excerpt, eflength_incl_excerpt=false: return as-is
+							return $excerpt;
+						}
+						return $excerpt;
+					}, 999);
+				}
+		
 				switch ($type) {
-					case 'posts'				:
-					case 'latestposts'			:
-					case 'sendas'				:
-						if (!empty($language) && $this -> language_do()) {
-							$message = $this -> language_use($language, $template, false);
+					case 'posts'                :
+					case 'latestposts'          :
+						if (!empty($language) && $this->language_do()) {
+							$message = $this->language_use($language, $template, false);
 						} else {
 							$message = $template;
 						}
+						// Process shortcodes with custom excerpt length and read more in context
+						$message = do_shortcode($message);
 						break;
-					default 					:
-						if (!empty($language) && $this -> language_do()) {
-							$message = wpautop($this -> language_use($language, $template, false));
+					case 'sendas'               :
+						if (!empty($language) && $this->language_do()) {
+							$message = $this->language_use($language, $template, false);
+						} else {
+							$message = $template;
+						}
+						$message = do_shortcode($message);
+						break;
+					default                     :
+						if (!empty($language) && $this->language_do()) {
+							$message = wpautop($this->language_use($language, $template, false));
 						} else {
 							$message = wpautop($template);
 						}
-
 						// Should variables be processed? Shortcodes, etc.
 						if (!empty($processvariables)) {
 							$user = isset($user) ? $user : null;
-							$message = $this -> process_set_variables($subscriber, $user, $message, false, false, true);
+							$message = $this->process_set_variables($subscriber, $user, $message, false, false, true);
 						}
 						break;
 				}
+		
+				// Remove filters if we applied them
+				if ($excerpt_length_applied) {
+					remove_filter('excerpt_length', 'newsletters_excerpt_length', 999);
+					remove_filter('get_the_excerpt', function($excerpt) use ($wpml_eflength, $wpml_eflength_incl_excerpt) {
+						global $post, $shortcode_post_language;
+						if (!is_null($wpml_eflength) && is_numeric($wpml_eflength) && (int) $wpml_eflength > 0) {
+							$has_manual_excerpt = !empty($post->post_excerpt);
+							$word_count = str_word_count(strip_tags($excerpt));
+							if (!$has_manual_excerpt || $wpml_eflength_incl_excerpt) {
+								$trimmed_excerpt = wp_trim_words($excerpt, (int) $wpml_eflength, '');
+								if ($word_count > (int) $wpml_eflength) {
+									$excerpt_more = $this -> get_option('excerpt_more');
+									if (is_array($excerpt_more)) {
+										$excerpt_more = $this -> language_join($excerpt_more);
+									}
+									$excerpt_more = ($this -> language_do()) ? $this -> language_use($shortcode_post_language, $excerpt_more) : $excerpt_more;
+									$readmore_text = !empty($excerpt_more) ? $excerpt_more : __('Read More', 'wp-mailinglist');
+									$readmore_button = '<a href="' . get_permalink($post) . '" class="newsletters-readmore">' . $readmore_text . '</a>';
+									$readmore_button = apply_filters('newsletters_readmore_button', $readmore_button, $post, $readmore_text);
+									$trimmed_excerpt = rtrim($trimmed_excerpt);
+									if (!preg_match('/\.\.\.$/', $trimmed_excerpt)) {
+										$trimmed_excerpt .=  __('...', 'wp-mailinglist');
+									}
+									return $trimmed_excerpt . ' ' . $readmore_button;
+								
+								}
+								return $trimmed_excerpt;
+							}
+							return $excerpt;
+						}
+						return $excerpt;
+					}, 999);
+				}
+		
+				return $message;
 			}
-
+		
 			return $message;
 		}
 
@@ -14196,7 +14294,7 @@ function qp_scheduling() {
 		                }
 		            }
 
-		            $html = urldecode($dom->saveHTML());
+		            $html = rawurldecode($dom->saveHTML());
 		            $html = trim(preg_replace(array("/^\<\!DOCTYPE.*?<html><body>/si", "!</body></html>$!si"), "", $html));
 		        }
 		    }

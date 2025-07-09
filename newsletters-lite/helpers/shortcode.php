@@ -515,29 +515,34 @@ if (!class_exists('wpmlShortcodeHelper')) {
 		public function posts_multiple( $atts = array(), $content = null ) {
             global $shortcode_posts, $shortcode_post_language, $shortcode_post_showdate;
             $output = '';
-    
+        
             $defaults = array(
-                'numberposts'      => 10,
-                'showdate'         => 'Y',
-                'orderby'          => 'post_date',
-                'order'            => 'DESC',
-                'category'         => null,
-                'taxonomy'         => null,          // eg: "genre"  or  "genre,format"
-                'terms'            => null,          // eg: "jazz,improv"
-                'language'         => false,
-                'post_type'        => 'post',
-                'eftype'           => 'excerpt',
-                'target'           => '_self',
-                'thumbnail_size'   => 'thumbnail',
-                'thumbnail_align'  => 'left',
-                'thumbnail_hspace' => '15',
-                'thumbnail_class'  => 'newsletters-thumbnail',
-                'hidethumbnail'    => 'N',
+                'numberposts'         => 10,
+                'showdate'            => 'Y',
+                'orderby'             => 'post_date',
+                'order'               => 'DESC',
+                'category'            => null,
+                'taxonomy'            => null,
+                'terms'               => null,
+                'language'            => false,
+                'post_type'           => 'post',
+                'eftype'              => 'excerpt',
+                'eflength'            => null,
+                'eflength_incl_excerpt' => false, // New: Whether to trim manual excerpts
+                'target'              => '_self',
+                'thumbnail_size'      => 'thumbnail',
+                'thumbnail_align'     => 'left',
+                'thumbnail_hspace'    => '15',
+                'thumbnail_vspace'    => '15',
+                'thumbnail_class'     => 'newsletters-thumbnail',
+                'hidethumbnail'       => 'N',
+                'category_allexcept'  => null,
             );
         
+            // Merge shortcode attributes with defaults
             $args = shortcode_atts( $defaults, $atts );
         
-            // normalise post_type (comma-separated → array)
+            // Normalise post_type (comma-separated → array)
             if ( ! empty( $args['post_type'] ) && strpos( $args['post_type'], ',' ) !== false ) {
                 $args['post_type'] = array_map( 'trim', explode( ',', $args['post_type'] ) );
             }
@@ -547,26 +552,30 @@ if (!class_exists('wpmlShortcodeHelper')) {
                 $args['category'] = false;
             }
         
+            // Handle category_allexcept
+            if ( ! empty( $args['category_allexcept'] ) ) {
+                $exclude_cats = array_filter( array_map( 'trim', explode( ',', $args['category_allexcept'] ) ) );
+                $args['category__not_in'] = array();
+                foreach ( $exclude_cats as $cat_id ) {
+                    $args['category__not_in'][] = (int) $cat_id;
+                }
+                unset( $args['category'] );
+            }
+        
             if ( ! empty( $args['taxonomy'] ) ) {
-        
                 $taxonomies = array_map( 'trim', explode( ',', $args['taxonomy'] ) );
-        
-                // term slugs – either explicit terms="…" or fall back to category="…"
                 $term_source = ! empty( $args['terms'] ) ? $args['terms'] : $args['category'];
                 $term_slugs  = array_filter( array_map( 'trim', explode( ',', $term_source ) ) );
         
-                $tax_query   = array( 'relation' => 'AND' );
+                $tax_query = array( 'relation' => 'AND' );
         
                 foreach ( $taxonomies as $tax_slug ) {
-
                     if ( empty( $term_slugs ) ) {
-                        // no terms – match any post that has *some* term in this taxonomy
                         $tax_query[] = array(
                             'taxonomy' => $tax_slug,
                             'operator' => 'EXISTS',
                         );
                     } else {
-                        // normal, term-specific clause
                         $tax_query[] = array(
                             'taxonomy' => $tax_slug,
                             'field'    => 'slug',
@@ -574,49 +583,52 @@ if (!class_exists('wpmlShortcodeHelper')) {
                         );
                     }
                 }
-                
         
                 $args['tax_query'] = $tax_query;
-        
-                // prevent the plain 'category' parameter from also firing
                 unset( $args['category'] );
             }
         
-            $currentlanguage          = $args['language'];
-            $args['suppress_filters'] = 0;               // allow WPML/Polylang, etc.
+            $currentlanguage = $args['language'];
+            $args['suppress_filters'] = 0;
         
             if ( ! empty( $currentlanguage ) ) {
                 $this->language_set( $currentlanguage );
             }
         
-            global $wpml_eftype, $wpml_target;
-            $wpml_eftype  = $args['eftype'];
-            $wpml_target  = $args['target'];
+            global $wpml_eftype, $wpml_target, $wpml_eflength, $wpml_eflength_incl_excerpt; // New: eflength_incl_excerpt
+            $wpml_eftype = $args['eftype'];
+            $wpml_target = $args['target'];
+            if ( ! empty( $args['eflength'] ) && is_numeric( $args['eflength'] ) && (int) $args['eflength'] > 0 ) {
+                $wpml_eflength = (int) $args['eflength'];
+            } else {
+                $wpml_eflength = null;
+            }
+            $wpml_eflength_incl_excerpt = $args['eflength_incl_excerpt'] === 'true'; // New: Set global
         
             global $shortcode_thumbnail;
             $shortcode_thumbnail = array(
                 'size'   => $args['thumbnail_size'],
                 'align'  => $args['thumbnail_align'],
                 'hspace' => $args['thumbnail_hspace'],
+                'vspace' => $args['thumbnail_vspace'],
                 'class'  => $args['thumbnail_class'],
             );
         
             $args = apply_filters( 'newsletters_shortcode_posts_multiple_arguments', $args );
         
-            
-            if ( $posts = get_posts( $args ) ) {
-        
+            $posts = get_posts( $args );
+            if ( $posts ) {
                 $shortcode_post_showdate = $args['showdate'];
         
                 if ( $this->language_do() ) {
                     $shortcode_post_language = $currentlanguage;
                     foreach ( $posts as $idx => $p ) {
-                        $posts[ $idx ] = $this->language_use( $currentlanguage, $p, false );
+                        $posts[$idx] = $this->language_use( $currentlanguage, $p, false );
                     }
                 }
         
                 $shortcode_posts = $posts;
-                $output          = do_shortcode(
+                $output = do_shortcode(
                     $this->et_message( 'posts', false, $currentlanguage, '', $args['hidethumbnail'] )
                 );
             }

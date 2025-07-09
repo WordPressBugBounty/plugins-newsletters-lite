@@ -1,4 +1,12 @@
 <?php // phpcs:ignoreFile ?>
+<?php 
+
+$serial_validation_status = $this -> ci_serial_valid(); 
+$serial_status_valid = true;
+if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_array($serial_validation_status)) {
+	$serial_status_valid = false;
+}
+?>
 <div class="wrap newsletters <?php echo esc_html($this -> pre); ?>">
 	<div style="float:left; margin:0 10px 0 0;">
 		<?php echo wp_kses_post( $Html -> get_gravatar($subscriber -> email)); ?>
@@ -16,7 +24,10 @@
 			<?php if (!empty($orders)) : ?>
 				<a href="#orders" class="button"><i class="fa fa-money"></i> <?php esc_html_e('Paid Orders', 'wp-mailinglist'); ?></a>
 			<?php endif; ?>
-			<a href="?page=<?php echo esc_attr($this->sections->subscribers); ?>&method=send_subscription_management_link&id=<?php echo esc_attr($subscriber->id); ?>&_wpnonce=<?php echo wp_create_nonce($this->sections->subscribers . '_send_subscription_management_link'); ?>" class="button"><i class="fa fa-user"></i> <?php _e('Send Manage Subscription Email', 'wp-mailinglist'); ?></a>
+			<?php
+			 $resend_url = !$serial_status_valid ? '#' : "?page=" . esc_attr($this->sections->subscribers) . "&method=send_subscription_management_link&id=" . esc_attr($email->subscriber_id) . "&_wpnonce=" . wp_create_nonce($this->sections->subscribers . '_send_subscription_management_link') ;
+			 ?>
+			 <a  <?php echo !$serial_status_valid ?  'disabled="disabled"' : ''  ?> href="<?php echo esc_url($resend_url); ?>" class="button "><i class="fa fa-user"></i> <?php _e('Send Manage Subscription Email', 'wp-mailinglist'); ?> <?php !$serial_status_valid ? _e( '(PRO)', 'wp-mailinglist' ) : ''; ?></a>
 		</div>
 	</div>
 	<?php $class = ''; ?>

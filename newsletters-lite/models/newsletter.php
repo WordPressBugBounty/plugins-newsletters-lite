@@ -130,6 +130,8 @@ if (!class_exists('newsletters_lite')) {
                 'meta' => array('class' => 'newsletters-lite-nodraganddrop'),
             );
 
+			$wp_admin_bar->add_node($args);
+
             $args = array(
                 'id' => 'newsletterslite_nopremiumcaptchas',
                 'title' => __('No reCAPTCHA v3, hCaptcha, and Cloudflare Turnstile' , 'wp-mailinglist'),
@@ -147,6 +149,17 @@ if (!class_exists('newsletters_lite')) {
                 'parent' => 'newsletterslite',
                 'href' => false,
                 'meta' => array('class' => 'newsletters-lite-nodynamiccustomfield'),
+            );
+
+            $wp_admin_bar->add_node($args);
+
+
+            $args = array(
+                'id' => 'newsletterslite_noresend',
+                'title' => __('No Resend' , 'wp-mailinglist'),
+                'parent' => 'newsletterslite',
+                'href' => false,
+                'meta' => array('class' => 'newsletters-lite-nodresend'),
             );
 
             $wp_admin_bar->add_node($args);

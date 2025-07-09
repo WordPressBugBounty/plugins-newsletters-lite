@@ -32,6 +32,7 @@ if(class_exists('newsletterscontrol'))
 					<option value=""><?php esc_html_e('- Bulk Actions -', 'wp-mailinglist'); ?></option>
 					<option value="delete"><?php esc_html_e('Delete', 'wp-mailinglist'); ?></option>
 					<option value="unsubscribe"><?php esc_html_e('Unsubscribe', 'wp-mailinglist'); ?></option>
+					<option value="send_management_subscription_links"><?php _e('Send Manage Subscription Email', 'wp-mailinglist'); ?></option>
 					<?php if (!empty($saveipaddress)) : ?>
 						<option value="getcountry"><?php esc_html_e('Get Country by IP', 'wp-mailinglist'); ?></option>
 					<?php endif; ?>
@@ -46,7 +47,6 @@ if(class_exists('newsletterscontrol'))
 					<optgroup label="<?php esc_html_e('Status', 'wp-mailinglist'); ?>">
 						<option value="active"><?php esc_html_e('Activate', 'wp-mailinglist'); ?></option>
 						<option value="inactive"><?php esc_html_e('Deactivate', 'wp-mailinglist'); ?></option>
-						<option value="send_management_subscription_links"><?php _e('Send Manage Subscription Email', 'wp-mailinglist'); ?></option>
 					</optgroup>
 					<optgroup  label="<?php esc_html_e('Mailing Lists', 'wp-mailinglist'); ?>">
 						<option value="assignlists"><?php esc_html_e('Add Lists (appends)...', 'wp-mailinglist'); ?></option>

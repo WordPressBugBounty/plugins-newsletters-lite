@@ -1,6 +1,14 @@
 <?php // phpcs:ignoreFile ?>
 
-    <!-- Emails -->
+	<!-- Emails -->
+	<?php 
+	$serial_validation_status = $this -> ci_serial_valid(); 
+	$serial_status_valid = true;
+	if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_array($serial_validation_status)) {
+		$serial_status_valid = false;
+	}
+
+	?>
 	<?php if ($_GET['page'] == $this -> sections -> history) : ?>
 		<ul class="subsubsub">
         <li><?php echo sprintf(__('%s emails', 'wp-mailinglist'), (isset($paginate -> allcount) ? $paginate -> allcount : '')); ?></li>
@@ -338,39 +346,41 @@
 							<?php if (( (int) $email->subscriber_id || (int) $email->user_id )) : ?>
 								<td class="column-resend">
 								<?php if (!empty($email -> history_id)) {
-										?>
-									
-									<?php
-									$resend_url = wp_nonce_url(
-										admin_url(
-											'admin-post.php?action=wpml_resend_email'
-											. '&email_id='      . (int) $email->id
-											. '&subscriber_id=' . (int) $email->subscriber_id   // may be 0
-											. '&user_id='       . (int) $email->user_id         // may be 0
-										),
-										'wpml_resend_email_' . $email->id
-									);
-									?>
-									<a href="<?php echo esc_url( $resend_url ); ?>"
-									class="button button-small"
-									title="<?php esc_attr_e( 'Resend this email to this recipient now', 'wp-mailinglist' ); ?>">
-										<?php _e( 'Resend', 'wp-mailinglist' ); ?>
-									</a>
+											?>
 
-									
 
 								<?php
-								} 
-								else if ($email -> type === "authentication") {
-									?>
-										<a href="?page=<?php echo esc_attr($this->sections->subscribers); ?>&method=send_subscription_management_link&id=<?php echo esc_attr($email->subscriber_id); ?>&_wpnonce=<?php echo wp_create_nonce($this->sections->subscribers . '_send_subscription_management_link'); ?>" class="button button-small"><?php _e('Resend', 'wp-mailinglist'); ?></a>
-									<?php
-								}		
-								else {
-									?>-<?php
-								}
-								?> 
-								</td>
+								$resend_url = !$serial_status_valid ? '#' : wp_nonce_url(
+									admin_url(
+										'admin-post.php?action=wpml_resend_email'
+										. '&email_id='      . (int) $email->id
+										. '&subscriber_id=' . (int) $email->subscriber_id   // may be 0
+										. '&user_id='       . (int) $email->user_id         // may be 0
+									),
+									'wpml_resend_email_' . $email->id
+								) ;
+								?>
+								<a href="<?php echo esc_url( $resend_url ); ?>" <?php echo !$serial_status_valid ?  'disabled="disabled"' : ''  ?>
+								class="button button-small"
+								title="<?php esc_attr_e( 'Resend this email to this recipient now', 'wp-mailinglist' ); ?>">
+									<?php _e( 'Resend', 'wp-mailinglist' ); ?>
+									<?php !$serial_status_valid ? _e( '(PRO)', 'wp-mailinglist' ) : ''; ?>
+								</a>
+								<?php
+									} 
+									else if ($email -> type === "authentication") {
+										?>
+										<?php
+											$resend_url = !$serial_status_valid ? '#' : "?page=" . esc_attr($this->sections->subscribers) . "&method=send_subscription_management_link&id=" . esc_attr($email->subscriber_id) . "&_wpnonce=" . wp_create_nonce($this->sections->subscribers . '_send_subscription_management_link') ;
+											?>
+											<a  <?php echo !$serial_status_valid ?  'disabled="disabled"' : ''  ?> href="<?php echo esc_url($resend_url); ?>" class="button button-small"><?php _e('Resend', 'wp-mailinglist'); ?> <?php !$serial_status_valid ? _e( '(PRO)', 'wp-mailinglist' ) : ''; ?></a>
+										<?php
+									}		
+									else {
+										?>-<?php
+									}
+									?> 
+							</td>
 							<?php else : ?>
 								<td class="column-resend">—</td>
 							<?php endif; ?>

@@ -204,29 +204,37 @@ if (!class_exists('WPML_WP_Queue_Process_3')) {
 	     *
 	     * @return mixed
 	     */
-	    protected function task($item = null, $override = false) {
-	        // Actions to perform	        
-	        global $wpMail, $wpdb, $Html, $Db, $Email, $Subscriber, $SubscribersList;
-	        
-	        if (empty($override)) {
-		        $queue_status = $wpMail -> get_option('queue_status');
-		        if (!empty($queue_status) && $queue_status == "pause") {
-			        return $item;
-		        }
-		    }
-	        
-	        // Try to send the queued email
-			if ($wpMail -> send_queued_email($item)) {				
-				return false;
-			} else {
+	    function task( $item = null, $override = false ) {
+
+			// Make the original body a closure so we can feed it to our helper.
+			$task_body = function () use ( $item, $override ) {
+		
+				global $wpMail, $wpdb, $Html, $Db, $Email, $Subscriber, $SubscribersList;
+		
+				// Respect the “pause” switch.
+				if ( empty( $override ) ) {
+					$queue_status = $wpMail->get_option( 'queue_status' );
+					if ( 'pause' === $queue_status ) {
+						return $item; // keep it in the batch
+					}
+				}
+		
+				// Try to send the queued e-mail.
+				if ( $wpMail->send_queued_email( $item ) ) {
+					return false;       // ← success, remove from batch
+				}
+		
+				// Sending failed – keep a note and re-queue.
 				global $mailerrors;
-				$item['error'] = strip_tags($mailerrors);
-				$this -> push_to_queue($item);
-				return false;
-			}
-	
-	        return $item;
-	    }
+				$item['error'] = strip_tags( $mailerrors );
+				$this->push_to_queue( $item );
+		
+				return false;           // remove from *current* batch
+			};
+		
+			// Run the body safely.
+			return $this -> wpml_safe_task( $task_body, $item, $this );
+		}
 		
 		/**
 		 * Handle cron healthcheck

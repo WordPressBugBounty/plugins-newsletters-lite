@@ -94,6 +94,43 @@ fclose($f); // phpcs:ignore
     <?php $this->render('settings-navigation', false, true, 'admin'); ?>
 
     <p><?php esc_html_e('The debug log displays the last 500 lines and only shows certain logs such as when a cron job fires or when you face a specific issue. The logs are not the same as PHP error logs.', 'wp-mailinglist'); ?><br/>
-        <?php _e('<a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/3926/newsletters-debugging/" target="_blank" >Debugging documentation</a>. ', 'wp-mailinglist'); ?></p>
+        <?php _e('<a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/3926/newsletters-debugging/" target="_blank" >Debugging documentation</a>. ', 'wp-mailinglist'); ?>
+    </p>    
+    <?php if (!empty($log_protection_message)) : ?>
+        <div class="notice <?php echo esc_attr($log_protection_message_class); ?>"><p><?php echo esc_html($log_protection_message); ?></p></div>
+    <?php endif; ?>
     <textarea style="width: 100%; min-height: 600px;"><?php echo esc_textarea($output); ?></textarea>
+    <?php if (empty($log_protected)) : ?>
+        <form method="post" style="margin-top: 10px;">
+            <?php wp_nonce_field('newsletters_protect_log_file'); ?>
+            <p>
+                <button type="submit" name="protect_log_file" class="button button-secondary"><?php esc_html_e('Protect Log File via .htaccess', 'wp-mailinglist'); ?></button>
+                <span class="description"><?php esc_html_e('Add a .htaccess rule to block direct access to the log file.', 'wp-mailinglist'); ?></span>
+            </p>
+        </form>
+        <?php //if (empty($log_htaccess_writable)) : ?>
+            <div class="log-htaccess-manual" style="margin-top: 10px;">
+                <a href="#" class="toggle-log-htaccess-rule" aria-expanded="false"><?php esc_html_e('Or add this to your htaccess to protect your log', 'wp-mailinglist'); ?></a>
+                <div class="log-htaccess-rule" style="display: none; margin-top: 5px;">
+                    <pre><?php echo esc_html($log_htaccess_rule); ?></pre>
+                </div>
+            </div>
+            <script type="text/javascript">
+                (function($) {
+                    $(document).ready(function() {
+                        $('.toggle-log-htaccess-rule').on('click', function(event) {
+                            event.preventDefault();
+
+                            var $toggle = $(this);
+                            var $container = $toggle.closest('.log-htaccess-manual').find('.log-htaccess-rule');
+                            var expanded = $toggle.attr('aria-expanded') === 'true';
+
+                            $container.toggle(!expanded);
+                            $toggle.attr('aria-expanded', expanded ? 'false' : 'true');
+                        });
+                    });
+                })(jQuery);
+            </script>
+        <?php //endif; ?>
+    <?php endif; ?>
 </div>

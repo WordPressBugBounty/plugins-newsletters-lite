@@ -600,7 +600,9 @@ if(!isset($errors)) {$errors = array();}
 				<?php endforeach; ?>
 				
                 <?php
-                if (!class_exists('FLBuilderModel') || (class_exists('FLBuilderModel') && !FLBuilderModel::is_builder_enabled())) {
+                // Only skip CAPTCHA rendering when actively editing in Beaver Builder
+                $skip_captcha = (class_exists('FLBuilderModel') && method_exists('FLBuilderModel', 'is_builder_active') && FLBuilderModel::is_builder_active());
+                if (!$skip_captcha) {
 
                     ?>
                         <?php if (!empty($form -> captcha)) : ?>

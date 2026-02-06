@@ -1,5 +1,5 @@
-(function($) {
-	$.fn.newsletters_subscribe_form = function() {
+(function ($) {
+	$.fn.newsletters_subscribe_form = function () {
 		var $form = this,
 			$submit = $form.find('[type="submit"]'),
 			$fields = $form.find('.newsletters-fieldholder :input'),
@@ -20,11 +20,10 @@
 			$recaptcha_id,
 			$recaptcha_element,
 			$recaptcha_loaded = false;
-			var isTurnstile       = ( newsletters.has_captcha && newsletters.captcha === 'turnstile' );
-            var turnstileWidgetId = null;           // will hold widget id
+		var isTurnstile = (newsletters.has_captcha && newsletters.captcha === 'turnstile');
+		var turnstileWidgetId = null;           // will hold widget id
 
-
-		var on_form_submit = function(e) {
+		var on_form_submit = function (e) {
 			$($form).trigger('newsletters_subscribe_form_submit');
 
 			$form.addClass('was-validated');
@@ -33,8 +32,8 @@
 			if (typeof grecaptcha !== 'undefined' && newsletters.has_captcha && newsletters.captcha === 'recaptcha') {
 				if (newsletters.recaptcha_type === 'v3') {
 					e.preventDefault();
-					grecaptcha.ready(function() {
-						grecaptcha.execute(newsletters.recaptcha_sitekey, {action: 'subscribe'}).then(function(token) {
+					grecaptcha.ready(function () {
+						grecaptcha.execute(newsletters.recaptcha_sitekey, { action: 'subscribe' }).then(function (token) {
 							$form.find('input[name="g-recaptcha-response"]').val(token);
 							$($form).trigger('newsletters_subscribe_form_submitted');
 							if ($form.hasClass('newsletters-subscribe-form-ajax')) {
@@ -75,14 +74,14 @@
 			$($form).trigger('newsletters_subscribe_form_submitted');
 		};
 
-		var do_scroll = function() {
+		var do_scroll = function () {
 			if (typeof $scroll !== 'undefined' && $scroll.val() == 1) {
 				var targetOffset = ($wrapper.offset().top - 50);
-				$('html,body').animate({scrollTop: targetOffset}, 500);
+				$('html,body').animate({ scrollTop: targetOffset }, 500);
 			}
 		}
 
-		var on_form_error = function() {
+		var on_form_error = function () {
 			alert(newsletters.ajax_error);
 
 			$loading.hide();
@@ -104,7 +103,7 @@
 			$form.on('submit', on_form_submit);
 		}
 
-		$($fields, $filefields).on('focus click', function() {
+		$($fields, $filefields).on('focus click', function () {
 			$(this).removeClass('newsletters_fielderror').nextAll('div.newsletters-field-error').slideUp().parent().removeClass('has-error');
 		});
 
@@ -126,28 +125,28 @@
 			if ($.isFunction($.fn.ajaxForm)) {
 				$form.ajaxForm({
 					url: newsletters_ajaxurl + 'action=wpmlsubscribe&security=' + newsletters.ajaxnonce.subscribe,
-					data: (function() {
+					data: (function () {
 						var formvalues = $form.serialize();
 						return formvalues;
 					})(),
 					type: 'POST',
 					cache: false,
-					beforeSubmit: function() {
+					beforeSubmit: function () {
 						// we can do things before the form is submitted
 					},
-					beforeSend: function() {
+					beforeSend: function () {
 						var percentVal = '0%';
 						$progressbar.width(percentVal);
 						$progresspercent.html(percentVal);
 						$($form).trigger('newsletters_subscribe_form_before_ajax');
 					},
-					uploadProgress: function(event, position, total, percentComplete) {
+					uploadProgress: function (event, position, total, percentComplete) {
 						var percentVal = percentComplete + '%';
 						$progressbar.width(percentVal).attr('aria-valuenow', percentComplete);
 						$progresspercent.html(percentVal);
 						$($form).trigger('newsletters_subscribe_form_upload_progress');
 					},
-					success: function(response) {
+					success: function (response) {
 						if ($('.newsletters-subscribe-form', $('<div/>').html(response)).length > 0) {
 							$wrapper.html($(response).find('.newsletters-subscribe-form'));
 						} else {
@@ -162,12 +161,12 @@
 
 						$($form).trigger('newsletters_subscribe_form_success_ajax');
 					},
-					error: function() {
+					error: function () {
 						on_form_error();
 
 						$($form).trigger('newsletters_subscribe_form_error_ajax');
 					},
-					complete: function() {
+					complete: function () {
 						var percentVal = '100%';
 						$progressbar.width(percentVal);
 						$progresspercent.html(percentVal);
@@ -178,7 +177,7 @@
 			}
 		}
 
-		var recaptcha_callback = function() {
+		var recaptcha_callback = function () {
 			if (newsletters.has_captcha && newsletters.captcha === 'recaptcha' && newsletters.recaptcha_type !== 'v3' && $recaptcha_loaded == false) {
 				$recaptcha_element = $form.find('.newsletters-recaptcha-challenge');
 
@@ -187,43 +186,47 @@
 						sitekey: newsletters.recaptcha_sitekey,
 						theme: newsletters.recaptcha_theme,
 						size: (newsletters.recaptcha_type === 'invisible' ? 'invisible' : 'normal'),
-						callback: function() {
+						callback: function () {
 							if (newsletters.recaptcha_type === 'invisible') {
 								$form.submit();
 							}
 						},
-						'expired-callback': function() {
+						'expired-callback': function () {
 							if (typeof $recaptcha_id !== 'undefined') {
 								grecaptcha.reset($recaptcha_id);
 							}
 						}
 					};
 
-					if (typeof grecaptcha.render !== 'undefined') {
-						$recaptcha_id = grecaptcha.render($recaptcha_element[0], recaptcha_options, true);
-						$recaptcha_loaded = true;
+					if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.render !== 'undefined') {
+						// Check if this element has already been rendered by looking for child elements
+						if ($recaptcha_element.children().length === 0) {
+							$recaptcha_id = grecaptcha.render($recaptcha_element[0], recaptcha_options);
+							$recaptcha_loaded = true;
+						}
 					}
 				}
 			}
 		}
-		var turnstile_callback = function() {
-            if ( isTurnstile && typeof turnstile !== 'undefined' && ! turnstileWidgetId ) {
-                var el = $form.find('.newsletters-turnstile-challenge')[0];
-                if ( el ) {
-                    turnstileWidgetId = turnstile.render( el, {
-						sitekey  : el.getAttribute('data-sitekey'),
-						theme    : el.getAttribute('data-theme') || 'light',
-						size     : 'normal',                 // checkbox-style widget
-						callback : function ( token ) {
+
+		var turnstile_callback = function () {
+			if (isTurnstile && typeof turnstile !== 'undefined' && !turnstileWidgetId) {
+				var el = $form.find('.newsletters-turnstile-challenge')[0];
+				if (el) {
+					turnstileWidgetId = turnstile.render(el, {
+						sitekey: el.getAttribute('data-sitekey'),
+						theme: el.getAttribute('data-theme') || 'light',
+						size: 'normal',                 // checkbox-style widget
+						callback: function (token) {
 							// copy Cloudflare’s hidden field to your own, if present
-							$form.find('input[name="cf-turnstile-response"]').val( token );
+							$form.find('input[name="cf-turnstile-response"]').val(token);
 						}
-					} );
-                }
-            }
-        };
-        $(window).on('load', turnstile_callback);
-        turnstile_callback();
+					});
+				}
+			}
+		};
+		$(window).on('load', turnstile_callback);
+		turnstile_callback();
 
 		$(window).on('load', recaptcha_callback);
 		recaptcha_callback();
@@ -232,8 +235,8 @@
 		return $form;
 	};
 
-	$(function() {
-		$('.newsletters-subscribe-form').each(function() {
+	$(function () {
+		$('.newsletters-subscribe-form').each(function () {
 			$(this).trigger('newsletters_subscribe_form_before_create');
 			$(this).newsletters_subscribe_form();
 		});

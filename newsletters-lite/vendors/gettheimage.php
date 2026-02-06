@@ -750,10 +750,24 @@ if (!class_exists('Get_The_Image')) {
 		 */
 		public function sanitize_class( $classes ) {
 	
-			$classes = array_map( 'strtolower',          $classes );
-			$classes = array_map( 'sanitize_html_class', $classes );
-	
-			return array_unique( $classes );
+			// Flatten any nested arrays and ensure all elements are strings
+			$flattened = array();
+			foreach ($classes as $class) {
+				if (is_array($class)) {
+					$flattened = array_merge($flattened, $class);
+				} else {
+					$flattened[] = $class;
+				}
+			}
+
+			// Filter out non-string values
+			$flattened = array_filter($flattened, 'is_string');
+
+			$flattened = array_map('strtolower', $flattened);
+			$flattened = array_map('sanitize_html_class', $flattened);
+
+			return array_unique( $flattened );
+
 		}
 	
 		/**

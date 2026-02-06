@@ -322,39 +322,40 @@ if (!class_exists('newsletters_lite')) {
 			return $errors;
 		}
 
-		function lite_subscriber_validation($errors = null, $data = null)
-		{
-			$newsletters_lite_subscriberlimit = 500;
-			$serial_validation_status = $this->ci_serial_valid();
-			if (!empty($newsletters_lite_subscriberlimit) && $newsletters_lite_subscriberlimit > 0) {
-				global $Db, $Subscriber;
-				$Db->model = $Subscriber->model;
-				$subscriber_count = $Db->count();
-
-				if ($subscriber_count >= $newsletters_lite_subscriberlimit) {
-					if (!is_array($serial_validation_status) && !$serial_validation_status) {
-
-						$error = sprintf(__('Subscriber limit of %s has been reached. %s to be able to manage unlimited subscribers.', 'wp-mailinglist'), $newsletters_lite_subscriberlimit, '<a href="' . admin_url('admin.php?page=' . $this->sections->lite_upgrade) . '">Upgrade to PRO</a>');
-						$errors['limit'] = $error;
-
-						if (!defined('DOING_AJAX')) {
-						//	$this->render_error($error);
-						}
-					}
-
-					if (is_array($serial_validation_status)) {
-						$error = sprintf(__('Your serial key has expired. Subscriber limit of %s has been reached. %s to be able to manage unlimited subscribers.', 'wp-mailinglist'), $newsletters_lite_subscriberlimit, '<a target="_blank" href="https://tribulant.com/downloads/">Renew your license</a>');
-						$errors['limit'] = $error;
-
-						if (!defined('DOING_AJAX')) {
-						//	$this->render_error($error);
-						}
-					}
-				}
-			}
-
-			return $errors;
-		}
+		public function lite_subscriber_validation($errors = null, $data = null)
+        {
+            $newsletters_lite_subscriberlimit = 500;
+            $serial_validation_status = $this->ci_serial_valid();
+            if (!empty($newsletters_lite_subscriberlimit) && $newsletters_lite_subscriberlimit > 0) {
+                global $Db, $Subscriber;
+                $Db->model = $Subscriber->model;
+                $subscriber_count = $Db->count();
+        
+                // Only trigger errors if count >= limit AND serial is invalid/expired
+                if ($subscriber_count >= $newsletters_lite_subscriberlimit) {
+                    if (!is_array($serial_validation_status) && !$serial_validation_status) {
+        
+                        $error = sprintf(__('Subscriber limit of %s has been reached. %s to be able to manage unlimited subscribers.', 'wp-mailinglist'), $newsletters_lite_subscriberlimit, '<a href="' . admin_url('admin.php?page=' . $this->sections->lite_upgrade) . '">Upgrade to PRO</a>');
+                        $errors['limit'] = $error;
+        
+                        if (!defined('DOING_AJAX')) {
+                            // $this->render_error($error);
+                        }
+                    }
+        
+                    if (is_array($serial_validation_status) && $serial_validation_status['disable_pro_features']) {
+                        $error = sprintf(__('Your serial key has expired. Subscriber limit of %s has been reached. %s to be able to manage unlimited subscribers.', 'wp-mailinglist'), $newsletters_lite_subscriberlimit, '<a target="_blank" href="https://tribulant.com/downloads/">Renew your license</a>');
+                        $errors['limit'] = $error;
+        
+                        if (!defined('DOING_AJAX')) {
+                            // $this->render_error($error);
+                        }
+                    }
+                }
+            }
+        
+            return $errors;
+        }
 
 		function lite_field_validation($errors = null, $data = null)
 		{

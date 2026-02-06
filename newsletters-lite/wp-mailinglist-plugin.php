@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.11';
+		var $version = '4.13';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -198,7 +198,8 @@ if (!class_exists('wpMailPlugin')) {
 			$this -> plugin_name = basename(NEWSLETTERS_DIR);
 			$this -> plugin_base = rtrim(dirname($base), DS);
 			$this -> plugin_file = plugin_basename($base);
-			if (!defined('NEWSLETTERS_LOG_FILE')) { define("NEWSLETTERS_LOG_FILE", $this -> plugin_base() . DS . "newsletters.log"); }
+			$log_file_path = $this -> prepare_log_file();
+            if (!defined('NEWSLETTERS_LOG_FILE')) { define("NEWSLETTERS_LOG_FILE", $log_file_path); }
 			$this -> sections = apply_filters('newsletters_sections', (object) $this -> sections);
 			$this -> set_timezone();
 			$this -> extensions = $this -> get_extensions();
@@ -226,6 +227,134 @@ if (!class_exists('wpMailPlugin')) {
 			}
 		}
 		
+		function prepare_log_file() {
+            $default_log_filename = 'newsletters.log';
+            $stored_log_filename = $this -> get_option('log_filename');
+            $log_dir = $this -> plugin_base();
+            $default_log_path = $log_dir . DS . $default_log_filename;
+
+            $log_filename = (!empty($stored_log_filename) ? $stored_log_filename : $default_log_filename);
+            $needs_new_filename = (empty($stored_log_filename) || $log_filename === $default_log_filename);
+
+            if ($needs_new_filename) {
+                $log_filename = $this -> generate_log_filename();
+
+                if (!$this -> update_option('log_filename', $log_filename)) {
+                    $this -> add_option('log_filename', $log_filename);
+                }
+            }
+
+            $log_file_path = $log_dir . DS . $log_filename;
+
+            if (file_exists($default_log_path) && $default_log_path !== $log_file_path) {
+                @rename($default_log_path, $log_file_path); // phpcs:ignore
+            }
+
+            if (!file_exists($log_file_path)) {
+                file_put_contents($log_file_path, '');
+            }
+
+            return $log_file_path;
+        }
+
+        function generate_log_filename() {
+            if (function_exists('wp_generate_password')) {
+                $random_prefix = wp_generate_password(40, false, false);
+            } else {
+                $bytes = function_exists('random_bytes') ? random_bytes(32) : openssl_random_pseudo_bytes(32);
+                $random_prefix = substr(bin2hex($bytes), 0, 40);
+            }
+
+            $random_prefix = preg_replace('/[^A-Za-z0-9]/', '', $random_prefix);
+
+            return $random_prefix . '-newsletters.log';
+        }
+
+        protected function get_log_htaccess_candidates() {
+            $candidates = array();
+
+            if (defined('ABSPATH')) {
+                $candidates[] = rtrim(ABSPATH, '\\/') . DS . '.htaccess';
+            }
+
+            $candidates[] = dirname(NEWSLETTERS_LOG_FILE) . DS . '.htaccess';
+
+            return array_unique($candidates);
+        }
+
+        protected function get_log_htaccess_path() {
+            $candidates = $this -> get_log_htaccess_candidates();
+
+            foreach ($candidates as $candidate) {
+                $candidate_dir = dirname($candidate);
+
+                if ((file_exists($candidate) && is_writable($candidate)) || (!file_exists($candidate) && is_writable($candidate_dir))) {
+                    return $candidate;
+                }
+            }
+
+            return reset($candidates);
+        }
+
+        protected function get_log_htaccess_rule($log_filename = null) {
+            $log_filename = (!empty($log_filename)) ? $log_filename : basename(NEWSLETTERS_LOG_FILE);
+            $log_filename = preg_replace('/[^A-Za-z0-9._-]/', '', $log_filename);
+
+            return '<Files "' . $log_filename . '">' . PHP_EOL . 'Order Allow,Deny' . PHP_EOL . 'Deny from all' . PHP_EOL . 'Require all denied' . PHP_EOL . '</Files>' . PHP_EOL;
+        }
+
+        protected function is_log_file_protected($htaccess_path = null) {
+            $paths = (!empty($htaccess_path)) ? array($htaccess_path) : $this -> get_log_htaccess_candidates();
+
+            $log_filename = preg_replace('/[^A-Za-z0-9._-]/', '', basename(NEWSLETTERS_LOG_FILE));
+            $rule_pattern = '/<(Files|FilesMatch)\s+"[^"<>]*' . preg_quote($log_filename, '/') . '[^"<>]*"\s*>/i';
+
+            foreach ($paths as $path) {
+                if (!file_exists($path)) {
+                    continue;
+                }
+
+                $contents = @file_get_contents($path);
+
+                if ($contents === false) {
+                    continue;
+                }
+
+                if (preg_match($rule_pattern, $contents)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        protected function add_log_htaccess_rule($htaccess_path = null) {
+            $htaccess_path = (!empty($htaccess_path)) ? $htaccess_path : $this -> get_log_htaccess_path();
+            $rule = $this -> get_log_htaccess_rule();
+
+            if ($this -> is_log_file_protected($htaccess_path)) {
+                return true;
+            }
+
+            $htaccess_dir = dirname($htaccess_path);
+
+            if (empty($htaccess_path)) {
+                return false;
+            }
+
+            if (file_exists($htaccess_path) && !is_writable($htaccess_path)) {
+                return false;
+            }
+
+            if (!file_exists($htaccess_path) && (!is_dir($htaccess_dir) || !is_writable($htaccess_dir))) {
+                return false;
+            }
+
+            $prefix = (file_exists($htaccess_path) && filesize($htaccess_path) > 0) ? PHP_EOL : '';
+
+            return false !== @file_put_contents($htaccess_path, $prefix . $rule, FILE_APPEND);
+        }
+
 		function clear_memcached() {
 			if (class_exists('Memcached')) {
 				$cache = new Memcached();
@@ -5559,7 +5688,7 @@ function qp_scheduling() {
 
                                     if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
                                         $Db -> model = $this -> Autoresponderemail() -> model;
-                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
+                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
                                             $history = $this -> History() -> find(array('id' => $autoresponder -> history_id));
                                             $history -> attachments = array();
                                             $attachmentsquery = "SELECT id, title, filename FROM " . $wpdb -> prefix . $HistoriesAttachment -> table . " WHERE history_id = '" . $history -> id . "'";
@@ -5600,7 +5729,7 @@ function qp_scheduling() {
                                     //Save the 1+ delay autoresponders to send later
                                 } else {
                                     $Db -> model = $this -> Autoresponderemail() -> model;
-                                    if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
+                                    if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
                                         if (empty($autoresponder -> delay) || empty($autoresponder -> delayinterval)) {
                                             $senddate = date_i18n("Y-m-d H:i:s");
                                         } else {
@@ -5644,7 +5773,7 @@ function qp_scheduling() {
                                     $subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'list_id' => $mailinglist -> id));
                                     if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
                                         $Db -> model = $this -> Autoresponderemail() -> model;
-                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
+                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || (!$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id)))) {
                                             $history = $this -> History() -> find(array('id' => $autoresponder -> history_id));
                                             $history -> attachments = array();
                                             $attachmentsquery = "SELECT id, title, filename FROM " . $wpdb -> prefix . $HistoriesAttachment -> table . " WHERE history_id = '" . $history -> id . "'";
@@ -5689,7 +5818,7 @@ function qp_scheduling() {
                                     $subscriberslist = $Db -> find(array('subscriber_id' => $subscriber -> id, 'list_id' => $mailinglist -> id));
                                     if (!empty($subscriberslist -> active) && $subscriberslist -> active == "Y") {
                                         $Db -> model = $this -> Autoresponderemail() -> model;
-                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") && !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
+                                        if ((!empty($autoresponder -> alwayssend) && $autoresponder -> alwayssend == "Y") || !$Db -> find(array('subscriber_id' => $subscriber -> id, 'autoresponder_id' => $autoresponder -> id))) {
                                             if (empty($autoresponder -> delay) || empty($autoresponder -> delayinterval)) {
                                                 $senddate = date_i18n("Y-m-d H:i:s");
                                             } else {
@@ -6734,8 +6863,20 @@ function qp_scheduling() {
 					break;
 				case 'polylang'				:
 					global $polylang;
-					$pll_language = $polylang -> model -> get_language($language);
-					$flag = $pll_language -> flag;
+					if ( $lng = $polylang->model->get_language( $language ) ) {
+						// Polylang ≥ 3.0
+						if ( ! empty( $lng->flag_url ) ) {
+							return sprintf(
+								'<img src="%s" alt="%s" width="16" height="11" />',
+								esc_url( $lng->flag_url ),
+								esc_attr( $lng->name )
+							);
+						}
+						// fallback for very old Polylang builds
+						if ( ! empty( $lng->flag ) ) {
+							return $lng->flag;          // may still be a data‑URI
+						}
+					}
 					break;
 				case 'wpglobus'				:
 					if (class_exists('WPGlobus')) {
@@ -6932,13 +7073,12 @@ function qp_scheduling() {
 					}
 					break;
 				case 'polylang'						:	
-					global $polylang;	
-					if (!empty($polylang -> model) && method_exists($polylang -> model, 'get_languages_list')) {		
-						if ($pll_languages = $polylang -> model -> get_languages_list()) {
-							foreach ($pll_languages as $lang) {
-								$languages[] = $lang -> slug;
-							}
-						}
+					if (function_exists('pll_languages_list')) {
+						$languages = pll_languages_list(array(
+							'fields'        => 'slug',
+							'hide_empty'    => 0,
+						));
+
 					}
 					break;
 				case 'wpglobus'						:
@@ -6948,10 +7088,12 @@ function qp_scheduling() {
 					break;
 				case 'wpml'							:
 					if (function_exists('icl_get_languages')) {
-						$icl_languages = icl_get_languages();
+						$icl_languages = icl_get_languages('skip_missing=0&orderby=code');
 						$languages = array();
-						foreach ($icl_languages as $lang => $icl_language) {
-							$languages[] = $lang;
+						if (!empty($icl_languages) && is_array($icl_languages)) {
+                            foreach ($icl_languages as $lang => $icl_language) {
+                                $languages[] = $lang;
+                            }
 						}
 					}
 					break;
@@ -8457,11 +8599,20 @@ function qp_scheduling() {
 					
 					// Either subscriber data or a GET/POST value
 					$fieldvalue = false;
-					if (!empty($Subscriber -> data[$field -> slug])) {
-						$fieldvalue = $Subscriber -> data[$field -> slug];
-					} elseif (!empty($_REQUEST[$field -> slug])) {
-						$fieldvalue = sanitize_text_field(wp_unslash($_REQUEST[$field -> slug]));
-					}
+		            $fieldvalue_from_request = false;
+		            if (!empty($Subscriber -> data[$field -> slug])) {
+		                $fieldvalue = $Subscriber -> data[$field -> slug];
+		            } elseif (array_key_exists($field -> slug, $_REQUEST)) {
+		                $fieldvalue = wp_unslash($_REQUEST[$field -> slug]);
+		                $fieldvalue_from_request = true;
+
+		                if (is_array($fieldvalue)) {
+		                    $fieldvalue = array_map('sanitize_text_field', $fieldvalue);
+		                } else {
+		                    $fieldvalue = sanitize_text_field($fieldvalue);
+		                }
+		            }
+
 
 					switch ($field -> type) {
 						case 'hidden'			:
@@ -8682,9 +8833,26 @@ function qp_scheduling() {
 							break;
 						case 'checkbox'			:
 							$subscribercheckboxes = false;
-							if (!empty($fieldvalue)) {
-								$subscribercheckboxes = maybe_unserialize($fieldvalue);
-							}
+		                    if (!empty($fieldvalue) || $fieldvalue === "0" || $fieldvalue === 0) {
+		                        if ($fieldvalue_from_request) {
+		                            $subscribercheckboxes = is_array($fieldvalue) ? $fieldvalue : array($fieldvalue);
+		                        } else {
+		                            $subscribercheckboxes = $fieldvalue;
+
+		                            if (is_string($fieldvalue) && function_exists('is_serialized') && is_serialized($fieldvalue)) {
+		                                $maybe_unserialized = @unserialize($fieldvalue, array('allowed_classes' => false));
+
+		                                if ($maybe_unserialized !== false || $fieldvalue === 'b:0;') {
+		                                    $subscribercheckboxes = $maybe_unserialized;
+		                                }
+		                            }
+		                        }
+
+		                        if (!is_array($subscribercheckboxes) && $subscribercheckboxes !== false && $subscribercheckboxes !== null && $subscribercheckboxes !== '') {
+		                            $subscribercheckboxes = array($subscribercheckboxes);
+		                        }
+		                    }
+
 
 							if (!empty($field -> newfieldoptions)) {
 								foreach ($field -> newfieldoptions as $option_id => $option_value) {
@@ -11080,10 +11248,18 @@ function qp_scheduling() {
 									if (!empty($attachments) && $attachments != false) {
 										if (is_array($attachments)) {
 											foreach ($attachments as $attachment) {
-												$files['attachment'][] = $attachment['filename'];
+												// Mailgun SDK v3.2.0 requires attachments to be in array format with 'filePath' or 'fileContent' key
+												$files['attachment'][] = array(
+													'filePath' => $attachment['filename'],
+													'filename' => basename($attachment['filename'])
+												);
 											}
 										} else {
-											$files['attachment'][] = $attachment['filename'];
+											// Mailgun SDK v3.2.0 requires attachments to be in array format with 'filePath' or 'fileContent' key
+											$files['attachment'][] = array(
+												'filePath' => $attachments['filename'],
+												'filename' => basename($attachments['filename'])
+											);
 										}
 									}
 									
@@ -11990,6 +12166,61 @@ function qp_scheduling() {
 
 			return 0;
 		}
+		
+		function latestposts_normalize_categories($categories = array()) {
+			if ($categories === 'all') {
+				return 'all';
+			}
+			if (!is_array($categories)) {
+				$categories = maybe_unserialize($categories);
+			}
+			if (!is_array($categories)) {
+				return array();
+			}
+			$language_categories = array();
+			$flat_categories = array();
+			$has_language_keys = false;
+			foreach ($categories as $key => $value) {
+				$values = array_filter(array_map('absint', (array) $value));
+				if (empty($values)) {
+					continue;
+				}
+				if (is_string($key)) {
+					$has_language_keys = true;
+					$language_categories[sanitize_key($key)] = array_values($values);
+				} else {
+					$flat_categories = array_merge($flat_categories, $values);
+				}
+			}
+			if ($has_language_keys) {
+				return $language_categories;
+			}
+			return array_values($flat_categories);
+		}
+
+		function latestposts_categories_for_language($categories = array(), $language = '') {
+			if ($categories === 'all') {
+				return 'all';
+			}
+			$normalized = $this -> latestposts_normalize_categories($categories);
+			if (!is_array($normalized) || empty($normalized)) {
+				return array();
+			}
+			$has_language_keys = false;
+			foreach ($normalized as $key => $value) {
+				if (is_string($key)) {
+					$has_language_keys = true;
+					break;
+				}
+			}
+			if ($has_language_keys) {
+				if (!empty($language) && !empty($normalized[$language])) {
+					return $normalized[$language];
+				}
+				return array();
+			}
+			return $normalized;
+		}
 
 		function get_latestposts($latestpostssubscription = null) {
 			global $wpdb, $post, $Db, $Html, $Mailinglist, $Subscriber, $SubscribersList;
@@ -12019,7 +12250,10 @@ function qp_scheduling() {
 				);
 				
 				if (!empty($latestpostssubscription -> categories) && $latestpostssubscription -> categories != "all") {
-					$post_criteria['category'] = @implode(",", maybe_unserialize($latestpostssubscription -> categories));
+					$language_categories = $this -> latestposts_categories_for_language($latestpostssubscription -> categories, $latestpostssubscription -> language);
+					if (!empty($language_categories) && is_array($language_categories)) {
+						$post_criteria['category'] = @implode(",", $language_categories);
+					}
 				}
 
 				if (!empty($latestpostssubscription -> takefrom)) {

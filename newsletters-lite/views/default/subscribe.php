@@ -580,8 +580,9 @@ if(!empty($form-> buttontext)) {
 					<?php $this -> render_field($field -> field_id, true, $form -> id, false, false, false, false, $errors, $form -> id, $field); ?>
 				<?php endforeach; ?>
                 <?php
-                if (!class_exists('FLBuilderModel') || (class_exists('FLBuilderModel') && !FLBuilderModel::is_builder_enabled())) {
-
+                // Only skip CAPTCHA rendering when actively editing in Beaver Builder
+                $skip_captcha = (class_exists('FLBuilderModel') && method_exists('FLBuilderModel', 'is_builder_active') && FLBuilderModel::is_builder_active());
+                if (!$skip_captcha) {
                     ?>
                     <?php if (!empty($form -> captcha)) : ?>
                         <?php if ($captcha_type = $this -> use_captcha()) : ?>		

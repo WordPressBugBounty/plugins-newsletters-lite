@@ -79,7 +79,9 @@ if (!class_exists('wpmlLatestpostssubscription')) {
 			// Check if all categories was selected
 			if (!empty($data['allcategories'])) {
 				$data['categories'] = "all";
-			}
+            } elseif (isset($data['categories'])) {
+                $data['categories'] = $this -> latestposts_normalize_categories($data['categories']);
+            }
 			
 			return parent::save($data, $validate);
 		}

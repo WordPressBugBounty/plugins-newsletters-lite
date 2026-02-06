@@ -62,15 +62,15 @@ $inserttabs = apply_filters($this -> pre . '_admin_createnewsletter_inserttabs',
 			<div id="ptypeglobal" style="display:block;">
 				<?php if ($this -> language_do()) : ?>
 					<label for=""><?php esc_html_e('Language:', 'wp-mailinglist'); ?></label>
-		        	<?php if ($languages = $this -> language_getlanguages()) : ?>
-		                <?php foreach ($languages as $language) : ?>
-		                    <label><input <?php echo ($language == $this -> language_default()) ? 'checked="checked"' : ''; ?> onclick="get_posts();" type="radio" name="postslanguage" value="<?php echo esc_html( $language); ?>" id="postslanguage<?php echo esc_html( $language); ?>" /> <?php echo wp_kses_post( $this -> language_flag($language)); ?></label>
-		                <?php endforeach; ?>
-		            <?php else : ?>
-		            
-		            <?php endif; ?>
-		            <?php echo ( $Html -> help(__('Since you are using multilingual, choose the language of the post(s) that you want to use in the newsletter.', 'wp-mailinglist'))); ?>
-		        <?php endif; ?>
+		        	<?php if ($languages = $this->language_getlanguages()) : ?>
+						<?php foreach ($languages as $language) : ?>
+							<label><input <?php echo ($language == $this->language_default()) ? 'checked="checked"' : ''; ?> onclick="get_posts();" type="radio" name="postslanguage" value="<?php echo esc_attr($language); ?>" id="postslanguage<?php echo esc_attr($language); ?>" /> <?php echo wp_kses( $this->language_flag( $language ), array( 'img' => array( 'src' => true, 'alt' => true, 'width'  => true, 'height' => true ))); ?></label>
+						<?php endforeach; ?>
+					<?php else : ?>
+						<p><?php esc_html_e('No languages found.', 'wp-mailinglist'); ?></p>
+					<?php endif; ?>
+					<?php echo $Html->help(__('Since you are using multilingual, choose the language of the post(s) that you want to use in the newsletter.', 'wp-mailinglist')); ?>
+				<?php endif; ?>
 		        
 		        <p>
 					<label for="post_showdate_Y"><?php esc_html_e('Show Date:', 'wp-mailinglist'); ?></label>

@@ -206,9 +206,16 @@ function wpml_deleteserial() {
 	});
 }
 
-function jqCheckAll(checker, formid, name) {					
-	jQuery('input:checkbox[name="' + name + '[]"]').each(function() {
-		jQuery(this).prop("checked", checker.checked);
+function jqCheckAll(checker, formid, name) {
+	jQuery('input:checkbox').each(function() {
+		var currentName = jQuery(this).attr('name');
+		if (!currentName) {
+			return;
+		}
+
+		if (currentName === name + '[]' || currentName.indexOf(name + '[') === 0) {
+			jQuery(this).prop('checked', checker.checked);
+		}
 	});
 }
 

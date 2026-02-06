@@ -437,7 +437,7 @@ if (!class_exists('wpmlDbHelper')) {
                                         $data -> {$field} = maybe_serialize($data -> {$field});
                                     }
 
-                                    $query .= "`" . $field . "` = '" . $data -> {$field} . "'";
+                                    $query .= "`" . $field . "` = '" . esc_sql($data -> {$field}) . "'";
 
                                     if ($c < count($object -> fields)) {
                                         $query .= ", ";
@@ -454,7 +454,7 @@ if (!class_exists('wpmlDbHelper')) {
                                         $data -> {$field} = maybe_serialize($data -> {$field});
                                     }
 
-                                    $query .= "`" . $field . "` = '" . $data -> {$field} . "'";
+                                    $query .= "`" . $field . "` = '" . esc_sql($data -> {$field}) . "'";
 
                                     if ($c < count($object -> fields)) {
                                         $query .= ", ";

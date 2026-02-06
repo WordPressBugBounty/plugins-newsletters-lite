@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.8.1
-Stable tag: 4.11
+Tested up to: 6.9.1
+Stable tag: 4.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -236,6 +236,27 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.13 =
+* ADD: Multilingual category select for Polylang in Latest Posts Subscriptions settings.
+* ADD: "Protect Log File via .htaccess" button in the view logs page (admin).
+* IMPROVE: Added random prefix to prevent unauthorized access to the plugin log file.
+* IMPROVE: Add esc_sql while updating Subscription Forms and form fields to avoid unexpected problems.
+* FIX: Polylang language selector compatibility issue with > v3.x.
+* FIX: Subscriber count problem on lite (not registered) version of plugin.
+* FIX: Sanitized the [wpmlmeta] shortcode output to prevent execution of unsafe custom field HTML (reported by Muhammad Yudha - DJ).
+* FIX: Prevented fatal error by guarding the edit_form_after_title hook with a valid post check.
+* FIX: Autoresponder not sending due to an issue with "Always Send?".
+* FIX: Autoresponder redirecting to create new page when clicking "Continue editing".
+* FIX: Incorrect subscriber count on the dashboard due to caching issues.
+* FIX: Mailgun API attachment handling. Attachments are now sent in the correct format required by Mailgun SDK v3.2.0, resolving MultipartStreamBuilder errors and ensuring reliable email delivery.
+* FIX: PHP 8+ fatal error in gettheimage.php when sanitize_class() received nested arrays instead of flat array of strings.
+* FIX: Beaver Builder reCAPTCHA conflict.
+
+= 4.12 =
+This is a small update. We are preparing a larger v5.0 update with new features and improvements. Coming soon!
+
+* FIX: Vulnerability issue PHP Object Injection reported by Skalucy: Sanitize consent field input before handling checkbox values.
 
 = 4.11 =
 * ADD: `eflength` argument to posts_multiple shortcode to control excerpt length.

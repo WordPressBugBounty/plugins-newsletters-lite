@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.11
+Version: 4.13
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -6045,7 +6045,8 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                 $message = __('Autoresponder has been saved.', 'wp-mailinglist');
 
                                 if (!empty($_POST['continueediting'])) {
-                                    $this -> redirect(admin_url('admin.php?page=' . $this -> sections -> autoresponders . '&method=save&id=' . $this -> Autoresponder() -> insertid . '&continueediting=1'), 'message', $message);
+                                    $id = (!empty($this -> Autoresponder() -> insertid)) ? $this -> Autoresponder() -> insertid : $_POST['Autoresponder']['id'];
+                                    $this -> redirect(admin_url('admin.php?page=' . $this -> sections -> autoresponders . '&method=save&id=' . $id . '&continueediting=1'), 'message', $message);
                                 } else {
                                     $this -> redirect("?page=" . $this -> sections -> autoresponders, 'message', $message);
                                 }
@@ -10859,7 +10860,39 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
 
             function admin_view_logs() {
-                $this -> render('settings' . DS . 'view_logs', false, true, 'admin');
+                $htaccess_path = defined('NEWSLETTERS_LOG_FILE') ? $this -> get_log_htaccess_path() : '';
+                $log_protected = (!empty($htaccess_path)) ? $this -> is_log_file_protected($htaccess_path) : false;
+                $htaccess_dir = (!empty($htaccess_path)) ? dirname($htaccess_path) : '';
+                $log_htaccess_writable = (!empty($htaccess_path)) && ((file_exists($htaccess_path) && is_writable($htaccess_path)) || (!file_exists($htaccess_path) && is_dir($htaccess_dir) && is_writable($htaccess_dir)));
+                $protection_message = '';
+                $protection_message_class = 'notice-info';
+                if (!empty($_POST['protect_log_file'])) {
+                    check_admin_referer('newsletters_protect_log_file');
+                    if ($this -> add_log_htaccess_rule($htaccess_path)) {
+                        $log_protected = $this -> is_log_file_protected();
+                        if ($log_protected) {
+                            $protection_message = __('The log file is protected.', 'wp-mailinglist');
+                            $protection_message_class = 'notice-success';
+                        } else {
+                            $protection_message = __('A .htaccess rule was added but protection could not be confirmed. Please verify manually.', 'wp-mailinglist');
+                            $protection_message_class = 'notice-warning';
+                        }
+                    } else {
+                        $protection_message = __('Could not write to the .htaccess file. Please check file permissions.', 'wp-mailinglist');
+                        $protection_message_class = 'notice-error';
+                    }
+                }
+                if (empty($protection_message) && $log_protected) {
+                    $protection_message = __('The log file is protected.', 'wp-mailinglist');
+                    $protection_message_class = 'notice-success';
+                }
+                $this -> render('settings' . DS . 'view_logs', array(
+                    'log_protected'              => $log_protected,
+                    'log_protection_message'     => $protection_message,
+                    'log_protection_message_class' => $protection_message_class,
+                    'log_htaccess_rule'          => $this -> get_log_htaccess_rule(),
+                    'log_htaccess_writable'      => $log_htaccess_writable,
+                ), true, 'admin');
             }
 
             function admin_settings_updates() {
@@ -10961,30 +10994,16 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
 
             public function secureNewslettersLog() {
-                // Define the path to the .htaccess file
-                $htaccessPath = ABSPATH . '.htaccess'; // ABSPATH is the WordPress root directory
-
-                // Directive to add for restricting access to newsletters.log
-                $restrictionDirective = "\n<FilesMatch \"^newsletters\\.log$\">\nOrder Allow,Deny\nDeny from all\n</FilesMatch>\n";
-
-                // Check if the .htaccess file exists
-                if (file_exists($htaccessPath)) {
-                    $contents = file_get_contents($htaccessPath);
-                    
-                    // Check if the directive is already present
-                    if (strpos($contents, trim($restrictionDirective)) === false) {
-                        // Directive not found, append it
-                        file_put_contents($htaccessPath, $restrictionDirective, FILE_APPEND);
-                        echo "Directive added to existing .htaccess file.";
-                    } else {
-                        // Directive already exists
-                        echo "Directive already exists in .htaccess file.";
-                    }
-                } else {
-                    // .htaccess file does not exist, create it and add the directive
-                    file_put_contents($htaccessPath, $restrictionDirective);
-                    echo "No .htaccess file found. New file created with directive.";
+                 if (!defined('NEWSLETTERS_LOG_FILE')) {
+                    return;
                 }
+    
+                $htaccessPath = $this -> get_log_htaccess_path();
+
+                if (!$this -> is_log_file_protected($htaccessPath)) {
+                    $this -> add_log_htaccess_rule($htaccessPath);
+                }
+
             }
 
             function activation_hook() {

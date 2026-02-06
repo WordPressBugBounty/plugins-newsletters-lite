@@ -1192,12 +1192,16 @@ if (!class_exists('wpmlShortcodeHelper')) {
 
 				ob_start();
 				if (empty($key)) {
-					the_meta();
-				} else {
-					echo get_post_meta($thepost -> ID, $key, true);
-				}
+					ob_start();
+                    the_meta();
+                    $content = ob_get_clean();
+                } else {
+                    $meta_value = get_post_meta($thepost -> ID, $key, true);
+                    $content = wp_kses_post(wp_unslash($meta_value));
+                }
 
-				$content = ob_get_clean();
+
+                $content = wp_kses_post($content);
 
 				$post_ID = $oldpostid;
 			}

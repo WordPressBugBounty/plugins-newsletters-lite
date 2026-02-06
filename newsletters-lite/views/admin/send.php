@@ -22,7 +22,7 @@ $imagespost = $this -> get_option('imagespost');
 $p_id = (empty($_POST['p_id'])) ? $imagespost : (int) sanitize_text_field(wp_unslash($_POST['p_id']));
 $ID = $p_id;
 $post_ID = $p_id;
-
+$post = get_post($p_id);
 wp_nonce_field('closedpostboxes', 'closedpostboxesnonce', false);
 wp_nonce_field('meta-box-order', 'meta-box-order-nonce', false);
 
@@ -102,7 +102,9 @@ $page = $screen -> id;
                                 <a href="#" class="button button-small" onclick="prompt('URL:', jQuery('#shortlink').val()); return false;"><?php _e('Get Link', 'wp-mailinglist'); ?></a></div>
 						</div>
 					</div>
-					<?php do_action('edit_form_after_title', $post); ?>
+					<?php if ($post instanceof WP_Post) : ?>
+                        <?php do_action('edit_form_after_title', $post); ?>
+                    <?php endif; ?>
                     <?php if($mailtype != "api" && !$disable_drag_and_drop_builder) { ?>
                     <?php if (!is_array($validation_status)  && $validation_status) { ?>
 

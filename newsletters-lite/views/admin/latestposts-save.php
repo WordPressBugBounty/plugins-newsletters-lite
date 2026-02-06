@@ -98,28 +98,34 @@
 		                <td>
 			                <div>
 				                <p>
-					                <label><input <?php echo (!empty($latestpostssubscription -> categories) && $latestpostssubscription -> categories == "all") ? 'checked="checked"' : ''; ?> onclick="if (jQuery(this).is(':checked')) { jQuery('#categories_notall').hide(); } else { jQuery('#categories_notall').show(); }" type="checkbox" name="allcategories" value="1" id="allcategories" /> <?php esc_html_e('All Categories', 'wp-mailinglist'); ?></label>
-					                <span class="howto"><?php esc_html_e('Select this to automatically use all categories.', 'wp-mailinglist'); ?></span>
-					            </p>
+					                <?php $saved_categories_value = isset($latestpostssubscription -> categories) ? $latestpostssubscription -> categories : ''; ?>
+                                    <?php $all_categories_selected = ($saved_categories_value === 'all'); ?>
+                                    <label><input <?php echo $all_categories_selected ? 'checked="checked"' : ''; ?> onclick="if (jQuery(this).is(':checked')) { jQuery('#categories_notall').hide(); } else { jQuery('#categories_notall').show(); }" type="checkbox" name="allcategories" value="1" id="allcategories" /> <?php esc_html_e('All Categories', 'wp-mailinglist'); ?></label>					                <span class="howto"><?php esc_html_e('Select this to automatically use all categories.', 'wp-mailinglist'); ?></span>
+								</p>
 			                </div>
 			                
-			                <div id="categories_notall" style="display:<?php echo (!empty($latestpostssubscription -> categories) && $latestpostssubscription -> categories == "all") ? 'none' : 'block'; ?>;">
-				                <?php global $sitepress, $newsletters_languageplugin; ?>
-				                <?php if ($this -> language_do() && $newsletters_languageplugin == "wpml") : ?>
+							<div id="categories_notall" style="display:<?php echo $all_categories_selected ? 'none' : 'block'; ?>;">				                <?php global $sitepress, $newsletters_languageplugin; ?>
+				                <?php if ($this -> language_do() && in_array($newsletters_languageplugin, array('wpml', 'polylang'), true)) : ?>
 				                	<?php if ($languages = $this -> language_getlanguages()) : ?>
-				                		<?php $categories = maybe_unserialize($latestpostssubscription -> categories); ?>
 										<div>
 											<input type="checkbox" name="categoriesselectall" value="1" id="categoriesselectall" onclick="jqCheckAll(this, '<?php echo esc_html( $this -> sections -> settings); ?>', 'categories');" />
 											<label for="categoriesselectall"><strong><?php esc_html_e('Select All', 'wp-mailinglist'); ?></strong></label>
 				                        </div>
 				                		<?php foreach ($languages as $language) : ?>
 				                			<div><?php echo wp_kses_post( $this -> language_flag($language)); ?> <strong><?php echo esc_html( $this -> language_name($language)); ?></strong></div>
-				                			<?php $sitepress -> switch_lang($language, true); ?>
-				                			<?php if ($cats = get_categories(array('hide_empty' => 0, 'pad_counts' => 1))) : ?>
-						                    	<div class="scroll-list">
+				                			<?php if ($newsletters_languageplugin == 'wpml' && isset($sitepress)) { $sitepress -> switch_lang($language, true); } ?>
+                                            <?php $language_category_args = array(
+                                                'hide_empty'        => 0,
+                                                'pad_counts'        => 1,
+                                                'lang'              => $language,
+                                                'suppress_filters'  => false,
+                                            ); ?>
+                                            <?php if ($cats = get_categories($language_category_args)) : ?>
+                                                <?php $language_selected_categories = $this -> latestposts_categories_for_language($saved_categories_value, $language); ?>
+                                                <?php $language_selected_categories = (is_array($language_selected_categories)) ? $language_selected_categories : array(); ?>
+												<div class="scroll-list">
 						                        	<?php foreach ($cats as $category) : ?>
-						                            	<label><input <?php echo (!empty($categories) && in_array($category -> cat_ID, $categories)) ? 'checked="checked"' : ''; ?> type="checkbox" name="categories[]" value="<?php echo esc_attr($category -> cat_ID); ?>" id="categories_<?php echo esc_html( $category -> cat_ID); ?>" /> <?php echo esc_html( $category -> cat_name); ?></label><br/>
-						                            <?php endforeach; ?>
+													<label><input <?php echo (!empty($language_selected_categories) && in_array($category -> cat_ID, $language_selected_categories)) ? 'checked="checked"' : ''; ?> type="checkbox" name="categories[<?php echo esc_attr($language); ?>][]" value="<?php echo esc_attr($category -> cat_ID); ?>" id="categories_<?php echo esc_attr($language . '_' . $category -> cat_ID); ?>" /> <?php echo esc_html($category -> cat_name); ?></label><br/>						                            <?php endforeach; ?>
 						                        </div>
 				                			<?php endif; ?>
 				                		<?php endforeach; ?>

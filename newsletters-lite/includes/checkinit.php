@@ -364,6 +364,7 @@ if (!class_exists('wpMailCheckinit')) {
                 // Store the validation result and timestamp in transients
                 set_transient("wpml" . 'serial_valid_' . $host_hash, $is_serial_valid , 86400);
                 set_transient("wpml" . 'serial_validation_time_' . $host_hash, time(), 86400);
+                $valid_status = $is_serial_valid;
             }
 
             // Retrieve the validation result from the transients

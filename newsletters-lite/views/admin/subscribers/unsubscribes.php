@@ -151,7 +151,7 @@
 								<?php if (!empty($unsubscribe -> user_id)) : ?>
 									<a href="<?php echo get_edit_user_link($unsubscribe -> userdata -> ID); ?>"><?php echo esc_html( $unsubscribe -> userdata -> display_name); ?></a>
 									<div class="row-actions">
-										<span class="delete"><a href="<?php echo esc_url_raw( admin_url('admin.php?page=' . $this -> sections -> subscribers . '&method=deleteuser&user_id=' . $unsubscribe -> user_id)) ?>" class="submitdelete" onclick="if (!confirm('<?php esc_html_e('Are you sure you want to delete this user?', 'wp-mailinglist'); ?>')) { return false; }"><?php esc_html_e('Delete User', 'wp-mailinglist'); ?></a></span>
+										<span class="delete"><a href="<?php echo esc_url_raw( wp_nonce_url(admin_url('admin.php?page=' . $this -> sections -> subscribers . '&method=deleteuser&user_id=' . $unsubscribe -> user_id), $this -> sections -> subscribers . '_deleteuser')) ?>" class="submitdelete" onclick="if (!confirm('<?php esc_html_e('Are you sure you want to delete this user?', 'wp-mailinglist'); ?>')) { return false; }"><?php esc_html_e('Delete User', 'wp-mailinglist'); ?></a></span>
 									</div>
 								<?php else : ?>
 									<?php esc_html_e('None', 'wp-mailinglist'); ?>

@@ -20,8 +20,12 @@ class wpmlAuthnewsHelper extends wpMailPlugin {
 		
 		if (!empty($subscriber_id) && $subscriber = $Db -> find(array('id' => $subscriber_id), false, false, true, true, false)) {
 			return $subscriber;
-		} elseif (!empty($subscriberauth) && $subscriber = $Db -> find(array('cookieauth' => $subscriberauth), false, false, true, true, false)) {			
-			return $subscriber;
+		} elseif (!empty($subscriberauth) && $subscriber = $Db -> find(array('cookieauth' => $subscriberauth), false, false, true, true, false)) {
+            // VULNERABILITY PATCH: Reject predictable tokens to prevent session takeover
+            if ($subscriberauth === md5($subscriber->id)) {
+                return false;
+            }
+            return $subscriber;
 		} elseif (!empty($user_id) && $subscriber = $Db -> find(array('user_id' => $user_id))) {
 			return $subscriber;
 		}

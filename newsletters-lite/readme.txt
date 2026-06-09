@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 6.9.1
-Stable tag: 4.13
+Tested up to: 7.0
+Stable tag: 4.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -236,6 +236,16 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.14 =
+* IMPROVE: Serial key modal now tells users to download and install the paid version after entering a valid serial key.
+* IMPROVE: Serial key modal messaging and plugins page redirects after entering valid, expired, or deleted serial keys.
+* FIX: Serial key validation now uses the latest online validation result immediately after entering or deleting a key.
+* FIX: Broken Access Control vulnerability in deleteuser function. Added CSRF nonce check and fixed inverted authorization logic. Prevented administrators from deleting their own accounts.
+* FIX: SQL Injection vulnerability in newsletters_management shortcode via wpmlsubscriber_id parameter. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL Injection vulnerability in history email resend function. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL Injection vulnerability in queue processing function. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL Injection vulnerability in mailing list activation handler. Implemented $wpdb->prepare() for parameterized queries.
 
 = 4.13 =
 * ADD: Multilingual category select for Polylang in Latest Posts Subscriptions settings.

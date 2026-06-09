@@ -105,10 +105,23 @@ $version_info = $update -> get_version_info();
         <?php
     }
     ?>
+<?php elseif ($success == 'expired') : ?>
+    <p><?php esc_html_e('The serial key is valid but expired.', 'wp-mailinglist'); ?></p>
+    <p style="width:400px;">
+        <?php echo sprintf(__('To access PRO features, download our paid version from your %s, then deactivate and delete the LITE version before installing and activating the paid version. You will not lose any data.', 'wp-mailinglist'), '<a href="https://tribulant.com/downloads/" target="_blank">' . __('Downloads page', 'wp-mailinglist') . '</a>'); ?>
+    </p>
+    <p>
+        <button value="1" type="button" onclick="jQuery.colorbox.close(); parent.location = '<?php echo esc_url_raw(rtrim(get_admin_url(), '/')); ?>/plugins.php';" class="button-primary" name="close">
+            <i class="fa fa-check fa-fw"></i> <?php esc_html_e('Apply Serial and Close Window', 'wp-mailinglist'); ?>
+        </button>
+    </p>
 <?php else : ?>
     <p><?php esc_html_e('The serial key is valid and you can now continue using the Newsletter plugin. Thank you for your business and support!', 'wp-mailinglist'); ?></p>
+    <p style="width:400px;">
+        <?php echo sprintf(__('To access PRO features, download our paid version from your %s, then deactivate and delete the LITE version before installing and activating the paid version. You will not lose any data.', 'wp-mailinglist'), '<a href="https://tribulant.com/downloads/" target="_blank">' . __('Downloads page', 'wp-mailinglist') . '</a>'); ?>
+    </p>
     <p>
-        <button value="1" type="button" onclick="jQuery.colorbox.close(); parent.location = '<?php echo esc_url_raw(rtrim(get_admin_url(), '/')); ?>/admin.php?page=newsletters';" class="button-primary" name="close">
+        <button value="1" type="button" onclick="jQuery.colorbox.close(); parent.location = '<?php echo esc_url_raw(rtrim(get_admin_url(), '/')); ?>/plugins.php';" class="button-primary" name="close">
             <i class="fa fa-check fa-fw"></i> <?php esc_html_e('Apply Serial and Close Window', 'wp-mailinglist'); ?>
         </button>
     </p>

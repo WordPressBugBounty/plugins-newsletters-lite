@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.13';
+		var $version = '4.14';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -2390,7 +2390,7 @@ function qp_scheduling() {
 			$subscribers = (object) stripslashes_deep($_REQUEST['subscribers']);
 
 			if (!empty($subscribers)) {
-				$historyquery = "SELECT id, message, subject FROM " . $wpdb -> prefix . $this -> History() -> table . " WHERE id = '" . esc_sql($_REQUEST['history_id']) . "' LIMIT 1";
+				$historyquery = $wpdb->prepare("SELECT id, message, subject FROM " . $wpdb -> prefix . $this -> History() -> table . " WHERE id = %d LIMIT 1", intval($_REQUEST['history_id']));
 				$history = $wpdb -> get_row($historyquery);
 
 				if (!empty($history)) {
@@ -2469,7 +2469,7 @@ function qp_scheduling() {
 			$this -> qp_reset_data();
 
 			if (!empty($subscribers)) {
-				$historyquery = "SELECT id, message, subject FROM " . $wpdb -> prefix . $this -> History() -> table . " WHERE id = '" . esc_sql($_REQUEST['history_id']) . "' LIMIT 1";
+				$historyquery = $wpdb->prepare("SELECT id, message, subject FROM " . $wpdb -> prefix . $this -> History() -> table . " WHERE id = %d LIMIT 1", intval($_REQUEST['history_id']));
 				$history = $wpdb -> get_row($historyquery);
 
 				if (!empty($history)) {
@@ -4809,6 +4809,7 @@ function qp_scheduling() {
 			if (current_user_can('newsletters_welcome')) {
 				if (!empty($_GET['delete'])) {
 					$this -> delete_option('serialkey');
+					$this -> delete_all_cache('all');
 					$host = sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST']));
 					$host_hash = md5($host);
 					if (!empty($host)) {
@@ -4823,6 +4824,7 @@ function qp_scheduling() {
 							delete_site_transient( $valid_key );
 						}
 					}
+					delete_transient($this -> pre . 'update_info');
 					$errors[] = __('Serial key has been deleted.', 'wp-mailinglist');
 				} else {
 					if (!empty($_POST)) {
@@ -4842,10 +4844,9 @@ function qp_scheduling() {
 							if (!is_array($serial_validation_status) && !$serial_validation_status) {
                                 $errors[] = __('Serial key is invalid, please try again.', 'wp-mailinglist');
                             }
-							else if(is_array($serial_validation_status) && !$serial_validation_status) {
-                                $errors[] = __('Serial key is expired. You can still work with it, but it is limited', 'wp-mailinglist');
+							else if (is_array($serial_validation_status) && !empty($serial_validation_status['expired'])) {
                                 delete_transient($this -> pre . 'update_info');
-                                $success = true;
+                                $success = 'expired';
                             }
                             else if (!is_array($serial_validation_status) && $serial_validation_status)
                             {
@@ -5582,7 +5583,7 @@ function qp_scheduling() {
 					if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {						
 						if ($subscriber -> id == (int) $_POST['subscriber_id']) {
 							$Db -> model = $Mailinglist -> model;
-							$query = "SELECT * FROM " . $wpdb -> prefix . $Mailinglist -> table . " WHERE `id` = '" . esc_sql((int)$_POST['mailinglist_id']) . "'";
+							$query = $wpdb->prepare("SELECT * FROM " . $wpdb -> prefix . $Mailinglist -> table . " WHERE `id` = %d", intval($_POST['mailinglist_id']));
 							$mailinglist = $wpdb -> get_row($query);
 
 							$paid = $mailinglist -> paid;
@@ -6079,7 +6080,7 @@ function qp_scheduling() {
 									$success = true;
 
 									$Authnews -> set_emailcookie($subscriber -> email, "+30 days");
-									if (empty($subscriber -> cookieauth)) {
+									if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber->id)) {
 										$subscriberauth = $Authnews -> gen_subscriberauth();
 										$Db -> model = $Subscriber -> model;
 										$Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
@@ -6124,7 +6125,7 @@ function qp_scheduling() {
 							$success = true;
 
 							$Authnews -> set_emailcookie($subscriber -> email, "+30 days");
-							if (empty($subscriber -> cookieauth)) {
+							if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber->id)) {
 								$subscriberauth = $Authnews -> gen_subscriberauth();
 								$Db -> model = $Subscriber -> model;
 								$Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
@@ -6166,7 +6167,7 @@ function qp_scheduling() {
 						}
 
 						if (!empty($data[$this -> pre . 'subscriber_id'])) {
-							$subscriber_query = "SELECT * FROM " . $wpdb -> prefix . $Subscriber -> table . " WHERE id = '" . $data[$this -> pre . 'subscriber_id'] . "'";
+							$subscriber_query = $wpdb->prepare("SELECT * FROM " . $wpdb -> prefix . $Subscriber -> table . " WHERE id = %d", intval($data[$this -> pre . 'subscriber_id']));
 
 							$subscriber = $wpdb -> get_row($subscriber_query);
 
@@ -9132,7 +9133,9 @@ function qp_scheduling() {
 				global $Db, $Subscriber, $SubscribersList;
 				$Db -> model = $Subscriber -> model;
 				$subscriber = $Db -> find(array('id' => $subscriber_id));
-				$authkey = (empty($subscriber -> authkey)) ? md5($subscriber_id) : $subscriber -> authkey;
+				$new_authkey = function_exists('wp_generate_password') ? wp_generate_password(32, false) : md5(uniqid(rand(), true));
+				$new_authkey = function_exists('wp_generate_password') ? wp_generate_password(32, false) : md5(uniqid(rand(), true));
+				$authkey = (empty($subscriber -> authkey) || $subscriber -> authkey === md5($subscriber_id)) ? $new_authkey : $subscriber -> authkey;
 
 				if (!empty($mailinglist_id)) {
 					$Db -> model = $SubscribersList -> model;
@@ -9148,7 +9151,7 @@ function qp_scheduling() {
 					}
 				} else {
 					if (!empty($subscriber)) {
-						if ($subscriber -> authinprog == "Y" && !empty($subscriber -> authkey)) {
+						if ($subscriber -> authinprog == "Y" && !empty($subscriber -> authkey) && $subscriber -> authkey !== md5($subscriber_id)) {
 							$authkey = $subscriber -> authkey;
 						} else {
 							$Db -> model = $Subscriber -> model;
@@ -9299,7 +9302,7 @@ function qp_scheduling() {
 				if (!empty($subscriber)) {
 					$linktext = esc_html($this -> get_option('managelinktext'));
 
-					if (empty($subscriber -> cookieauth)) {
+					if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber->id)) {
 						$subscriberauth = $Authnews -> gen_subscriberauth();
 						$Db -> model = $Subscriber -> model;
 						$Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));

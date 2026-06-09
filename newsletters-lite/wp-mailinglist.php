@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.13
+Version: 4.14
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -7122,7 +7122,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                         
                                             // Save authentication string to subscriber record
                                             $Db->model = $Subscriber->model;
-                                            if (empty($subscriber->cookieauth)) {
+                                            if (empty($subscriber->cookieauth) || $subscriber->cookieauth === md5($subscriber->id)) {
                                                 $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
                                             } else {
                                                 $subscriberauth = $subscriber->cookieauth;
@@ -7343,7 +7343,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                         
                                                                 // Save authentication string to subscriber record
                                                                 $Db->model = $Subscriber->model;
-                                                                if (empty($subscriber->cookieauth)) {
+                                                                if (empty($subscriber->cookieauth) || $subscriber->cookieauth === md5($subscriber->id)) {
                                                                     $Db->save_field('cookieauth', $subscriberauth, array('id' => $subscriber->id));
                                                                 } else {
                                                                     $subscriberauth = $subscriber->cookieauth;
@@ -7648,8 +7648,14 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                         $this -> redirect($this -> referer, $msgtype, $message);
                         break;
                     case 'deleteuser'				:
+                        check_admin_referer($this->sections->subscribers . '_deleteuser');
                         if (!empty($_GET['user_id'])) {
-                            if (wp_delete_user((int) $_GET['user_id'])  && !user_can( $_GET['user_id'], 'manage_options' )) {
+                            $user_id = (int) $_GET['user_id'];
+                            $current_user_id = get_current_user_id();
+                            if ($user_id === $current_user_id) {
+                                 $msgtype = 'error';
+                                $message = __('You cannot delete your own user account', 'wp-mailinglist');
+                            } elseif (!user_can($user_id, 'manage_options') && wp_delete_user($user_id)) {
                                 $msgtype = 'message';
                                 $message = __('User has been deleted', 'wp-mailinglist');
                             } else {

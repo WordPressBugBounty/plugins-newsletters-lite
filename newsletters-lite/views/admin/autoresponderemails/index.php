@@ -44,10 +44,10 @@
 					
 		jQuery(document).ready(function() {
 			<?php if (!empty($_GET['id'])) : ?>
-				changefilter('autoresponder_id', '<?php echo sanitize_text_field(wp_unslash($_GET['id'])); ?>'));
+				changefilter('autoresponder_id', '<?php echo esc_js(sanitize_text_field(wp_unslash($_GET['id']))); ?>');
 			<?php endif; ?>
 			<?php if (!empty($_GET['status'])) : ?>
-				changefilter('status', '<?php echo sanitize_text_field(wp_unslash($_GET['status'])); ?>'));
+				changefilter('status', '<?php echo esc_js(sanitize_text_field(wp_unslash($_GET['status']))); ?>');
 			<?php endif; ?>
 		});
 		</script>

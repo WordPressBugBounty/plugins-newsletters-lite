@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.14';
+		var $version = '4.15';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -9101,7 +9101,7 @@ function qp_scheduling() {
 										<?php echo esc_html( $this -> Country() -> field('value', array('id' => $subscriber -> {$field -> slug}))); ?>
 									<?php elseif ($field -> type == "pre_date") : ?>
 										<?php if (is_serialized($subscriber -> {$field -> slug})) : ?>
-											<?php $date = @unserialize($subscriber -> {$field -> slug}); ?>
+											<?php $date = @unserialize($subscriber -> {$field -> slug}, array('allowed_classes' => false)); ?>
 											<?php if (!empty($date) && is_array($date)) : ?>
 												<?php echo esc_html( $date['y']); ?>-<?php echo esc_html( $date['m']); ?>-<?php echo esc_html( $date['d']); ?>
 											<?php endif; ?>
@@ -9901,7 +9901,10 @@ function qp_scheduling() {
 									$shortcode_replace = $this -> Country() -> field('value', array('id' => $subscriber -> {$field -> slug}));
 									break;
 								case 'pre_date'			:
-									$date = @unserialize($subscriber -> {$field -> slug});
+									$date = false;
+									if (is_string($subscriber -> {$field -> slug}) && function_exists('is_serialized') && is_serialized($subscriber -> {$field -> slug})) {
+										$date = @unserialize($subscriber -> {$field -> slug}, array('allowed_classes' => false));
+									}
 									if (!empty($date) && is_array($date)) {
 										$shortcode_replace = $date['y'] . '-' . $date['m'] . '-' . $date['d'];
 									} else {
@@ -9938,10 +9941,15 @@ function qp_scheduling() {
 								default					:
 									$value = $subscriber -> {$field -> slug};
 									if (!empty($value)) {
-										if (($varray = @unserialize($value)) !== false) {
+										$varray = false;
+										if (is_string($value) && function_exists('is_serialized') && is_serialized($value)) {
+											$varray = @unserialize($value, array('allowed_classes' => false));
+										}
+
+										if (is_array($varray)) {
 											$subscriber -> {$field -> slug} = '';
 											$newline = (empty($subscriber -> format) || $subscriber -> format == "html") ? "<br/>" : "\r\n";
-	
+
 											foreach ($varray as $vkey => $vval) {
 												$subscriber -> {$field -> slug} .= '&raquo; ' . esc_html($vval) . $newline;
 											}

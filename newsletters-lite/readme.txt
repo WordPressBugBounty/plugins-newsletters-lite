@@ -4,7 +4,7 @@ Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
 Tested up to: 7.0
-Stable tag: 4.14
+Stable tag: 4.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -236,6 +236,10 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.15 =
+* SECURITY: Fixed reflected XSS on the Autoresponder Emails admin page by properly escaping `id` and `status` query values before outputting them inside inline JavaScript.
+* SECURITY: Fixed incomplete CVE-2025-67911 remediation by preventing PHP object instantiation when rendering serialized subscriber custom-field values in newsletter personalization. Reported by Yaswanth Reddy Sunkara.
 
 = 4.14 =
 * IMPROVE: Serial key modal now tells users to download and install the paid version after entering a valid serial key.

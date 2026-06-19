@@ -130,7 +130,7 @@ if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_a
 										<?php echo esc_html( $this -> Country() -> field('value', array('id' => $subscriber -> {$field -> slug}))); ?>
 									<?php elseif ($field -> type == "pre_date") : ?>
 										<?php if (is_serialized($subscriber -> {$field -> slug})) : ?>
-											<?php $date = @unserialize($subscriber -> {$field -> slug}); ?>
+											<?php $date = @unserialize($subscriber -> {$field -> slug}, array('allowed_classes' => false)); ?>
 											<?php if (!empty($date) && is_array($date)) : ?>
 												<?php echo esc_html( $date['y']); ?>-<?php echo esc_html( $date['m']); ?>-<?php echo esc_html( $date['d']); ?>
 											<?php endif; ?>

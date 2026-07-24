@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.15
+Version: 4.16
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -2418,11 +2418,20 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                     if (!empty($json)) {
                                         $json_message = json_decode($json -> Message);
 
+                                        if (!$this -> sns_message_signature_valid($json)) {
+                                            $this -> log_error(__('Amazon SNS message rejected due to an invalid signature.', 'wp-mailinglist'));
+                                            break;
+                                        }
+
                                         if ($json -> Type == "SubscriptionConfirmation") {
                                             $subscribe_url = $json -> SubscribeURL;
 
-                                            $this -> log_error(sprintf(__('Amazon SNS subscription confirm: %s', 'wp-mailinglist'), $subscribe_url));
-                                            $raw_response = wp_remote_request($subscribe_url);
+                                            if ($this -> sns_url_allowed($subscribe_url)) {
+                                                $this -> log_error(sprintf(__('Amazon SNS subscription confirm: %s', 'wp-mailinglist'), $subscribe_url));
+                                                $raw_response = wp_safe_remote_request($subscribe_url);
+                                            } else {
+                                                $this -> log_error(sprintf(__('Amazon SNS subscription URL rejected: %s', 'wp-mailinglist'), $subscribe_url));
+                                            }
                                         } elseif ($json -> Type == "Notification") {
                                             if ($json_message -> notificationType == "Bounce") {
                                                 if (!empty($json_message -> bounce -> bounceType) && $json_message -> bounce -> bounceType == "Permanent") {
@@ -2506,6 +2515,80 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             break;
                     }
                 }
+            }
+
+            function sns_url_allowed($url = null) {
+                if (empty($url) || !is_string($url)) {
+                    return false;
+                }
+
+                $scheme = wp_parse_url($url, PHP_URL_SCHEME);
+                $host = wp_parse_url($url, PHP_URL_HOST);
+
+                if ($scheme !== 'https' || empty($host)) {
+                    return false;
+                }
+
+                return (bool) preg_match('/^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$/i', $host);
+            }
+
+            function sns_message_signature_valid($message = null) {
+                if (empty($message) || empty($message -> Type) || empty($message -> Signature) || empty($message -> SigningCertURL)) {
+                    return false;
+                }
+
+                if (!$this -> sns_url_allowed($message -> SigningCertURL)) {
+                    return false;
+                }
+
+                $string_to_sign = $this -> sns_string_to_sign($message);
+                if ($string_to_sign === false) {
+                    return false;
+                }
+
+                $cert_response = wp_safe_remote_get($message -> SigningCertURL);
+                if (is_wp_error($cert_response) || wp_remote_retrieve_response_code($cert_response) !== 200) {
+                    return false;
+                }
+
+                $certificate = wp_remote_retrieve_body($cert_response);
+                if (empty($certificate)) {
+                    return false;
+                }
+
+                $signature = base64_decode($message -> Signature, true);
+                if ($signature === false) {
+                    return false;
+                }
+
+                $algorithm = (!empty($message -> SignatureVersion) && $message -> SignatureVersion === '2') ? OPENSSL_ALGO_SHA256 : OPENSSL_ALGO_SHA1;
+
+                return openssl_verify($string_to_sign, $signature, $certificate, $algorithm) === 1;
+            }
+
+            function sns_string_to_sign($message = null) {
+                $fields = array();
+
+                switch ($message -> Type) {
+                    case 'Notification':
+                        $fields = array('Message', 'MessageId', 'Subject', 'Timestamp', 'TopicArn', 'Type');
+                        break;
+                    case 'SubscriptionConfirmation':
+                    case 'UnsubscribeConfirmation':
+                        $fields = array('Message', 'MessageId', 'SubscribeURL', 'Timestamp', 'Token', 'TopicArn', 'Type');
+                        break;
+                    default:
+                        return false;
+                }
+
+                $string = '';
+                foreach ($fields as $field) {
+                    if (isset($message -> {$field})) {
+                        $string .= $field . "\n" . $message -> {$field} . "\n";
+                    }
+                }
+
+                return $string;
             }
 
             function wp_head() {

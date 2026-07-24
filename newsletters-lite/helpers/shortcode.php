@@ -10,6 +10,36 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			return true;
 		}
 		
+		/**
+		 * Validate an HTML browsing-context target supplied by a shortcode.
+		 *
+		 * @param mixed $target Shortcode target attribute.
+		 * @return string
+		 */
+		function sanitize_link_target($target)
+		{
+			$default = '_self';
+
+			if (!is_string($target)) {
+				return $default;
+			}
+
+			$target = trim($target);
+			$reserved_targets = array('_self', '_blank', '_parent', '_top');
+
+			if (in_array(strtolower($target), $reserved_targets, true)) {
+				return strtolower($target);
+			}
+
+			// Named browsing contexts may not use reserved underscore-prefixed names.
+			if (strlen($target) <= 128 && preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/', $target)) {
+				return $target;
+			}
+
+			return $default;
+
+		}
+		
 		function woocommerce_products($atts = array())
 		{
 			global $woocommerce;
@@ -334,7 +364,7 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			}
 
 			if (function_exists('has_post_thumbnail') && has_post_thumbnail($thepost -> ID)) {
-				$output .= (!empty($link)) ? '<a href="' . $link . '" title="' . esc_attr(esc_html($title)) . '">' : '';
+				$output .= (!empty($link)) ? '<a href="' . esc_url($link) . '" title="' . esc_attr(esc_html($title)) . '">' : '';
 
 				$thumbnail_attr = array('align' => $align, 'style' => "margin-right:" . $hspace . "px;", 'hspace' => $hspace, 'title' => esc_html($title), 'alt' => $alt);
 				$thumbnail_attr = apply_filters('newsletters_post_thumbnail_attr', $thumbnail_attr, $thepost -> ID);
@@ -343,7 +373,7 @@ if (!class_exists('wpmlShortcodeHelper')) {
 				$output .= (!empty($link)) ? '</a>' : '';
 			} else {
 				//Added by Ted Eytan
-				$output .= (!empty($link)) ? '<a href="' . $link . '" title="' . esc_attr(esc_html($title)) . '">' : '';
+				$output .= (!empty($link)) ? '<a href="' . esc_url($link) . '" title="' . esc_attr(esc_html($title)) . '">' : '';
 				$thumbnail_attr = array('align' => $align, 'style' => "margin-right:" . $hspace . "px;", 'hspace' => $hspace, 'title' => esc_html($title), 'alt' => $alt);
 				$thumbnail_attr = apply_filters('newsletters_post_thumbnail_attr', $thumbnail_attr, $thepost -> ID);
 				require_once($this -> plugin_base() . DS . 'vendors' . DS . 'gettheimage.php');
@@ -392,7 +422,16 @@ if (!class_exists('wpmlShortcodeHelper')) {
 			);
 
 			$r = shortcode_atts($defaults, $atts);
-			extract($r);
+			$post_id = $r['post_id'];
+			$showdate = $r['showdate'];
+			$language = $r['language'];
+			$eftype = $r['eftype'];
+			$target = $this->sanitize_link_target($r['target']);
+			$thumbnail_size = $r['thumbnail_size'];
+			$thumbnail_align = $r['thumbnail_align'];
+			$thumbnail_hspace = $r['thumbnail_hspace'];
+			$thumbnail_class = $r['thumbnail_class'];
+			$hidethumbnail = $r['hidethumbnail'];
 
 			global $wpml_eftype;
 			$wpml_eftype = $eftype;
@@ -415,10 +454,9 @@ if (!class_exists('wpmlShortcodeHelper')) {
 				$this -> language_set($language);
 			}
 
-			foreach ($r as $rkey => $rval) {
-				global ${'wpml_' . $rkey};
-				${'wpml_' . $rkey} = $rval;
-			}
+			global $wpml_target;
+			$wpml_target = $target;
+
 
 			if (!empty($post_id)) {
 				if ($post = get_post($post_id)) {
@@ -597,7 +635,7 @@ if (!class_exists('wpmlShortcodeHelper')) {
         
             global $wpml_eftype, $wpml_target, $wpml_eflength, $wpml_eflength_incl_excerpt; // New: eflength_incl_excerpt
             $wpml_eftype = $args['eftype'];
-            $wpml_target = $args['target'];
+			$wpml_target = $this->sanitize_link_target($args['target']);
             if ( ! empty( $args['eflength'] ) && is_numeric( $args['eflength'] ) && (int) $args['eflength'] > 0 ) {
                 $wpml_eflength = (int) $args['eflength'];
             } else {
@@ -842,13 +880,13 @@ if (!class_exists('wpmlShortcodeHelper')) {
 
 			            if (!empty($shortcode_post)) {
 				            if (function_exists('has_post_thumbnail') && has_post_thumbnail($shortcode_post->ID)) {
-					            $return = '<a target="' . $wpml_target . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">';
+					            $return = '<a target="' . esc_attr($wpml_target) . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">';
 					            $return .= get_the_post_thumbnail($shortcode_post->ID, $size, $attr);
 					            $return .= '</a>';
 					            return do_shortcode(apply_filters('newsletters_post_thumbnail_output', $return, $shortcode_post));
 				            } else {
 					            // Fallback branch
-					            $return = '<a target="' . $wpml_target . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">';
+					            $return = '<a target="' . esc_attr($wpml_target) . '" href="' . $this->direct_post_permalink($shortcode_post->ID) . '">';
 					            $attr = apply_filters('newsletters_post_thumbnail_attr', $attr, $shortcode_post->ID);
 					            require_once($this->plugin_base() . DS . 'vendors' . DS . 'gettheimage.php');
 					            $return .= get_the_image(array('post_id' => $shortcode_post->ID, 'scan' => true, 'size' => $size, 'echo' => false));
@@ -1034,8 +1072,7 @@ if (!class_exists('wpmlShortcodeHelper')) {
 					$style = ' style="color:' . ${'newsletters_acolor'} . ';"';
 				}
 
-				$more = ' <span class="newsletters_readmore_holder"><a class="newsletters_readmore newsletters_link" target="' . $wpml_target . '" href="' . $this -> direct_post_permalink($shortcode_post -> ID) . '"' . $style . '>' . esc_html($excerpt_more) . '</a></span>';
-			}
+				$more = ' <span class="newsletters_readmore_holder"><a class="newsletters_readmore newsletters_link" target="' . esc_attr($wpml_target) . '" href="' . $this -> direct_post_permalink($shortcode_post -> ID) . '"' . $style . '>' . esc_html($excerpt_more) . '</a></span>';			}
 
 			return $more;
 		}

@@ -56,7 +56,7 @@ class wpMailAPI extends wpMail {
 		}
 		
 		if (!empty($data)) {
-			if (!empty($data -> api_key) && $data -> api_key == $api_key) {
+			if (!empty($data -> api_key) && is_string($data -> api_key) && is_string($api_key) && !empty($api_key) && hash_equals($api_key, $data -> api_key)) {
 				if (!empty($data -> api_method) && in_array($data -> api_method, $this -> api_methods)) {
 					$this -> api_method = $data -> api_method;
 				

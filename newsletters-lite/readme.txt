@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 7.0
-Stable tag: 4.15
+Tested up to: 7.0.2
+Stable tag: 4.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -237,9 +237,18 @@ If you downloaded it from the WordPress.org website:
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
 
+= 4.16 =
+* SECURITY: Fixed CVE-2026-12938 stored XSS through the `target` attribute of post shortcodes by validating link targets and escaping them on output.
+* SECURITY: Fixed CVE-2026-12939 stored XSS through the `link` attribute of post thumbnail shortcodes by escaping URLs on output.
+* SECURITY: Fixed broken access control in subscriber management AJAX handlers by requiring the requested subscriber ID to match the authenticated management subscriber session before reading or updating profile and subscription data.
+* SECURITY: Fixed unauthenticated PHP object injection through public subscribe form date fields by preventing request-supplied values from being unserialized and disabling class instantiation when formatting stored serialized date values. Reported by Sai Praneeth Koti.
+* SECURITY: Fixed unauthenticated blind SSRF in the Amazon SNS bounce handler by verifying SNS message signatures, restricting SNS URLs to HTTPS AWS SNS hosts, and using safe remote requests. Reported by Yaswanth Reddy Sunkara.
+* SECURITY: Fixed API authentication bypass caused by loose API key comparison by requiring a non-empty string key and validating it with hash_equals(). Reported by Haitam Lazaar.
+
 = 4.15 =
 * SECURITY: Fixed reflected XSS on the Autoresponder Emails admin page by properly escaping `id` and `status` query values before outputting them inside inline JavaScript.
 * SECURITY: Fixed incomplete CVE-2025-67911 remediation by preventing PHP object instantiation when rendering serialized subscriber custom-field values in newsletter personalization. Reported by Yaswanth Reddy Sunkara.
+* SECURITY: Fixed stored XSS in the admin subscriber view by sanitizing subscriber referrer URLs before storage and escaping them before output.
 
 = 4.14 =
 * IMPROVE: Serial key modal now tells users to download and install the paid version after entering a valid serial key.

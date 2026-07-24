@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.15';
+		var $version = '4.16';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -4885,6 +4885,22 @@ function qp_scheduling() {
 			die();
 		}
 
+		function management_authorized_subscriber($subscriber_id = null) {
+			global $Authnews;
+
+			$subscriber_id = (int) $subscriber_id;
+			if (empty($subscriber_id)) {
+				return false;
+			}
+
+			$subscriber = $Authnews -> logged_in();
+			if (!empty($subscriber) && (int) $subscriber -> id === $subscriber_id) {
+				return $subscriber;
+			}
+
+			return false;
+		}
+
 		function ajax_managementcustomfields() {
 			
 			check_ajax_referer('managementcustomfields', 'security');
@@ -4892,11 +4908,13 @@ function qp_scheduling() {
 			// No current_user_can required, this is front-end
 			
 			global $wpdb, $Db, $Subscriber, $FieldsList;
+			$subscriber = false;
+			$fields = array();
 
 			if (!empty($_POST['subscriber_id'])) {
 				$Db -> model = $Subscriber -> model;
 
-				if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {
+				if ($subscriber = $this -> management_authorized_subscriber($_POST['subscriber_id'])) {
 					$lists = array();
 					if (!empty($subscriber -> subscriptions)) {
 						foreach ($subscriber -> subscriptions as $subscription) {
@@ -4906,7 +4924,8 @@ function qp_scheduling() {
 
 					$fields = $FieldsList -> fields_by_list($lists, "order", "ASC", (($this -> get_option('managementallowemailchange') == "Y") ? true : false));
 				} else {
-					$errors[] = __('Subscriber could not be read.', 'wp-mailinglist');
+					status_header(403);
+					wp_die(wp_kses_post(__('You are not authorised to manage this subscriber.', 'wp-mailinglist')));
 				}
 			}
 
@@ -4927,13 +4946,15 @@ function qp_scheduling() {
 
 			$errors = array();
 			$oldpost = map_deep(wp_unslash($_POST), 'sanitize_text_field');
+			$subscriber = false;
+			$fields = array();
 			$success = false;
 			$successmessage = "";
 
 			if (!empty($_POST)) {
 				$Db -> model = $Subscriber -> model;
 
-				if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {
+				if ($subscriber = $this -> management_authorized_subscriber($_POST['subscriber_id'])) {
 					
 					do_action('newsletters_subscriber_management_savefields_before', $subscriber);
 					
@@ -5009,7 +5030,8 @@ function qp_scheduling() {
 						$errors[] = __('No data was posted.', 'wp-mailinglist');
 					}
 				} else {
-					$errors[] = __('Subscriber could not be read.', 'wp-mailinglist');
+					status_header(403);
+					wp_die(wp_kses_post(__('You are not authorised to manage this subscriber.', 'wp-mailinglist')));
 				}
 			} else {
 				$errors[] = __('No data was posted.', 'wp-mailinglist');
@@ -5029,8 +5051,11 @@ function qp_scheduling() {
 
 			if (!empty($_POST['subscriber_id'])) {
 				$Db -> model = $Subscriber -> model;
-				if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {					
+				if ($subscriber = $this -> management_authorized_subscriber($_POST['subscriber_id'])) {
 					$this -> render('management' . DS . 'currentsubscriptions', array('subscriber' => $subscriber), true, 'default');
+				} else {
+					status_header(403);
+					wp_die(wp_kses_post(__('You are not authorised to manage this subscriber.', 'wp-mailinglist')));
 				}
 			}
 
@@ -5044,11 +5069,12 @@ function qp_scheduling() {
 			
 			global $wpdb, $Db, $Subscriber, $Mailinglist;
 			$otherlists = array();
+			$subscriber = false;
 
 			if (!empty($_POST['subscriber_id'])) {
 				$Db -> model = $Subscriber -> model;
 
-				if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {
+				if ($subscriber = $this -> management_authorized_subscriber($_POST['subscriber_id'])) {
 					$managementshowprivate = $this -> get_option('managementshowprivate');
 					if ($mailinglists = $Mailinglist -> select(((!empty($managementshowprivate)) ? true : false))) {
 						foreach ($mailinglists as $mkey => $mval) {
@@ -5065,6 +5091,9 @@ function qp_scheduling() {
 
 						$this -> render('management' . DS . 'newsubscriptions', array('subscriber' => $subscriber, 'otherlists' => $otherlists), true, 'default');
 					}
+				} else {
+					status_header(403);
+					wp_die(wp_kses_post(__('You are not authorised to manage this subscriber.', 'wp-mailinglist')));
 				}
 			}
 
@@ -5491,6 +5520,7 @@ function qp_scheduling() {
 			$success = false;
 			$successmessage = "";
 			$otherlists = array();
+			$subscriber = false;
 
 			if ($mailinglists = $Mailinglist -> select()) {
 				foreach ($mailinglists as $mailinglist_id => $mailinglist_title) {
@@ -5501,7 +5531,7 @@ function qp_scheduling() {
 			if (!empty($_POST['subscriber_id']) && !empty($_POST['mailinglist_id'])) {
 				$Db -> model = $Subscriber -> model;
 
-				if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {
+				if ($subscriber = $this -> management_authorized_subscriber($_POST['subscriber_id'])) {
 
 					$data = (array) $subscriber;
 
@@ -5555,7 +5585,8 @@ function qp_scheduling() {
 						}
 					}
 				} else {
-					$errors[] = __('Subscriber cannot be read.', 'wp-mailinglist');
+					status_header(403);
+					wp_die(wp_kses_post(__('You are not authorised to manage this subscriber.', 'wp-mailinglist')));
 				}
 			} else {
 				$errors[] = __('No subscriber/mailing list data posted.', 'wp-mailinglist');
@@ -5574,14 +5605,14 @@ function qp_scheduling() {
 			$success = false;
 			$successmessage = "";
 			$errors = array();
+			$subscriber = false;
 
 			if (!empty($_POST)) {
 				if (!empty($_POST['subscriber_id']) && !empty($_POST['mailinglist_id']) && !empty($_POST['activate'])) {
 					global $wpdb, $Db, $Subscriber, $SubscribersList, $Html, $Authnews, $Mailinglist, $Unsubscribe;
 
 					$Db -> model = $Subscriber -> model;
-					if ($subscriber = $Db -> find(array('id' => (int) $_POST['subscriber_id']), false, false, true, true, false)) {						
-						if ($subscriber -> id == (int) $_POST['subscriber_id']) {
+					if ($subscriber = $this -> management_authorized_subscriber($_POST['subscriber_id'])) {
 							$Db -> model = $Mailinglist -> model;
 							$query = $wpdb->prepare("SELECT * FROM " . $wpdb -> prefix . $Mailinglist -> table . " WHERE `id` = %d", intval($_POST['mailinglist_id']));
 							$mailinglist = $wpdb -> get_row($query);
@@ -5652,11 +5683,9 @@ function qp_scheduling() {
 									}
 								}
 							}
-						} else {
-							$errors[] = __('You are logged in as a different subscriber.', 'wp-mailinglist');
-						}
 					} else {
-						$errors[] = __('You are not currently logged in.', 'wp-mailinglist');
+						status_header(403);
+						wp_die(wp_kses_post(__('You are not authorised to manage this subscriber.', 'wp-mailinglist')));
 					}
 				} else {
 					$errors[] = __('No subscriber/mailing list data posted.', 'wp-mailinglist');
@@ -8928,7 +8957,14 @@ function qp_scheduling() {
 
 							$field_value = false;
 							if (!empty($fieldvalue)) {
-								$field_value = maybe_unserialize($fieldvalue);
+								if ($fieldvalue_from_request) {
+									$field_value = $fieldvalue;
+								} elseif (is_string($fieldvalue) && function_exists('is_serialized') && is_serialized($fieldvalue)) {
+									$maybe_unserialized = @unserialize($fieldvalue, array('allowed_classes' => false));
+									$field_value = ($maybe_unserialized !== false || $fieldvalue === 'b:0;') ? $maybe_unserialized : $fieldvalue;
+								} else {
+									$field_value = $fieldvalue;
+								}
 							}
 
 							$currentDate = "";

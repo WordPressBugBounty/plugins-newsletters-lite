@@ -99,7 +99,7 @@ if ((!is_array($serial_validation_status) && !$serial_validation_status) || is_a
 			<?php if (!empty($subscriber -> referer)) : ?>
 				<tr class="<?php echo $class = (empty($class)) ? 'alternate' : ''; ?>">
 					<th><?php esc_html_e('Referrer', 'wp-mailinglist'); ?></th>
-					<td><?php echo $subscriber -> referer; ?></td>
+					<td><?php echo esc_html( $subscriber -> referer); ?></td>
 				</tr>
 			<?php endif; ?>
             

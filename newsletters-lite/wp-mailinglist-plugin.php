@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.16';
+		var $version = '4.17';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -269,6 +269,30 @@ if (!class_exists('wpMailPlugin')) {
 
             return $random_prefix . '-newsletters.log';
         }
+
+		function generate_api_key() {
+			if (function_exists('wp_generate_password')) {
+				return wp_generate_password(64, false, false);
+			}
+
+			try {
+				if (function_exists('random_bytes')) {
+					return bin2hex(random_bytes(32));
+				}
+			} catch (Exception $e) {
+				// Fall through to OpenSSL below.
+			}
+
+			if (function_exists('openssl_random_pseudo_bytes')) {
+				$strong = false;
+				$bytes = openssl_random_pseudo_bytes(32, $strong);
+				if ($bytes !== false && $strong) {
+					return bin2hex($bytes);
+				}
+			}
+
+			return wp_hash(uniqid('', true) . wp_rand() . microtime(true));
+		}
 
         protected function get_log_htaccess_candidates() {
             $candidates = array();
@@ -1573,7 +1597,7 @@ function qp_scheduling() {
 			    wp_die(wp_kses_post(__('You do not have permission', 'wp-mailinglist')));
 		    }
 
-			$key = strtoupper(md5(current_time('timestamp')));
+			$key = $this -> generate_api_key();
 			$this -> update_option('api_key', $key);
 			echo esc_html($key);
 
@@ -4901,6 +4925,34 @@ function qp_scheduling() {
 			return false;
 		}
 
+		function management_loginauth_redirect() {
+			if (is_admin() || empty($_GET['method']) || $_GET['method'] !== 'loginauth') {
+				return;
+			}
+
+			if (empty($_GET['email']) || empty($_GET['subscriberauth'])) {
+				return;
+			}
+
+			$managementpost = $this -> get_managementpost();
+			if (!empty($managementpost) && function_exists('get_queried_object_id') && (int) get_queried_object_id() !== (int) $managementpost) {
+				return;
+			}
+
+			global $Db, $Subscriber, $Authnews;
+
+			$subscriberemailauth = sanitize_text_field(wp_unslash($_GET['email']));
+			$subscriberauth = sanitize_text_field(wp_unslash($_GET['subscriberauth']));
+
+			$Db -> model = $Subscriber -> model;
+			if ($subscriber = $Db -> find(array('email' => $subscriberemailauth, 'cookieauth' => $subscriberauth))) {
+				if ($Authnews -> set_cookie($subscriber -> cookieauth) && $Authnews -> set_emailcookie($subscriberemailauth)) {
+					wp_safe_redirect($this -> get_managementpost(true));
+					exit();
+				}
+			}
+		}
+
 		function ajax_managementcustomfields() {
 			
 			check_ajax_referer('managementcustomfields', 'security');
@@ -4985,7 +5037,7 @@ function qp_scheduling() {
 
 						$_POST = $data = $Field -> validate_optin($_POST, 'management');
 						if (!empty($Field -> errors)) {
-							$errors = array_merge($errors, $Field -> errors);
+                            $errors = array_merge((array) $errors, (array) $Field -> errors);
 						}
 
 						$data['password'] = false;
@@ -6058,32 +6110,52 @@ function qp_scheduling() {
 
 			switch ($method) {
 				case 'paidsubscription'			:
-					$subscriber_id = sanitize_text_field(wp_unslash($_REQUEST['subscriber_id']));
-					$list_id = sanitize_text_field(wp_unslash($_REQUEST['list_id']));
-					$extend = sanitize_text_field(wp_unslash($_REQUEST['extend']));
+					$subscriber_id = 0;
+					$list_id = 0;
+					$extend = '';
+
+					if (isset($_REQUEST['subscriber_id'])) {
+						$subscriber_id = (int) sanitize_text_field(wp_unslash($_REQUEST['subscriber_id']));
+					}
+
+					if (isset($_REQUEST['list_id'])) {
+						$list_id = (int) sanitize_text_field(wp_unslash($_REQUEST['list_id']));
+					}
+
+					if (isset($_REQUEST['extend'])) {
+						$extend = sanitize_text_field(wp_unslash($_REQUEST['extend']));
+					}
 
 					if (!empty($subscriber_id)) {
 						if (!empty($list_id)) {
 
-							$subscriber = $Subscriber -> get($subscriber_id);
-							$data = (array) $subscriber;
-							$data['list_id'] = $list_id;
-							$mailinglist = $Mailinglist -> get($list_id);
-							$extend = (empty($extend)) ? false : true;
+							if ($subscriber = $this -> management_authorized_subscriber($subscriber_id)) {
+								$data = (array) $subscriber;
+								$data['list_id'] = $list_id;
+								$mailinglist = $Mailinglist -> get($list_id);
+								$extend = (empty($extend)) ? false : true;
 
-							$Field -> validate_optin($data, 'management');
+								$Field -> validate_optin($data, 'management');
 
-							if (empty($Field -> errors)) {
-								$this -> render('management' . DS . 'paidsubscription', array('subscriber' => $subscriber, 'mailinglist' => $mailinglist, 'extend' => $extend), true, 'default');
+								if (empty($Field -> errors)) {
+									$this -> render('management' . DS . 'paidsubscription', array('subscriber' => $subscriber, 'mailinglist' => $mailinglist, 'extend' => $extend), true, 'default');
+								} else {
+									$url = $Html -> retainquery('updated=1&error=' . __('Some profile fields are required, please complete them.', 'wp-mailinglist') . '#profile', $this -> get_managementpost(true));
+									$this -> redirect($url);
+								}
 							} else {
-								$url = $Html -> retainquery('updated=1&error=' . __('Some profile fields are required, please complete them.', 'wp-mailinglist') . '#profile', $this -> get_managementpost(true));
-								$this -> redirect($url);
+								status_header(403);
+								$errors[] = __('You are not authorised to manage this subscriber.', 'wp-mailinglist');
 							}
 						} else {
 							$errors[] = __('No mailing list was specified', 'wp-mailinglist');
 						}
 					} else {
 						$errors[] = __('No subscriber was specified', 'wp-mailinglist');
+					}
+
+					if (!empty($errors)) {
+						$this -> render('error', array('errors' => $errors), true, 'default');
 					}
 
 					break;
@@ -6095,34 +6167,29 @@ function qp_scheduling() {
 
 					$errors = false;
 					$success = false;
-					$id = (int) sanitize_text_field(wp_unslash($_GET['id']));
+					$subscriber = false;
+					$id = 0;
+
+					if (isset($_GET['id'])) {
+						$id = (int) sanitize_text_field(wp_unslash($_GET['id']));
+					}
 
 					if (!empty($id)) {
 						if (!empty($_GET['mailinglists'])) {
 							$Db -> model = $Subscriber -> model;
-							if ($subscriber = $Db -> find(array('id' => $id))) {
+							if ($subscriber = $this -> management_authorized_subscriber($id)) {
 
 								$subscriber -> mailinglists = explode(",", esc_html($_GET['mailinglists']));
 								$subscriber -> active = "Y";
 
 								if ($Subscriber -> optin($subscriber, false, false, false)) {
 									$success = true;
-
-									$Authnews -> set_emailcookie($subscriber -> email, "+30 days");
-									if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber->id)) {
-										$subscriberauth = $Authnews -> gen_subscriberauth();
-										$Db -> model = $Subscriber -> model;
-										$Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
-									} else {
-										$subscriberauth = $subscriber -> cookieauth;
-									}
-
-									$Authnews -> set_cookie($subscriberauth, "+30 days", true);
 								} else {
 									$errors = $Subscriber -> errors;
 								}
 							} else {
-								$errors[] = __('Subscriber cannot be read', 'wp-mailinglist');
+								status_header(403);
+								$errors[] = __('You are not authorised to manage this subscriber.', 'wp-mailinglist');
 							}
 						} else {
 							$errors[] = __('No list was specified', 'wp-mailinglist');
@@ -6152,17 +6219,6 @@ function qp_scheduling() {
 
 						if ($Subscriber -> optin($subscriber, false, false, false)) {
 							$success = true;
-
-							$Authnews -> set_emailcookie($subscriber -> email, "+30 days");
-							if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber->id)) {
-								$subscriberauth = $Authnews -> gen_subscriberauth();
-								$Db -> model = $Subscriber -> model;
-								$Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
-							} else {
-								$subscriberauth = $subscriber -> cookieauth;
-							}
-
-							$Authnews -> set_cookie($subscriberauth, "+30 days", true);
 						} else {
 							$errors = $Subscriber -> errors;
 						}
@@ -6396,18 +6452,21 @@ function qp_scheduling() {
 					    // phpcs:ignore
 						$subscriberemailauth = $_POST['email'] = $Authnews -> read_emailcookie();
 					} else {
-						$subscriberemailauth = sanitize_text_field($_GET['email']);
+						$subscriberemailauth = sanitize_text_field(wp_unslash($_GET['email']));
 					}
 
-					$subscriberauth = sanitize_text_field($_GET['subscriberauth']);
+					$subscriberauth = '';
+					if (isset($_GET['subscriberauth'])) {
+						$subscriberauth = sanitize_text_field(wp_unslash($_GET['subscriberauth']));
+					}
 
 					if (!empty($subscriberemailauth)) {
 						if (!empty($subscriberauth)) {
 							$Db -> model = $Subscriber -> model;							
 							if ($subscriber = $Db -> find(array('email' => $subscriberemailauth, 'cookieauth' => $subscriberauth))) {
-								global $wpmljavascript;
-								$Authnews -> set_cookie($subscriber -> cookieauth);
-								$Authnews -> set_emailcookie($subscriberemailauth);
+								if (!$Authnews -> set_cookie($subscriber -> cookieauth) || !$Authnews -> set_emailcookie($subscriberemailauth)) {
+									$errors[] = __('Authentication failed because the login cookie could not be set. Please try the link again or use the login form.', 'wp-mailinglist');
+								}
 							} else {
 								$errors[] = __('Authentication failed, please try again.', 'wp-mailinglist');
 							}
@@ -6419,20 +6478,16 @@ function qp_scheduling() {
 					}
 
 					if (empty($errors)) {
-						$this -> render('management' . DS . 'login-auth', array('subscriberauth' => $subscriberauth, 'subscriberemailauth' => $subscriberemailauth), true, 'default');
+						$this -> render('management' . DS . 'login-auth', false, true, 'default');
 					} else {
 						$this -> render('management' . DS . 'login', array('errors' => $errors), true, 'default');
 					}
 					break;
 				case 'login'				:
-					$errors = array_merge($errors, $newsletters_errors);
+                    $errors = array_merge((array) $errors, (array) $newsletters_errors);
 					$this -> render('management' . DS . 'login', array('errors' => $errors), true, 'default');
 					break;
 				default						:
-					if (!empty($_GET['subscriberauth'])) {
-						$_COOKIE['subscriberauth'] = esc_html($_GET['subscriberauth']);
-					}
-
 					if ($subscriber = $Authnews -> logged_in()) {												
 						if ($this -> get_option('subscriptions') == "Y") {
 							$SubscribersList -> check_expirations(false, false, true, $subscriber -> id);
@@ -12880,6 +12935,12 @@ function qp_scheduling() {
 
 
 
+                if (version_compare($cur_version, "4.17") < 0) {
+                    $this -> update_option('api_key', $this -> generate_api_key());
+
+                    $version = '4.17';
+                }
+
                 if (version_compare($cur_version, $this->version) < 0) {
 				    $version = $this->version;
 				}
@@ -13119,8 +13180,7 @@ function qp_scheduling() {
 			$options['poststatuses'] = $poststatuses;
 
 			// API Stuff
-			// phpcs:ignore
-			$options['api_key'] = strtoupper(md5($_SERVER['SERVER_NAME']));
+			$options['api_key'] = $this -> generate_api_key();
 
 			foreach ($options as $okey => $oval) {
 				$this -> add_option($okey, $oval);

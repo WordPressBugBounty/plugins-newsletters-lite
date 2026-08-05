@@ -8,5 +8,5 @@
 
 	<p><a class="newsletters_button btn btn-primary" href="<?php echo esc_url_raw($this -> get_managementpost(true)); ?>"><?php esc_html_e('Manage Subscriptions', 'wp-mailinglist'); ?></a></p>
 
-	<script type="text/javascript">jQuery(document).ready(function() { window.location = "<?php echo remove_query_arg(array('method', 'email'), $Html -> retainquery('subscriberauth=' . $subscriberauth)); ?>"; });</script>
+	<script type="text/javascript">jQuery(document).ready(function() { window.location = "<?php echo esc_js($this -> get_managementpost(true)); ?>"; });</script>
 </div>

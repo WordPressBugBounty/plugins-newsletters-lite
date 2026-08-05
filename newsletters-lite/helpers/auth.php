@@ -140,6 +140,8 @@ class wpmlAuthnewsHelper extends wpMailPlugin {
 					$_SESSION[$this -> emailcookiename] = $email;
 					break;
 			}
+
+			return true;
 		}
 
 		return false;
@@ -162,7 +164,7 @@ class wpmlAuthnewsHelper extends wpMailPlugin {
 					if (!headers_sent()) {
 						setcookie($this -> cookiename, $value, strtotime($days), '/');
 					} else {
-						$this -> javascript_cookie($this -> cookiename, $value);
+						return false;
 					}
 
 					$_COOKIE[$this -> cookiename] = $value;
@@ -179,7 +181,8 @@ class wpmlAuthnewsHelper extends wpMailPlugin {
 					if (!headers_sent()) {
 						setcookie($this -> cookiename, $value, strtotime($days), '/');
 					} else {
-						$this -> javascript_cookie($this -> cookiename, $value);
+						$_SESSION[$this -> cookiename] = $value;
+						return false;
 					}
 
 					$_COOKIE[$this -> cookiename] = $value;
@@ -227,8 +230,27 @@ class wpmlAuthnewsHelper extends wpMailPlugin {
 
 
 	function gen_subscriberauth() {
-		$subscriberauth = md5(microtime());
-		return $subscriberauth;
+		if (function_exists('wp_generate_password')) {
+			return wp_generate_password(64, false, false);
+		}
+
+		try {
+			if (function_exists('random_bytes')) {
+				return bin2hex(random_bytes(32));
+			}
+		} catch (Exception $e) {
+			// Fall through to OpenSSL below.
+		}
+
+		if (function_exists('openssl_random_pseudo_bytes')) {
+			$strong = false;
+			$bytes = openssl_random_pseudo_bytes(32, $strong);
+			if ($bytes !== false && $strong) {
+				return bin2hex($bytes);
+			}
+		}
+
+		return wp_hash(uniqid('', true) . wp_rand() . microtime(true));
 	}
 }
 }

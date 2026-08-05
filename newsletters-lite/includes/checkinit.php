@@ -55,6 +55,7 @@ if (!class_exists('wpMailCheckinit')) {
             $this -> add_filter('set-screen-option', 'set_screen_option', 10, 3);
             $this -> add_action('widgets_init', 'widget_register', 10, 1);
             $this -> add_action('wp_head', 'wp_head', 15, 1);
+            $this -> add_action('template_redirect', 'management_loginauth_redirect', 0, 1);
             $this -> add_action('wp_footer');
             $this -> add_action('admin_footer');
             $this -> add_action('delete_user', 'delete_user', 10, 1);

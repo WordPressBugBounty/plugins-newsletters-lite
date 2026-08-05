@@ -19,6 +19,7 @@ $api_hosts = $this -> get_option('api_hosts');
 	<?php esc_html_e('It can be from a remote server or from a 3rd party application, plugin, template, etc.', 'wp-mailinglist'); ?></p>
 	
 	<form action="<?php echo esc_url_raw( admin_url('admin.php?page=' . $this -> sections -> settings_api)) ?>" method="post">
+		<?php wp_nonce_field('newsletters_settings_api'); ?>
 		<table class="form-table">
 			<tbody>
 				<tr>
@@ -36,7 +37,7 @@ $api_hosts = $this -> get_option('api_hosts');
 					<tr>
 						<th><label for=""><?php esc_html_e('API Endpoint', 'wp-mailinglist'); ?></label></th>
 						<td>
-							<code><?php echo $api_endpoint; ?></code>
+							<code><?php echo esc_html($api_endpoint); ?></code>
 							<span class="howto"><?php esc_html_e('The URL to submit API calls to', 'wp-mailinglist'); ?></span>
 						</td>
 					</tr>

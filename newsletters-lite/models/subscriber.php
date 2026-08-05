@@ -815,7 +815,8 @@ if (!class_exists('wpmlSubscriber')) {
 						require_once $this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'Turnstile.php';
 
 						$Turnstile = new Turnstile( $secret );
-						$result    = $Turnstile->verify( $data['cf-turnstile-response'] ?? '', $this->get_ip_address() );
+						$turnstile_response = isset( $data['cf-turnstile-response'] ) ? $data['cf-turnstile-response'] : '';
+						$result    = $Turnstile->verify( $turnstile_response, $this->get_ip_address() );
 
 						if ( ! $result->success ) {
 							$msg = ! empty( $Turnstile->errors ) ? $Turnstile->errors[0] : __( 'Turnstile verification failed.', 'wp-mailinglist' );

@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.16
+Version: 4.17
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -5987,9 +5987,21 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                 if ( ! current_user_can( 'manage_options' ) ) {
                     wp_die( __( 'You do not have permission to do that.', 'wp-mailinglist' ) );
                 }
-                $email_id      = absint( $_GET['email_id']      ?? 0 );
-                $subscriber_id = absint( $_GET['subscriber_id'] ?? 0 );
-                $user_id       = absint( $_GET['user_id']       ?? 0 );
+                $email_id = 0;
+                $subscriber_id = 0;
+                $user_id = 0;
+
+                if (isset($_GET['email_id'])) {
+                    $email_id = absint($_GET['email_id']);
+                }
+
+                if (isset($_GET['subscriber_id'])) {
+                    $subscriber_id = absint($_GET['subscriber_id']);
+                }
+
+                if (isset($_GET['user_id'])) {
+                    $user_id = absint($_GET['user_id']);
+                }
                 check_admin_referer( 'wpml_resend_email_' . $email_id );
                 global $Db, $Email, $Subscriber, $History, $HistoriesAttachment, $Html;
 
@@ -10933,12 +10945,25 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
             function admin_settings_api() {
 
                 if (!empty($_POST)) {
-                    $this -> update_option('api_enable', 0);
-                    $this -> update_option('api_hosts', 0);
+                    check_admin_referer('newsletters_settings_api');
 
-                    foreach ($_POST as $pkey => $pval) {
-                        $this -> update_option($pkey, $pval);
+                    if (!current_user_can('newsletters_settings_api')) {
+                        wp_die(wp_kses_post(__('You do not have permission', 'wp-mailinglist')));
                     }
+
+                    $api_enable = 0;
+                    $api_hosts = array();
+
+                    if (!empty($_POST['api_enable'])) {
+                        $api_enable = 1;
+                    }
+
+                    if (!empty($_POST['api_hosts']) && is_array($_POST['api_hosts'])) {
+                        $api_hosts = array_filter(array_map('sanitize_text_field', wp_unslash($_POST['api_hosts'])));
+                    }
+
+                    $this -> update_option('api_enable', $api_enable);
+                    $this -> update_option('api_hosts', $api_hosts);
 
                     $message = __('API settings have been saved', 'wp-mailinglist');
                     $this -> render_message($message);

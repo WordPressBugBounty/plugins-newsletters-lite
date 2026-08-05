@@ -4,7 +4,7 @@ Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
 Tested up to: 7.0.2
-Stable tag: 4.16
+Stable tag: 4.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -236,6 +236,15 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.17 =
+* SECURITY: Fixed predictable API keys by generating random API keys and rotating existing keys on upgrade. Reported by WPScan.
+* SECURITY: Fixed CSRF and arbitrary option updates on the API settings page by adding nonce and capability checks and saving only allowed API settings. Reported by WPScan.
+* SECURITY: Fixed subscriber management access control bypass in subscription and paid subscription links by requiring the authenticated management subscriber session. Reported by Yaswanth Reddy Sunkara.
+* SECURITY: Prevent subscriber management authentication tokens from being written into page output and set manage-subscription link cookies before page rendering.
+* SECURITY: Improved the security of subscriber management login tokens.
+* IMPROVE: Removed PHP null coalescing operators from plugin PHP files for PHP 7.x compatibility.
+* FIX: Fixed PHP 8+ fatal error in subscription management shortcode when array_merge() received null.
 
 = 4.16 =
 * SECURITY: Fixed CVE-2026-12938 stored XSS through the `target` attribute of post shortcodes by validating link targets and escaping them on output.

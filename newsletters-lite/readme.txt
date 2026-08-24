@@ -3,8 +3,8 @@ Contributors: contrid
 Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
-Tested up to: 7.0.2
-Stable tag: 4.17
+Tested up to: 7.1
+Stable tag: 4.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -236,6 +236,14 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.18 =
+* SECURITY: Fixed subscriber management access control bypass in unsubscribe links by requiring a non-empty matching authkey with a strict comparison, rejecting empty stored authkeys, and preventing unauthenticated unsubscribe requests from issuing persistent management cookies. Reported by Yaswanth Reddy Sunkara.
+* SECURITY: Hardened manage-subscriptions login, resubscribe, delete, and user unsubscribe actions so request-supplied subscriber or user details cannot be used without a valid management token or existing authenticated session.
+* SECURITY: Add capability check and nonce verification to the "Send as Newsletter" post save handler (credit Wordfence)
+* SECURITY: Add role whitelist validation for user roles selected during post save
+* IMPROVE: Prevent newsletter processing and metadata changes during WordPress autosaves
+* FIX: Resubscribe templates now show success messages and management links only after a successful resubscribe.
 
 = 4.17 =
 * SECURITY: Fixed predictable API keys by generating random API keys and rotating existing keys on upgrade. Reported by WPScan.

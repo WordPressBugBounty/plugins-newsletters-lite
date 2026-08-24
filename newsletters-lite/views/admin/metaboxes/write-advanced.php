@@ -29,7 +29,7 @@ wp_enqueue_style('jquery-ui', $uisrc, false, '1.0', "all");
 ?>
 
 <div class="<?php echo esc_html($this -> pre); ?> newsletters newsletters_write_advanced">
-	
+	<?php wp_nonce_field('newsletters_save_post_metabox', 'newsletters_save_post_nonce'); ?>
     <?php echo  __('Use this box to send a post, page or custom post type as a newsletter to your subscribers. You can choose the list(s) to send to, the template to use, etc. All emails sent this way are queued and you can find them under Newsletters > Email Queue after the post, page or custom post type has been saved.', 'wp-mailinglist'); ?>
 	<?php if (!empty($scheduled)) : ?>
 		<div class="misc-pub-section">

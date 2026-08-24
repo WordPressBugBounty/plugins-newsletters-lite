@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.17';
+		var $version = '4.18';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -4925,6 +4925,14 @@ function qp_scheduling() {
 			return false;
 		}
 
+		function management_user_unsubscribe_authkey($user = null, $history_id = 0) {
+			if (empty($user) || empty($user -> ID)) {
+				return false;
+			}
+
+			return wp_hash('newsletters_user_unsubscribe|' . (int) $user -> ID . '|' . $user -> user_email . '|' . (int) $history_id);
+		}
+
 		function management_loginauth_redirect() {
 			if (is_admin() || empty($_GET['method']) || $_GET['method'] !== 'loginauth') {
 				return;
@@ -4946,7 +4954,7 @@ function qp_scheduling() {
 
 			$Db -> model = $Subscriber -> model;
 			if ($subscriber = $Db -> find(array('email' => $subscriberemailauth, 'cookieauth' => $subscriberauth))) {
-				if ($Authnews -> set_cookie($subscriber -> cookieauth) && $Authnews -> set_emailcookie($subscriberemailauth)) {
+				if (!empty($subscriber -> cookieauth) && $subscriber -> cookieauth !== md5($subscriber -> id) && hash_equals((string) $subscriber -> cookieauth, (string) $subscriberauth) && $Authnews -> set_cookie($subscriber -> cookieauth) && $Authnews -> set_emailcookie($subscriberemailauth)) {
 					wp_safe_redirect($this -> get_managementpost(true));
 					exit();
 				}
@@ -6203,24 +6211,32 @@ function qp_scheduling() {
 				case 'resubscribe'			:
 					$errors = false;
 					$success = false;
+					$subscriber = false;
 
 					if (!empty($_GET['email']) && (!empty($_GET['mailinglists']))) {
 
 						$Db -> model = $Subscriber -> model;
-						if (!$subscriber = $Db -> find(array('email' => sanitize_email(wp_unslash($_GET['email']))))) {
-							$subscriber = array();
+						$subscriberemail = sanitize_email(wp_unslash($_GET['email']));
+						$request_authkey = isset($_GET['authkey']) ? sanitize_text_field(wp_unslash($_GET['authkey'])) : '';
+
+						if (!$subscriber = $Db -> find(array('email' => $subscriberemail))) {
+							$errors[] = __('Subscriber cannot be read, please try again.', 'wp-mailinglist');
+						} elseif (empty($subscriber -> authkey) || empty($request_authkey) || !hash_equals((string) $subscriber -> authkey, (string) $request_authkey)) {
+							$errors[] = __('You are not authorised to use this link', 'wp-mailinglist');
 						}
 
-						$subscriber = (array) $subscriber;
+						if (empty($errors)) {
+							$subscriber_data = (array) $subscriber;
 
-						$subscriber['email'] = sanitize_text_field(wp_unslash($_GET['email']));
-						$subscriber['mailinglists'] = explode(",", sanitize_text_field(wp_unslash($_GET['mailinglists'])));
-						$subscriber['active'] = "Y";
+							$subscriber_data['email'] = $subscriberemail;
+							$subscriber_data['mailinglists'] = explode(",", sanitize_text_field(wp_unslash($_GET['mailinglists'])));
+							$subscriber_data['active'] = "Y";
 
-						if ($Subscriber -> optin($subscriber, false, false, false)) {
-							$success = true;
-						} else {
-							$errors = $Subscriber -> errors;
+							if ($Subscriber -> optin($subscriber_data, false, false, false)) {
+								$success = true;
+							} else {
+								$errors = $Subscriber -> errors;
+							}
 						}
 					} else {
 						$errors[] = __('Some data is missing, please try again', 'wp-mailinglist');
@@ -6236,16 +6252,19 @@ function qp_scheduling() {
 					$error = false;
 					$success = false;
 					$deleted = false;
+					$subscriber = false;
+					$user = false;
 					$userfile = "-success";
 
-					$history_id = $data[$this -> pre . 'history_id'];
+					$history_id = isset($data[$this -> pre . 'history_id']) ? (int) $data[$this -> pre . 'history_id'] : 0;
 					$history = $this -> History() -> find(array('id' => $history_id));
-					$subscriber_id = $data[$this -> pre . 'subscriber_id'];
+					$subscriber_id = isset($data[$this -> pre . 'subscriber_id']) ? (int) $data[$this -> pre . 'subscriber_id'] : 0;
 
 					if (!empty($subscriber_id) || !empty($data['user_id'])) {
-						if (($mailinglists = explode(",", $data[$this -> pre . 'mailinglist_id'])) !== false) {
+						$mailinglist_ids = isset($data[$this -> pre . 'mailinglist_id']) ? $data[$this -> pre . 'mailinglist_id'] : '';
+						if (($mailinglists = explode(",", $mailinglist_ids)) !== false) {
 							//do nothing, it's good...
-							$includeonly = (empty($mailinglists)) ? $history -> mailinglists : $mailinglists;
+							$includeonly = (empty($mailinglists) && is_object($history) && !empty($history -> mailinglists)) ? $history -> mailinglists : $mailinglists;
 							$mailinglists = $Subscriber -> mailinglists($subscriber_id, $includeonly, false, false);
 						} else {
 							$mailinglists = false;
@@ -6257,17 +6276,10 @@ function qp_scheduling() {
 							$subscriber = $wpdb -> get_row($subscriber_query);
 
 							if (!empty($subscriber)) {
-								if ($subscriber -> authkey == $_GET['authkey']) {
-									if (empty($subscriber -> mandatory) || $subscriber -> mandatory == "N") {
-										/* Management Auth */
-										if (empty($data['cookieauth'])) {
-											$Authnews -> set_emailcookie($subscriber -> email);
-											$subscriberauth = $Authnews -> gen_subscriberauth();
-											$Db -> model = $Subscriber -> model;
-											$Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
-											$Authnews -> set_cookie($subscriberauth);
-										}
+								$request_authkey = isset($_GET['authkey']) ? sanitize_text_field(wp_unslash($_GET['authkey'])) : '';
 
+								if (!empty($subscriber -> authkey) && !empty($request_authkey) && hash_equals((string) $subscriber -> authkey, (string) $request_authkey)) {
+									if (empty($subscriber -> mandatory) || $subscriber -> mandatory == "N") {
 										$subscriber -> mailinglists = $mailinglists;
 
 										if (empty($subscriber -> mailinglists)) {
@@ -6286,8 +6298,15 @@ function qp_scheduling() {
 							}
 						} elseif (!empty($data['user_id'])) {
 							if ($user = $this -> userdata($data['user_id'])) {
-								// all good
-								$userfile = "-user";
+								$request_authkey = isset($_GET['authkey']) ? sanitize_text_field(wp_unslash($_GET['authkey'])) : '';
+								$user_authkey = $this -> management_user_unsubscribe_authkey($user, $history_id);
+
+								if (!empty($request_authkey) && !empty($user_authkey) && hash_equals((string) $user_authkey, (string) $request_authkey)) {
+									$userfile = "-user";
+								} else {
+									$dorender = false;
+									$errors[] = __('You are not authorised to use this link', 'wp-mailinglist');
+								}
 							} else {
 								$errors[] = __('User cannot be read', 'wp-mailinglist');
 							}
@@ -6341,7 +6360,7 @@ function qp_scheduling() {
 										$Db -> delete_all(array('subscriber_id' => $subscriber -> id, 'list_id' => $unsubscribelist_id));
 
 										$Db -> model = $Unsubscribe -> model;
-										$unsubscribe_data = array('email' => $subscriber -> email, 'mailinglist_id' => $unsubscribelist_id, 'history_id' => $data[$this -> pre . 'history_id'], 'comments' => $data[$this -> pre . 'comments']);
+										$unsubscribe_data = array('email' => $subscriber -> email, 'mailinglist_id' => $unsubscribelist_id, 'history_id' => $history_id, 'comments' => isset($data[$this -> pre . 'comments']) ? $data[$this -> pre . 'comments'] : '');
 										$Db -> save($unsubscribe_data, true);
 									}
 								}
@@ -6388,7 +6407,7 @@ function qp_scheduling() {
 							}
 						} elseif (!empty($data['user_id'])) {
 							$Db -> model = $Unsubscribe -> model;
-							$unsubscribe_data = array('user_id' => $user -> ID, 'email' => $user -> user_email, 'mailinglist_id' => false, 'history_id' => $data[$this -> pre . 'history_id'], 'comments' => $data[$this -> pre . 'comments']);
+							$unsubscribe_data = array('user_id' => $user -> ID, 'email' => $user -> user_email, 'mailinglist_id' => false, 'history_id' => $history_id, 'comments' => isset($data[$this -> pre . 'comments']) ? $data[$this -> pre . 'comments'] : '');
 							$Db -> save($unsubscribe_data, true);
 							$success = true;
 							$errors = false;
@@ -6396,7 +6415,11 @@ function qp_scheduling() {
 							$errors[] = __('No subscriber or user was specified', 'wp-mailinglist');
 						}
 					}
-					
+
+					if (!empty($errors) && empty($success)) {
+						$dorender = false;
+					}
+
 					// Is the unsubscribe successful?
 					if (!empty($success)) {
 						$unsubscribe_redirect = $this -> get_option('unsubscribe_redirect');
@@ -6411,16 +6434,19 @@ function qp_scheduling() {
 					$this -> render('unsubscribe' . $userfile, array('subscriber' => $subscriber, 'history' => $history, 'dorender' => $dorender, 'user' => $user, 'data' => $data, 'errors' => $errors, 'success' => $success, 'deleted' => $deleted), true, 'default');
 					break;
 				case 'delete'				:
-				
+
 					global $Authnews, $Db, $Subscriber;
-					
-					$subscriber = $Authnews -> logged_in();					
-					$Db -> model = $Subscriber -> model;
-					$Db -> delete($subscriber -> id);
-					$this -> delete_all_cache();
-					
-					$this -> render('management' . DS . 'delete', false, true, 'default');
-					
+
+					if ($subscriber = $Authnews -> logged_in()) {
+						$Db -> model = $Subscriber -> model;
+						$Db -> delete($subscriber -> id);
+						$this -> delete_all_cache();
+
+						$this -> render('management' . DS . 'delete', false, true, 'default');
+					} else {
+						$this -> render('management' . DS . 'login', array('errors' => array(__('Please log in to manage your subscriptions.', 'wp-mailinglist'))), true, 'default');
+					}
+
 					break;
 				case 'logout'				:
 					global $wpmljavascript;
@@ -6464,7 +6490,9 @@ function qp_scheduling() {
 						if (!empty($subscriberauth)) {
 							$Db -> model = $Subscriber -> model;							
 							if ($subscriber = $Db -> find(array('email' => $subscriberemailauth, 'cookieauth' => $subscriberauth))) {
-								if (!$Authnews -> set_cookie($subscriber -> cookieauth) || !$Authnews -> set_emailcookie($subscriberemailauth)) {
+								if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber -> id) || !hash_equals((string) $subscriber -> cookieauth, (string) $subscriberauth)) {
+									$errors[] = __('Authentication failed, please try again.', 'wp-mailinglist');
+								} elseif (!$Authnews -> set_cookie($subscriber -> cookieauth) || !$Authnews -> set_emailcookie($subscriberemailauth)) {
 									$errors[] = __('Authentication failed because the login cookie could not be set. Please try the link again or use the login form.', 'wp-mailinglist');
 								}
 							} else {
@@ -9299,8 +9327,8 @@ function qp_scheduling() {
 			global $Html;
 			$link = "";
 			try {
-				if (!empty($subscriber)) {
-					$querystring = 'method=resubscribe&email=' . $subscriber -> email . '&mailinglists=' .  (is_array($subscriber -> mailinglists) ? implode(",", $subscriber -> mailinglists) : $subscriber -> mailinglists);
+				if (!empty($subscriber) && !empty($subscriber -> authkey)) {
+					$querystring = 'method=resubscribe&email=' . $subscriber -> email . '&mailinglists=' .  (is_array($subscriber -> mailinglists) ? implode(",", $subscriber -> mailinglists) : $subscriber -> mailinglists) . '&authkey=' . $subscriber -> authkey;
 					$url = $Html -> retainquery($querystring, $this -> get_managementpost(true));
 
 					if (!empty($urlonly)) {
@@ -9324,9 +9352,7 @@ function qp_scheduling() {
 			try {
 				if (!empty($subscriber) || !empty($user)) {
 					$linktext = esc_html($this -> get_option('unsubscribetext'));
-					$auth_id = (empty($subscriber)) ? $user -> ID : $subscriber -> id;
-					$auth_string = (empty($subscriber)) ? $user -> roles[0] : ((!empty($subscriber -> mailinglist_id)) ? $subscriber -> mailinglist_id : false);
-					$authkey = $this -> gen_auth($auth_id, $auth_string);
+					$authkey = (!empty($subscriber)) ? $this -> gen_auth($subscriber -> id, ((!empty($subscriber -> mailinglist_id)) ? $subscriber -> mailinglist_id : false)) : $this -> management_user_unsubscribe_authkey($user, $history_id);
 
 					if (!empty($theme_id)) {
 						global $wpdb, $Theme;

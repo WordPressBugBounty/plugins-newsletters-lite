@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.17
+Version: 4.18
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -3912,6 +3912,38 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     // this post was already queued in this process it seems
                     // It is possible that the save_post hook is being fired again
                     return true;
+                }
+
+                // Skip processing during autosaves
+                if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+                    return $post_id;
+                }
+
+                // Only run newsletter-related checks if newsletter fields are being submitted
+                if (!empty($_POST['newsletters_sendasnewsletter'])) {
+                    // Verify the dedicated meta box nonce to ensure the request originated from the legitimate form
+                    if (!isset($_POST['newsletters_save_post_nonce']) || !wp_verify_nonce($_POST['newsletters_save_post_nonce'], 'newsletters_save_post_metabox')) {
+                        return $post_id;
+                    }
+
+                    // Authorization check: ensure the current user has the newsletters_send capability
+                    if (!current_user_can('newsletters_send')) {
+                        return $post_id;
+                    }
+
+                    // Validate submitted roles against actual WordPress roles
+                    if (!empty($_POST['newsletters_mailinglistsroles']) && is_array($_POST['newsletters_mailinglistsroles'])) {
+                        global $wp_roles;
+                        if (empty($wp_roles)) {
+                            $wp_roles = wp_roles();
+                        }
+                        $valid_roles = !empty($wp_roles) ? array_keys($wp_roles->get_names()) : array();
+                        foreach ($_POST['newsletters_mailinglistsroles'] as $submitted_role) {
+                            if (!in_array(sanitize_text_field($submitted_role), $valid_roles, true)) {
+                                return $post_id;
+                            }
+                        }
+                    }
                 }
 
                 if (!empty($post_id) && !empty($post)) {

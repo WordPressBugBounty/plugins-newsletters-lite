@@ -757,13 +757,9 @@ if (!class_exists('wpmlSubscriber')) {
 						$this -> errors = array_merge($this -> errors, $Field -> errors);
 					}
 
-					if (!empty($data['captcha_prefix']) || isset($data['g-recaptcha-response']) || isset($data['h-captcha-response'])) {
-						$cap = 'Y';
-					} else {
-						$cap = 'N';
-					}
+					$captcha_type = $this->use_captcha('Y');
 
-					if ($captcha_type = $this->use_captcha($cap)) {
+					if ($captcha_type) {
 						if ($captcha_type == "rsc") {
 							$captcha = new ReallySimpleCaptcha();
 							if (empty($data['captcha_code'])) {
@@ -772,55 +768,67 @@ if (!class_exists('wpmlSubscriber')) {
 								$this->errors['captcha_code'] = __('Your code does not match the code in the image.', 'wp-mailinglist');
 							}
 							$captcha->remove($data['captcha_prefix']);
+
 						} elseif ($captcha_type == "recaptcha") {
-							$secret = $this->get_option('recaptcha_privatekey');
-							require_once($this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'ReCaptcha.php');
+							if (empty($data['g-recaptcha-response'])) {
+								$this->errors['captcha_code'] = __('Please complete the reCAPTCHA.', 'wp-mailinglist');
+							} else {
+								$secret = $this->get_option('recaptcha_privatekey');
+								require_once($this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'ReCaptcha.php');
 
-							$ReCaptcha = new ReCaptcha($secret);
-							$result = $ReCaptcha->verify($data['g-recaptcha-response'], $this->get_ip_address());
-							if (!$result->success) {
-								$this->errors['captcha_code'] = !empty($ReCaptcha->errors) ? $ReCaptcha->errors[0] : __('reCAPTCHA v2 verification failed.', 'wp-mailinglist');
+								$ReCaptcha = new ReCaptcha($secret);
+								$result = $ReCaptcha->verify($data['g-recaptcha-response'], $this->get_ip_address());
+								if (!$result->success) {
+									$this->errors['captcha_code'] = !empty($ReCaptcha->errors) ? $ReCaptcha->errors[0] : __('reCAPTCHA v2 verification failed.', 'wp-mailinglist');
+								}
 							}
-						} elseif ($captcha_type == "recaptcha3") {
-							$secret = $this->get_option('recaptcha3_privatekey');
-							$threshold = floatval($this->get_option('recaptcha3_score') ?: 0.5); // Default to 0.5 if not set
-							require_once($this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'ReCaptcha.php');
 
-							$ReCaptcha = new ReCaptcha($secret);
-							$result = $ReCaptcha->verify($data['g-recaptcha-response'], $this->get_ip_address());
-							if ($result->success) {
-								$score = $result->score;
-								if ($score < $threshold) {
-									$this->errors['captcha_code'] = sprintf(__('reCAPTCHA v3 score (%s) is below the threshold (%s).', 'wp-mailinglist'), $score, $threshold);
+						} elseif ($captcha_type == "recaptcha3") {
+							if (empty($data['g-recaptcha-response'])) {
+								$this->errors['captcha_code'] = __('Please complete the reCAPTCHA.', 'wp-mailinglist');
+							} else {
+								$secret = $this->get_option('recaptcha3_privatekey');
+								$threshold = floatval($this->get_option('recaptcha3_score') ?: 0.5);
+								require_once($this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'ReCaptcha.php');
+
+								$ReCaptcha = new ReCaptcha($secret);
+								$result = $ReCaptcha->verify($data['g-recaptcha-response'], $this->get_ip_address());
+								if ($result->success) {
+									$score = $result->score;
+									if ($score < $threshold) {
+										$this->errors['captcha_code'] = sprintf(__('reCAPTCHA v3 score (%s) is below the threshold (%s).', 'wp-mailinglist'), $score, $threshold);
+									}
+								} else {
+									$this->errors['captcha_code'] = !empty($ReCaptcha->errors) ? $ReCaptcha->errors[0] : __('reCAPTCHA v3 verification failed.', 'wp-mailinglist');
+								}
+							}
+
+						} elseif ($captcha_type == "hcaptcha") {
+							if (function_exists('hcaptcha_verify_POST') && !empty($data['h-captcha-response'])) {
+								$verified = hcaptcha_verify_POST('hcaptcha_wpmailinglist_nonce', 'hcaptcha_wpmailinglist');
+								if (!$verified) {
+									$this->errors['captcha_code'] = __('hCaptcha verification failed. Please try again.', 'wp-mailinglist');
 								}
 							} else {
-								$this->errors['captcha_code'] = !empty($ReCaptcha->errors) ? $ReCaptcha->errors[0] : __('reCAPTCHA v3 verification failed.', 'wp-mailinglist');
+								$this->errors['captcha_code'] = __('Please complete the hCaptcha.', 'wp-mailinglist');
 							}
-						}
-					} elseif ($captcha_type == "hcaptcha") {
-						if (function_exists('hcaptcha_verify_POST') && isset($data['h-captcha-response'])) {
-							$verified = hcaptcha_verify_POST('hcaptcha_wpmailinglist_nonce', 'hcaptcha_wpmailinglist');
-							if (!$verified) {
-								$this->errors['captcha_code'] = __('hCaptcha verification failed. Please try again.', 'wp-mailinglist');
+
+						} elseif ($captcha_type == 'turnstile') {
+							$secret = $this->get_option('turnstile_secret');
+							require_once $this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'Turnstile.php';
+
+							$Turnstile = new Turnstile($secret);
+							$turnstile_response = !empty($data['cf-turnstile-response']) ? $data['cf-turnstile-response'] : '';
+
+							if (empty($turnstile_response)) {
+								$this->errors['captcha_code'] = __('Please complete the Turnstile challenge.', 'wp-mailinglist');
+							} else {
+								$result = $Turnstile->verify($turnstile_response, $this->get_ip_address());
+								if (!$result->success) {
+									$msg = !empty($Turnstile->errors) ? $Turnstile->errors[0] : __('Turnstile verification failed.', 'wp-mailinglist');
+									$this->errors['captcha_code'] = $msg;
+								}
 							}
-						} elseif (!isset($data['h-captcha-response'])) {
-							$this->errors['captcha_code'] = __('hCaptcha response missing. Please enable it in the hCaptcha settings.', 'wp-mailinglist');
-						} else {
-							$this->errors['captcha_code'] = __('hCaptcha plugin is not active or configured.', 'wp-mailinglist');
-						}
-
-					}
-					elseif ( $captcha_type == 'turnstile' ) {
-						$secret = $this->get_option( 'turnstile_secret' );
-						require_once $this->plugin_base() . DS . 'vendors' . DS . 'recaptcha' . DS . 'Turnstile.php';
-
-						$Turnstile = new Turnstile( $secret );
-						$turnstile_response = isset( $data['cf-turnstile-response'] ) ? $data['cf-turnstile-response'] : '';
-						$result    = $Turnstile->verify( $turnstile_response, $this->get_ip_address() );
-
-						if ( ! $result->success ) {
-							$msg = ! empty( $Turnstile->errors ) ? $Turnstile->errors[0] : __( 'Turnstile verification failed.', 'wp-mailinglist' );
-							$this->errors['captcha_code'] = $msg;
 						}
 					}
 

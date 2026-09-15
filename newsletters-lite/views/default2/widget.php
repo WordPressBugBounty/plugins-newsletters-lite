@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
 <?php // phpcs:ignoreFile ?>
 <!-- Subscribe Form -->
 
@@ -10,7 +11,7 @@
 		<?php global $wpdb; ?>
 		<?php if ($wpdb -> get_row("SELECT * FROM " . $wpdb -> prefix . $Subscriber -> table . " WHERE `email` = '" . $current_user -> user_email . "' AND `user_id` = '" . $current_user -> ID . "'")) : ?>
 			<div class="alert alert-success">
-				<i class="fa fa-check"></i> <?php echo sprintf(__('You are already subscribed with email address %s. Go to the %s page to manage your subscription.', 'wp-mailinglist'), '<strong>' . $current_user -> user_email . '</strong>', '<a href="' . $this -> get_managementpost(true) . '">' . __('manage subscriptions', 'wp-mailinglist') . '</a>'); ?>
+				<i class="fa-solid fa-check"></i> <?php echo sprintf(__('You are already subscribed with email address %s. Go to the %s page to manage your subscription.', 'wp-mailinglist'), '<strong>' . $current_user -> user_email . '</strong>', '<a href="' . $this -> get_managementpost(true) . '">' . __('manage subscriptions', 'wp-mailinglist') . '</a>'); ?>
 			</div>
 		<?php endif; ?>
 	<?php endif; ?>
@@ -37,8 +38,8 @@
 		
 		<script type="text/javascript">
 		jQuery(document).ready(function() {
-			jQuery('#<?php echo esc_html( $widget_id); ?>-form .newsletters-list-checkbox').on('click', function() { newsletters_refreshfields('<?php echo esc_html( $widget_id); ?>'); });
-			jQuery('#<?php echo esc_html( $widget_id); ?>-form .newsletters-list-select').on('change', function() { newsletters_refreshfields('<?php echo esc_html( $widget_id); ?>'); });
+			jQuery('#<?php echo esc_js($widget_id); ?>-form .newsletters-list-checkbox').on('click', function() { newsletters_refreshfields('<?php echo esc_js($widget_id); ?>'); });
+			jQuery('#<?php echo esc_js($widget_id); ?>-form .newsletters-list-select').on('change', function() { newsletters_refreshfields('<?php echo esc_js($widget_id); ?>'); });
 		});
 		</script>
 	</div>
@@ -52,7 +53,7 @@
 		    	$captcha -> bg = $Html -> hex2rgb($this -> get_option('captcha_bg')); 
 		    	$captcha -> fg = $Html -> hex2rgb($this -> get_option('captcha_fg'));
 		    	$captcha_size = $this -> get_option('captcha_size');
-		    	$captcha -> img_size = array($captcha_size['w'], $captcha_size['h']);
+		    	$captcha -> img_size = array(! empty($captcha_size['w']) && is_numeric($captcha_size['w']) ? $captcha_size['w'] : 72, ! empty($captcha_size['h']) && is_numeric($captcha_size['h']) ? $captcha_size['h'] : 24);
 		    	$captcha -> char_length = $this -> get_option('captcha_chars');
 		    	$captcha -> font_size = $this -> get_option('captcha_font');
 		    	$captcha_word = $captcha -> generate_random_word();
@@ -69,7 +70,7 @@
 		    	
 		    	<?php if (!empty($errors['captcha_code'])) : ?>
 					<div id="newsletters-<?php echo esc_html( $number); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
-						<i class="fa fa-exclamation-triangle"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
+						<i class="fa-solid fa-triangle-exclamation"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
 					</div>
 				<?php endif; ?>
 			</div>
@@ -80,13 +81,13 @@
 				
 				<?php if (!empty($errors['captcha_code'])) : ?>
 					<div id="newsletters-<?php echo esc_html( $number); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
-						<i class="fa fa-exclamation-triangle"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
+						<i class="fa-solid fa-triangle-exclamation"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
 					</div>
 				<?php endif; ?>
 			</div>
 
         <?php elseif ($captcha_type == "recaptcha3") : ?>
-            <input type="hidden" name="g-recaptcha-response" id="<?php echo (int) $widget_id; ?>-recaptcha-response" value="" />
+            <input type="hidden" name="g-recaptcha-response" id="<?php echo esc_attr($widget_id); ?>-recaptcha-response" value="" />
         <?php elseif ($captcha_type == "hcaptcha") : ?>
             <?php if (function_exists('HCaptcha\Helpers\HCaptcha::form_display')) : ?>
                 <div class="form-group newsletters-fieldholder newsletters-captcha-wrapper">
@@ -102,8 +103,8 @@
                     HCaptcha\Helpers\HCaptcha::form_display($args);
                     ?>
                     <?php if (!empty($errors['captcha_code'])) : ?>
-                        <div id="newsletters-<?php echo (int) $widget_id; ?>-captcha-error" class="newsletters-field-error alert alert-danger">
-                            <i class="fa fa-exclamation-triangle"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
+                        <div id="newsletters-<?php echo esc_attr($widget_id); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
+                            <i class="fa-solid fa-triangle-exclamation"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -136,7 +137,7 @@
 		<span id="newsletters_buttonwrap">
 			<button <?php echo esc_html( $Html -> tabindex($widget_id)); ?> type="submit" class="button btn btn-primary" name="subscribe" id="<?php echo esc_html( $widget_id); ?>-button">
 				<span id="<?php echo esc_html( $widget_id); ?>-loading" class="newsletters-loading-wrapper" style="display:none;">
-					<i class="fa fa-refresh fa-spin fa-fw"></i>
+					<i class="fa-solid fa-arrows-rotate fa-spin fa-fw"></i>
 				</span>
 				<?php echo esc_attr(wp_unslash(esc_html($instance['button']))); ?>
 			</button>
@@ -164,11 +165,11 @@ jQuery(document).ready(function($) {
     $captcha_type = $this->use_captcha(__($instance['captcha']));
     ?>
 
-    var $form = $('#<?php echo (int) $widget_id; ?>-form'),
+    var $form = $('#<?php echo esc_js($widget_id); ?>-form'),
         $progress = $form.find('.newsletters-progress'),
         $progressbar = $form.find('.newsletters-progress .progress-bar'),
         $progresspercent = $form.find('.newsletters-progress .sr-only'),
-        $recaptcha_element = $('#newsletters-<?php echo (int) $widget_id; ?>-recaptcha-challenge'),
+        $recaptcha_element = $('#newsletters-<?php echo esc_js($widget_id); ?>-recaptcha-challenge'),
         $recaptcha_id;
 
     <?php if ($captcha_type == "recaptcha3") : ?>
@@ -179,22 +180,22 @@ jQuery(document).ready(function($) {
 
             grecaptcha.ready(function() {
                 grecaptcha.execute('<?php echo esc_js($this->get_option('recaptcha3_publickey')); ?>', {action: 'subscribe'}).then(function(token) {
-                    $('#<?php echo (int) $widget_id; ?>-recaptcha-response').val(token);
+                    $('#<?php echo esc_js($widget_id); ?>-recaptcha-response').val(token);
 
                     <?php if (!empty($ajax) && $ajax == "Y") : ?>
                         // AJAX submission
-                        $('#<?php echo (int) $widget_id; ?>-loading').show();
-                        if ($('#<?php echo (int) $widget_id; ?>-form :file').length > 0) {
+                        $('#<?php echo esc_js($widget_id); ?>-loading').show();
+                        if ($('#<?php echo esc_js($widget_id); ?>-form :file').length > 0) {
                             $progress.show();
                         }
-                        $('#<?php echo (int) $widget_id; ?>-button, #<?php echo (int) $widget_id; ?>-form :button').prop('disabled', true);
+                        $('#<?php echo esc_js($widget_id); ?>-button, #<?php echo esc_js($widget_id); ?>-form :button').prop('disabled', true);
                         $this.find('.newsletters-fieldholder :input').attr('readonly', true);
                         $this.find('div.newsletters-field-error').slideUp();
                         $this.find('.newsletters_fielderror').removeClass('newsletters_fielderror');
 
                         if ($.isFunction($.fn.ajaxForm)) {
                             $this.ajaxSubmit({
-                                url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
+                                url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo esc_js($widget_id); ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
                                 type: "POST",
                                 cache: false,
                                 beforeSend: function() {
@@ -213,9 +214,9 @@ jQuery(document).ready(function($) {
                                     $progresspercent.html(percentVal);
                                 },
                                 success: function(response) {
-                                    $('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
+                                    $('#<?php echo esc_js($widget_id); ?>-wrapper').html(response);
                                     <?php if (!empty($scroll)) : ?>
-                                        wpml_scroll($('#<?php echo (int) $widget_id; ?>'));
+                                        wpml_scroll($('#<?php echo esc_js($widget_id); ?>'));
                                     <?php endif; ?>
                                 }
                             });
@@ -231,11 +232,11 @@ jQuery(document).ready(function($) {
         // Existing AJAX handling for non-reCAPTCHA v3
         <?php if (!empty($ajax) && $ajax == "Y") : ?>
             $form.submit(function() {
-                $('#<?php echo (int) $widget_id; ?>-loading').show();
-                if ($('#<?php echo (int) $widget_id; ?>-form :file').length > 0) {
+                $('#<?php echo esc_js($widget_id); ?>-loading').show();
+                if ($('#<?php echo esc_js($widget_id); ?>-form :file').length > 0) {
                     $progress.show();
                 }
-                $('#<?php echo (int) $widget_id; ?>-button, #<?php echo (int) $widget_id; ?>-form :button').prop('disabled', true);
+                $('#<?php echo esc_js($widget_id); ?>-button, #<?php echo esc_js($widget_id); ?>-form :button').prop('disabled', true);
                 $form.find('.newsletters-fieldholder :input').attr('readonly', true);
                 $form.find('div.newsletters-field-error').slideUp();
                 $form.find('.newsletters_fielderror').removeClass('newsletters_fielderror');
@@ -243,7 +244,7 @@ jQuery(document).ready(function($) {
 
             if ($.isFunction($.fn.ajaxForm)) {
                 $form.ajaxForm({
-                    url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
+                    url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo esc_js($widget_id); ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
                     data: $form.serialize(),
                     type: "POST",
                     cache: false,
@@ -263,9 +264,9 @@ jQuery(document).ready(function($) {
                         $progresspercent.html(percentVal);
                     },
                     success: function(response) {
-                        $('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
+                        $('#<?php echo esc_js($widget_id); ?>-wrapper').html(response);
                         <?php if (!empty($scroll)) : ?>
-                            wpml_scroll($('#<?php echo (int) $widget_id; ?>'));
+                            wpml_scroll($('#<?php echo esc_js($widget_id); ?>'));
                         <?php endif; ?>
                     }
                 });
@@ -305,7 +306,7 @@ jQuery(document).ready(function($) {
     });
 
     $postpage = $('.newsletters-management, .entry-content, .post-entry, .entry, .page-entry, .page-content');
-    $form = $postpage.find('#<?php echo (int) $widget_id; ?>-form');
+    $form = $postpage.find('#<?php echo esc_js($widget_id); ?>-form');
     $divs = $form.find('.newsletters-fieldholder:not(.newsletters_submit, .hidden)');
     for (var i = 0; i < $divs.length; i += 2) {
         $divs.slice(i, i + 2).wrapAll('<div class="row"></div>');

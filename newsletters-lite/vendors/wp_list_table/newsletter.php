@@ -82,10 +82,19 @@ class Newsletter_List_Table extends WP_List_Table {
 		$sql .= " LEFT JOIN " . $historieslists_table . " ON " . $histories_table . ".id = " . $historieslists_table . ".history_id";		
 		$sql .= $this -> add_conditions();
 		
-		$orderby = (empty($_REQUEST['orderby'])) ? $histories_table . '.modified' : esc_html($_REQUEST['orderby']);
-		$order = (empty($_REQUEST['order'])) ? 'desc' : esc_html($_REQUEST['order']);
+		$sortable_columns = array();
+		foreach ($this -> get_sortable_columns() as $column => $definition) {
+			$sort_key = is_array($definition) && isset($definition[0]) ? $definition[0] : $column;
+			$sortable_columns[$sort_key] = $column;
+			$sortable_columns[$column] = $column;
+		}
+		$requested_orderby = isset($_REQUEST['orderby']) && is_string($_REQUEST['orderby']) ? sanitize_key(wp_unslash($_REQUEST['orderby'])) : '';
+		$requested_order = isset($_REQUEST['order']) && is_string($_REQUEST['order']) ? sanitize_key(wp_unslash($_REQUEST['order'])) : '';
+		$orderby = !empty($requested_orderby) ? $requested_orderby : 'modified';
+		$orderby = isset($sortable_columns[$orderby]) ? $sortable_columns[$orderby] : 'modified';
+		$order = ('asc' === strtolower($requested_order)) ? 'ASC' : 'DESC';
 		
-		$sql .= " ORDER BY " . $orderby . " " . $order;
+		$sql .= " ORDER BY " . $histories_table . "." . $orderby . " " . $order;
 		$sql .= " LIMIT $per_page";
 		$sql .= ' OFFSET ' . ( $page_number - 1 ) * $per_page;
 

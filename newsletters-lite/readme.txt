@@ -4,7 +4,7 @@ Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
 Tested up to: 7.1
-Stable tag: 4.18
+Stable tag: 4.18.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -237,22 +237,32 @@ If you downloaded it from the WordPress.org website:
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
 
+= 4.18.1 =
+* FIX: Admin activation notification emails now respect the "Activation Emails" setting (Configuration > Subscription). When set to "single", only one notification is sent after all lists are activated. When set to "multiple", a separate notification is sent for each list activation.
+* FIX: Fatal error when clearing the CAPTCHA size in the Really Simple CAPTCHA plugin settings.
+* SECURITY: Fixed administrator SQL injection through administrative list sorting by validating sortable columns and directions. Reported by Ananda Dhakal (Patchstack).
+* SECURITY: Fixed subscriber management access control bypass in subscription activation links by requiring a non-empty matching authkey with strict comparison, rejecting whitespace and empty stored authkeys, and preventing unauthenticated activation requests from issuing management session cookies. Reported by Erwan Le Rousseau (WPScan / Jetpack / Automattic).
+* SECURITY: Fixed missing CSRF protection for subscriber deletion by CSV upload on the Import/Export admin page and hardened CSV upload validation so non-CSV files are rejected before being moved into the uploads directory.
+* SECURITY: Implemented file upload MIME type validation to prevent malicious file uploads by verifying actual file content matches declared type.
+* SECURITY: Enhanced widget template security with context-aware escaping for all widget IDs to prevent XSS attacks.
+* SECURITY: Improved CAPTCHA validation across all types with empty response checks before verification to prevent bypasses.
+
 = 4.18 =
+* IMPROVE: Prevent newsletter processing and metadata changes during WordPress autosaves
+* FIX: Resubscribe templates now show success messages and management links only after a successful resubscribe.
 * SECURITY: Fixed subscriber management access control bypass in unsubscribe links by requiring a non-empty matching authkey with a strict comparison, rejecting empty stored authkeys, and preventing unauthenticated unsubscribe requests from issuing persistent management cookies. Reported by Yaswanth Reddy Sunkara.
 * SECURITY: Hardened manage-subscriptions login, resubscribe, delete, and user unsubscribe actions so request-supplied subscriber or user details cannot be used without a valid management token or existing authenticated session.
 * SECURITY: Add capability check and nonce verification to the "Send as Newsletter" post save handler (credit Wordfence)
 * SECURITY: Add role whitelist validation for user roles selected during post save
-* IMPROVE: Prevent newsletter processing and metadata changes during WordPress autosaves
-* FIX: Resubscribe templates now show success messages and management links only after a successful resubscribe.
 
 = 4.17 =
+* IMPROVE: Removed PHP null coalescing operators from plugin PHP files for PHP 7.x compatibility.
+* FIX: Fixed PHP 8+ fatal error in subscription management shortcode when array_merge() received null.
 * SECURITY: Fixed predictable API keys by generating random API keys and rotating existing keys on upgrade. Reported by WPScan.
 * SECURITY: Fixed CSRF and arbitrary option updates on the API settings page by adding nonce and capability checks and saving only allowed API settings. Reported by WPScan.
 * SECURITY: Fixed subscriber management access control bypass in subscription and paid subscription links by requiring the authenticated management subscriber session. Reported by Yaswanth Reddy Sunkara.
 * SECURITY: Prevent subscriber management authentication tokens from being written into page output and set manage-subscription link cookies before page rendering.
 * SECURITY: Improved the security of subscriber management login tokens.
-* IMPROVE: Removed PHP null coalescing operators from plugin PHP files for PHP 7.x compatibility.
-* FIX: Fixed PHP 8+ fatal error in subscription management shortcode when array_merge() received null.
 
 = 4.16 =
 * SECURITY: Fixed CVE-2026-12938 stored XSS through the `target` attribute of post shortcodes by validating link targets and escaping them on output.
@@ -268,14 +278,15 @@ See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#do
 * SECURITY: Fixed stored XSS in the admin subscriber view by sanitizing subscriber referrer URLs before storage and escaping them before output.
 
 = 4.14 =
-* IMPROVE: Serial key modal now tells users to download and install the paid version after entering a valid serial key.
-* IMPROVE: Serial key modal messaging and plugins page redirects after entering valid, expired, or deleted serial keys.
+* IMPROVE: Serial key modal messaging and redirects after entering valid, expired, or deleted serial keys.
+* FIX: Expired but valid serial keys can continue using PRO features such as the Drag & Drop Builder, premium CAPTCHA options, and resend/manage subscription links.
+* FIX: Expired serial key messaging no longer sends paid users to an empty upgrade page.
 * FIX: Serial key validation now uses the latest online validation result immediately after entering or deleting a key.
 * FIX: Broken Access Control vulnerability in deleteuser function. Added CSRF nonce check and fixed inverted authorization logic. Prevented administrators from deleting their own accounts.
-* FIX: SQL Injection vulnerability in newsletters_management shortcode via wpmlsubscriber_id parameter. Implemented $wpdb->prepare() for parameterized queries.
-* FIX: SQL Injection vulnerability in history email resend function. Implemented $wpdb->prepare() for parameterized queries.
-* FIX: SQL Injection vulnerability in queue processing function. Implemented $wpdb->prepare() for parameterized queries.
-* FIX: SQL Injection vulnerability in mailing list activation handler. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL injection vulnerability in newsletters_management shortcode via wpmlsubscriber_id parameter. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL injection vulnerability in history email resend function. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL injection vulnerability in queue processing function. Implemented $wpdb->prepare() for parameterized queries.
+* FIX: SQL injection vulnerability in mailing list activation handler. Implemented $wpdb->prepare() for parameterized queries.
 
 = 4.13 =
 * ADD: Multilingual category select for Polylang in Latest Posts Subscriptions settings.

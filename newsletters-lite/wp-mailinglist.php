@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.18
+Version: 4.18.1
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -972,15 +972,15 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
                                         $this -> Click() -> save($click_data, true);
                                     }
-                                    if(isset($subscriber) && !empty($subscriber)) {
-                                        $subscriber->mailinglist_id = sanitize_text_field(isset($_GET['mailinglist_id']) ? $_GET['mailinglist_id'] : 0);
-                                    }
-                                    $authkey = sanitize_text_field(isset($_GET['authkey']) ? $_GET['authkey'] : '');
+                                if(isset($subscriber) && !empty($subscriber)) {
+                                    $subscriber->mailinglist_id = sanitize_text_field(isset($_GET['mailinglist_id']) ? $_GET['mailinglist_id'] : 0);
+                                }
+                                $authkey = isset($_GET['authkey']) ? trim(sanitize_text_field(wp_unslash($_GET['authkey']))) : '';
 
-                                    // Check if the subscriber's authkey and the authkey matches
-                                    if (isset($subscriber -> authkey ) && $subscriber -> authkey != $authkey) {
-                                        $subscriber = false;
-                                    }
+                                // Check if the subscriber's authkey and the authkey matches
+                                if (isset($subscriber) && !empty($subscriber) && (empty($subscriber -> authkey) || empty($authkey) || !hash_equals((string) $subscriber -> authkey, (string) $authkey))) {
+                                    $subscriber = false;
+                                }
 
                                     $message = $email -> message;
                                     $content = $this -> render_email('send', array('print' => sanitize_text_field(isset($_GET['print']) ? $_GET['print'] : ''), 'message' => $message, 'subject' => $email -> subject, 'subscriber' => $subscriber, 'history_id' => $id), false, true, true, $email -> theme_id);
@@ -1941,113 +1941,129 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             die();
                             break;
                         case 'activate'			:
-                            global $wpdb, $Authnews, $Mailinglist, $Html, $Db, $HistoriesAttachment, $Email, $Subscriber;
-                            if (!empty($_GET[$this -> pre . 'subscriber_id']) && !empty($_GET['authkey'])) {
-                                $subscriber_id = intval($_GET[$this -> pre . 'subscriber_id']);
-                                $authkey = sanitize_text_field(wp_unslash($_GET['authkey']));
+                        global $wpdb, $Authnews, $Mailinglist, $Html, $Db, $HistoriesAttachment, $Email, $Subscriber, $SubscribersList;
 
-                                if (!empty($_GET[$this -> pre . 'mailinglist_id'])) {
-                                    $mailinglists = @explode(",", sanitize_text_field(wp_unslash($_GET[$this -> pre . 'mailinglist_id'])));
-                                    $mailinglistsstring = sanitize_text_field(wp_unslash($_GET[$this -> pre . 'mailinglist_id']));
-                                }
+                        $subscriber_id = !empty($_GET[$this -> pre . 'subscriber_id']) ? intval($_GET[$this -> pre . 'subscriber_id']) : 0;
+                        $request_authkey = isset($_GET['authkey']) ? trim(sanitize_text_field(wp_unslash($_GET['authkey']))) : '';
+                        $subscriber = false;
 
-                                $subscriber = $Subscriber -> get($subscriber_id, false);
+                        if (!empty($subscriber_id)) {
+                            $subscriber = $Subscriber -> get($subscriber_id, false);
+                        }
 
-                                if (!empty(  $subscriber)) {
-                                    $Db -> model = $Subscriber -> model;
-                                    $Db -> save_field('is_active', "Y", array('id' => $subscriber -> id));
-                                }
+                        if (empty($subscriber_id) || empty($request_authkey) || empty($subscriber) || empty($subscriber -> authkey) || trim((string) $subscriber -> authkey) === '' || !hash_equals((string) $subscriber -> authkey, (string) $request_authkey)) {
+                            $subscriberedirecturl = $this -> get_option('subscriberedirect');
+                            $msgtype = "error";
+                            $message = __('Invalid key, please check that you have the correct url to activate this mailing list.', 'wp-mailinglist');
+                            $this -> redirect($this -> get_managementpost(true), $msgtype, $message);
+                            exit();
+                        }
 
+                        $Db -> model = $Subscriber -> model;
+                        $Db -> save_field('is_active', "Y", array('id' => $subscriber -> id));
 
-                                if ($authkey != $subscriber -> authkey) {
-                                    $subscriberedirecturl = $this -> get_option('subscriberedirect');
-                                    $msgtype = "error";
-                                    $message = "Invalid key, please check that you have the correct url to activate this mailing list.";
-                                    $this -> redirect($this -> get_managementpost(true), $msgtype, $message);
-                                }
+                        $Authnews -> set_emailcookie($subscriber -> email, "+30 days");
 
-                                $Authnews -> set_emailcookie($subscriber -> email, "+30 days");
+                        if (empty($subscriber -> cookieauth) || $subscriber -> cookieauth === md5($subscriber -> id)) {
+                            $subscriberauth = $Authnews -> gen_subscriberauth();
+                            $Db -> model = $Subscriber -> model;
+                            $Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
+                        } else {
+                            $subscriberauth = $subscriber -> cookieauth;
+                        }
 
-                                if (empty($subscriber -> cookieauth)) {
-                                    $subscriberauth = $Authnews -> gen_subscriberauth();
-                                    $Db -> model = $Subscriber -> model;
-                                    $Db -> save_field('cookieauth', $subscriberauth, array('id' => $subscriber -> id));
-                                } else {
-                                    $subscriberauth = $subscriber -> cookieauth;
-                                }
+                        $Authnews -> set_cookie($subscriberauth, "+30 days", true);
+                        $paidlists = false;
+                        $mailinglists = array();
+                        $mailinglist = false;
+                        $activated_lists = [];
 
-                                $Authnews -> set_cookie($subscriberauth, "+30 days", true);
-                                $paidlists = false;
+                        if (!empty($_GET[$this -> pre . 'mailinglist_id'])) {
+                            $mailinglists = @explode(",", sanitize_text_field($_GET[$this -> pre . 'mailinglist_id']));
+                            $mailinglistsstring = sanitize_text_field($_GET[$this -> pre . 'mailinglist_id']);
+                        }
 
-                                if (!empty($mailinglists)) {
-                                    foreach ($mailinglists as $list_id) {
-                                        if ($mailinglist = $Mailinglist -> get($list_id, false)) {
-                                            if ($mailinglist -> paid == "N" || empty($mailinglist -> paid)) {
-                                                if ($SubscribersList -> save_field('active', "Y", array('subscriber_id' => $subscriber_id, 'list_id' => $list_id))) {
-                                                    $msgtype = "success";
-                                                    $message = __('Subscription has been activated', 'wp-mailinglist');
-                                                    $subscriber = $Subscriber -> get($subscriber_id, false);
-                                                    $subscriber -> mailinglist_id = $mailinglist -> id;
-                                                    $this -> admin_subscription_notification($subscriber);
+                        if (!empty($mailinglists)) {
+                            foreach ($mailinglists as $list_id) {
+                                $list_id = intval($list_id);
+                                if ($mailinglist = $Mailinglist -> get($list_id, false)) {
+                                    if ($mailinglist -> paid == "N" || empty($mailinglist -> paid)) {
+                                        if ($SubscribersList -> save_field('active', "Y", array('subscriber_id' => $subscriber_id, 'list_id' => $list_id))) {
+                                            $msgtype = "success";
+                                            $message = __('Subscription has been activated', 'wp-mailinglist');
+                                            $subscriber = $Subscriber -> get($subscriber_id, false);
+                                            $subscriber -> mailinglist_id = $mailinglist -> id;
+                                            $activated_lists[] = $list_id;
 
-                                                    $saveipaddress = $this -> get_option('saveipaddress');
-                                                    if (!empty($saveipaddress)) {
-                                                        $Db -> model = $Subscriber -> model;
-                                                        $Db -> save_field('ip_address', $this -> get_ip_address(), array('id' => $subscriber -> id));
-                                                    }
-
-                                                    $this -> autoresponders_send($subscriber, $mailinglist);
-                                                    do_action($this -> pre . '_subscriber_activated', $subscriber);
-                                                }
-                                            } else {
-                                                $paidlists[] = $list_id;
+                                            // Only send notification per list if setting is "multiple"
+                                            if ($this -> get_option('activationemails') == "multiple") {
+                                                $this -> admin_subscription_notification($subscriber);
                                             }
 
-                                            if ($subscriberslists = $this -> SubscribersList() -> find_all(array('subscriber_id' => $subscriber -> id, 'list_id' => $list_id))) {
-                                                foreach ($subscriberslists as $sl) {
-                                                    if (!empty($sl -> form_id)) {
-                                                        // Send autoresponders linked to form
-                                                        if ($form = $this -> Subscribeform() -> find(array('id' => $sl -> form_id))) {
-                                                            $this -> autoresponders_form_send($subscriber, $form);
-                                                        }
-                                                    }
+                                            $saveipaddress = $this -> get_option('saveipaddress');
+                                            if (!empty($saveipaddress)) {
+                                                $Db -> model = $Subscriber -> model;
+                                                $Db -> save_field('ip_address', $this -> get_ip_address(), array('id' => $subscriber -> id));
+                                            }
+
+                                            $this -> autoresponders_send($subscriber, $mailinglist);
+                                            do_action($this -> pre . '_subscriber_activated', $subscriber);
+                                        }
+                                    } else {
+                                        $paidlists[] = $list_id;
+                                    }
+
+                                    if ($subscriberslists = $this -> SubscribersList() -> find_all(array('subscriber_id' => $subscriber -> id, 'list_id' => $list_id))) {
+                                        foreach ($subscriberslists as $sl) {
+                                            if (!empty($sl -> form_id)) {
+                                                // Send autoresponders linked to form
+                                                if ($form = $this -> Subscribeform() -> find(array('id' => $sl -> form_id))) {
+                                                    $this -> autoresponders_form_send($subscriber, $form);
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            } else {
-                                $msgtype = "error";
-                                $message = __('Subscription is invalid', 'wp-mailinglist');
                             }
+                        }
 
-                            do_action('newsletters_subscriber_activate', $subscriber, $mailinglists);
+                        // Send single notification email if setting is "single" and lists were activated
+                        if ($this -> get_option('activationemails') == "single" && !empty($activated_lists)) {
+                            $subscriber = $Subscriber -> get($subscriber_id, false);
+                            $subscriber -> mailinglists = $activated_lists;
+                            $this -> admin_subscription_notification($subscriber);
+                        }
 
-                            if (!empty($mailinglists) && count($mailinglists) == 1 && !empty($mailinglist -> redirect)) {
-                                $activateredirecturl = esc_html($mailinglist -> redirect);
+                        do_action('newsletters_subscriber_activate', $subscriber, $mailinglists);
+
+                        if (!empty($mailinglists) && count($mailinglists) == 1 && !empty($mailinglist -> redirect)) {
+                            $activateredirecturl = __($mailinglist -> redirect);
+                        } else {
+                            if ($this -> get_option('customactivateredirect') == "Y") {
+                                $activateredirecturl = $this -> get_option('activateredirecturl');
                             } else {
-                                if ($this -> get_option('customactivateredirect') == "Y") {
-                                    $activateredirecturl = $this -> get_option('activateredirecturl');
-                                } else {
-                                    $activateredirecturl = $Html -> retainquery('updated=1&success=' . __('Thank you for confirming your subscription.', 'wp-mailinglist'), $this -> get_managementpost(true));
-                                }
+                                $activateredirecturl = $Html -> retainquery('updated=1&success=' . __('Thank you for confirming your subscription.', 'wp-mailinglist'), $this -> get_managementpost(true));
                             }
+                        }
 
-                            //If there are paid lists... we need to provide a payment form.
-                            if (!empty($paidlists)) {
-                                if ($this -> get_option('activationemails') == "single" && count($paidlists) > 1) {
-                                    $message = sprintf(__('Thank you for confirming your subscription.<br/><br/>Since you subscribed to %s paid list, please click the "Pay Now" button below to make a payment and your subscription will then be active.', 'wp-mailinglist'), count($paidlists));
-                                    $this -> redirect($this -> get_managementpost(true), "success", $message);
-                                } else {
-                                    $subscriber = $Subscriber -> get($subscriber_id, false);
-                                    $mailinglist = $Mailinglist -> get($paidlists[0], false);
-                                    $this -> redirect($Html -> retainquery('method=paidsubscription&subscriber_id=' . $subscriber -> id . '&list_id=' . $mailinglist -> id . '&extend=0', $this -> get_managementpost(true)));
-                                }
+                        //If there are paid lists... we need to provide a payment form.
+                        if (!empty($paidlists)) {
+                            if ($this -> get_option('activationemails') == "single" && count($paidlists) > 1) {
+                                $message = sprintf(__('Thank you for confirming your subscription.<br/><br/>Since you subscribed to %s paid list, please click the "Pay Now" button below to make a payment and your subscription will then be active.', 'wp-mailinglist'), count($paidlists));
+                                $this -> redirect($this -> get_managementpost(true), "success", $message);
+                                exit();
                             } else {
-                                $this -> redirect($activateredirecturl, $msgtype, $message);
+                                $subscriber = $Subscriber -> get($subscriber_id, false);
+                                $mailinglist = $Mailinglist -> get($paidlists[0], false);
+                                $this -> redirect($Html -> retainquery('method=paidsubscription&subscriber_id=' . $subscriber -> id . '&list_id=' . $mailinglist -> id . '&extend=0', $this -> get_managementpost(true)));
+                                exit();
                             }
-                            break;
-                        case 'paypal'			:
+                        } else {
+                            $this -> redirect($activateredirecturl, (isset($msgtype) ? $msgtype : 'success'), (isset($message) ? $message : ''));
+                            exit();
+                        }
+                        break;
+                    case 'paypal'			:
                             global $Html, $SubscribersList, $Subscriber;
 
                             $raw_post_data = file_get_contents('php://input');

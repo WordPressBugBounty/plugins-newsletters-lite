@@ -11,6 +11,7 @@ if (!class_exists('wpmlSubscribersList')) {
 		var $model = 'SubscribersList';
 		var $controller = 'subscriberslists';
 		var $table;
+		public $replace_subscriber;
 
 		var $fields = array(
 			'rel_id'				=>	"INT(11) NOT NULL AUTO_INCREMENT",

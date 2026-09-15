@@ -12,6 +12,27 @@ if (!class_exists('wpmlDbHelper')) {
         {
 			parent::__construct();			
 		}
+
+		/**
+		 * Restrict an ORDER BY value to a column identifier and known direction.
+		 *
+		 * @param array $order Requested order pair.
+		 * @return array
+		 */
+		private function validated_order($order) {
+			$ofield = is_array($order) && isset($order[0]) && is_string($order[0]) ? $order[0] : 'modified';
+			$odir = is_array($order) && isset($order[1]) && is_string($order[1]) ? strtoupper($order[1]) : 'DESC';
+
+			if (!preg_match('/\A[A-Za-z0-9_]+\z/D', $ofield)) {
+				$ofield = 'modified';
+			}
+
+			if (!in_array($odir, array('ASC', 'DESC'), true)) {
+				$odir = 'DESC';
+			}
+
+			return array($ofield, $odir);
+		}
 	
 		function getobject($model = null)
         {
@@ -839,7 +860,7 @@ if (!class_exists('wpmlDbHelper')) {
 				}
 				
 				$order = (empty($order)) ? array('modified', "DESC") : $order;
-				list($ofield, $odir) = $order;
+				list($ofield, $odir) = $this -> validated_order($order);
 				$query .= " ORDER BY `" . $ofield . "` " . $odir . "";
 				$query .= " LIMIT 1";
 				
@@ -918,7 +939,7 @@ if (!class_exists('wpmlDbHelper')) {
 				}
 				
 				$order = (empty($order)) ? array('modified', "DESC") : $order;
-				list($ofield, $odir) = $order;
+				list($ofield, $odir) = $this -> validated_order($order);
 				$query .= " ORDER BY `" . $ofield . "` " . $odir . "";
 				$query .= (empty($limit)) ? '' : " LIMIT " . $limit . "";
 				

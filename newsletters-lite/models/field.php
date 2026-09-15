@@ -1029,14 +1029,38 @@ if (!class_exists('wpmlField')) {
 
                                 switch ($field -> type) {
                                     case 'file'						:
-                                        $_FILES[$field -> slug] = map_deep(wp_unslash($_FILES[$field -> slug]), 'sanitize_text_field');
+                                        $_FILES[$field -> slug] = map_deep($_FILES[$field -> slug], 'sanitize_text_field');
+
                                         if (!empty($_FILES[$field -> slug]['name'])) {
                                             if (!function_exists('wp_handle_upload')){
                                                 require_once(ABSPATH . 'wp-admin' . DS . 'includes' . DS . 'file.php');
                                             }
 
                                             $upload_overrides = array('test_form' => false);
-                                            $uploadedfile = sanitize_text_field(wp_unslash($_FILES[$field -> slug]));
+                                            $uploadedfile = $_FILES[$field -> slug];
+
+                                            $real_mime = '';
+
+                                            if (function_exists('finfo_open')) {
+                                                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                                                if ($finfo) {
+                                                    $real_mime = finfo_file($finfo, $uploadedfile['tmp_name']);
+                                                }
+                                            } else {
+                                                $image_info = @getimagesize($uploadedfile['tmp_name']);
+                                                if ($image_info && isset($image_info['mime'])) {
+                                                    $real_mime = $image_info['mime'];
+                                                }
+                                            }
+
+                                            $allowed_mimes = get_allowed_mime_types();
+                                            $allowed_real_mimes = array_values($allowed_mimes);
+
+                                            if (empty($real_mime) || !in_array($real_mime, $allowed_real_mimes, true) || $real_mime !== $uploadedfile['type']) {
+                                                $this->errors[$field->slug] = __('File content does not match the declared type.', 'wp-mailinglist');
+                                                break;
+                                            }
+
                                             $file_info = wp_handle_upload($uploadedfile, $upload_overrides);
 
                                             if ($file_info && empty($file_info['error'])) {
@@ -1062,6 +1086,35 @@ if (!class_exists('wpmlField')) {
                                                     break;
                                             }
                                         }
+                                        break;
+                                    case 'pre_date':
+                                        $value = isset($_POST[$field->slug]) ? trim(wp_unslash($_POST[$field->slug])) : '';
+
+                                        if ($value === '') {
+                                            if (!empty($form_field->required)) {
+                                                $this->errors[$field->slug] = __($form_field->errormessage);
+                                            }
+                                            break;
+                                        }
+
+                                        $timestamp = strtotime($value);
+
+                                        if ($timestamp === false || !checkdate(
+                                            (int) date('m', $timestamp),
+                                            (int) date('d', $timestamp),
+                                            (int) date('Y', $timestamp)
+                                        )) {
+                                            $this->errors[$field->slug] = __('Please enter a valid date.', 'wp-mailinglist');
+                                            break;
+                                        }
+
+                                        $formatted = date('Y-m-d', $timestamp);
+                                        if (strtotime($formatted) !== $timestamp) {
+                                            $this->errors[$field->slug] = __('Please enter a valid date.', 'wp-mailinglist');
+                                            break;
+                                        }
+
+                                        $data[$field->slug] = sanitize_text_field($value);
                                         break;
                                     default 						:
                                         if (!empty($form_field -> required)) {

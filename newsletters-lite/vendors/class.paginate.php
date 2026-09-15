@@ -60,6 +60,30 @@ class wpmlpaginate extends wpMailPlugin {
 		}
 	}
 	
+	/**
+	 * Restrict ORDER BY fragments to a column identifier and a known direction.
+	 *
+	 * The paginator is shared by several administrative lists. Callers may pass
+	 * request values here, so escaping is not sufficient: SQL expressions must
+	 * never be accepted as identifiers.
+	 *
+	 * @return array
+	 */
+	private function validated_order() {
+		$ofield = is_array($this -> order) && isset($this -> order[0]) && is_string($this -> order[0]) ? $this -> order[0] : 'modified';
+		$odir = is_array($this -> order) && isset($this -> order[1]) && is_string($this -> order[1]) ? strtoupper($this -> order[1]) : 'DESC';
+
+		if (!preg_match('/\A(?:[A-Za-z0-9_]+\.)?[A-Za-z0-9_]+\z/D', $ofield)) {
+			$ofield = 'modified';
+		}
+
+		if (!in_array($odir, array('ASC', 'DESC'), true)) {
+			$odir = 'DESC';
+		}
+
+		return array($ofield, $odir);
+	}
+
 	function start_paging($page = null) {
 		global $wpdb, $Html, $Subscriber, $wpmlLink, $Bounce, $Email, $SubscribersList, $HistoriesList;
 	
@@ -315,7 +339,7 @@ class wpmlpaginate extends wpMailPlugin {
 		}
 			
 		$endRecord = $begRecord + $this -> perpage;
-		list($ofield, $odir) = $this -> order;
+		list($ofield, $odir) = $this -> validated_order();
 		
 		switch ($this -> model) {
 			case 'Email'					:		

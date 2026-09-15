@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
 <?php // phpcs:ignoreFile ?>
 <!-- Subscribe Form -->
 
@@ -10,13 +11,13 @@
 		<?php global $wpdb; ?>
 		<?php if ($wpdb -> get_row("SELECT * FROM " . $wpdb -> prefix . $Subscriber -> table . " WHERE `email` = '" . $current_user -> user_email . "' AND `user_id` = '" . $current_user -> ID . "'")) : ?>
 			<div class="ui-state-highlight ui-corner-all">
-				<p><i class="fa fa-check"></i> <?php echo sprintf(__('You are already subscribed with email address %s. Go to the %s page to manage your subscription.', 'wp-mailinglist'), '<strong>' . $current_user -> user_email . '</strong>', '<a href="' . $this -> get_managementpost(true) . '">' . __('manage subscriptions', 'wp-mailinglist') . '</a>'); ?></p>
+				<p><i class="fa-solid fa-check"></i> <?php echo sprintf(__('You are already subscribed with email address %s. Go to the %s page to manage your subscription.', 'wp-mailinglist'), '<strong>' . $current_user -> user_email . '</strong>', '<a href="' . $this -> get_managementpost(true) . '">' . __('manage subscriptions', 'wp-mailinglist') . '</a>'); ?></p>
 			</div>
 		<?php endif; ?>
 	<?php endif; ?>
 <?php endif; ?>
 
-<form action="<?php echo esc_url_raw($action); ?>" method="post" id="<?php echo $widget_id; ?>-form" class="newsletters-subscribe-form">
+<form action="<?php echo esc_url_raw($action); ?>" method="post" id="<?php echo esc_attr($widget_id); ?>-form" class="newsletters-subscribe-form">
 
 	<?php $hidden_values = array('ajax', 'scroll', 'captcha', 'list'); ?>
 	<?php foreach ($instance as $ikey => $ival) : ?>
@@ -26,7 +27,7 @@
 	<?php endforeach; ?>
 	<?php do_action('newsletters_subscribe_inside_form_top', $instance); ?>
 
-	<div id="<?php echo (int) $widget_id; ?>-fields" class="newsletters-form-fields">
+	<div id="<?php echo esc_attr($widget_id); ?>-fields" class="newsletters-form-fields">
 		<?php
 		$list_id = (empty($_REQUEST['list_id'])) ? (int) $instance['list'] : (int) $_REQUEST['list_id'];
 		?>
@@ -38,8 +39,8 @@
 		
 		<script type="text/javascript">
 		jQuery(document).ready(function() {
-			jQuery('#<?php echo (int) $widget_id; ?>-form .newsletters-list-checkbox').on('click', function() { newsletters_refreshfields('<?php echo (int) $widget_id; ?>'); });
-			jQuery('#<?php echo (int) $widget_id; ?>-form .newsletters-list-select').on('change', function() { newsletters_refreshfields('<?php echo (int) $widget_id; ?>'); });
+			jQuery('#<?php echo esc_js($widget_id); ?>-form .newsletters-list-checkbox').on('click', function() { newsletters_refreshfields('<?php echo esc_js($widget_id); ?>'); });
+			jQuery('#<?php echo esc_js($widget_id); ?>-form .newsletters-list-select').on('change', function() { newsletters_refreshfields('<?php echo esc_js($widget_id); ?>'); });
 		});
 		</script>
 	</div>
@@ -52,7 +53,7 @@
 		    	$captcha -> bg = $Html -> hex2rgb($this -> get_option('captcha_bg')); 
 		    	$captcha -> fg = $Html -> hex2rgb($this -> get_option('captcha_fg'));
 		    	$captcha_size = $this -> get_option('captcha_size');
-		    	$captcha -> img_size = array($captcha_size['w'], $captcha_size['h']);
+		    	$captcha -> img_size = array(! empty($captcha_size['w']) && is_numeric($captcha_size['w']) ? $captcha_size['w'] : 72, ! empty($captcha_size['h']) && is_numeric($captcha_size['h']) ? $captcha_size['h'] : 24);
 		    	$captcha -> char_length = $this -> get_option('captcha_chars');
 		    	$captcha -> font_size = $this -> get_option('captcha_font');
 		    	$captcha_word = $captcha -> generate_random_word();
@@ -70,7 +71,7 @@
 		<?php elseif ($captcha_type == "recaptcha") : ?>
 			<div id="newsletters-<?php echo esc_html($form -> id); ?>-recaptcha-challenge" class="newsletters-recaptcha-challenge"></div>
 		<?php elseif ($captcha_type == "recaptcha3") : ?>
-            <input type="hidden" name="g-recaptcha-response" id="<?php echo (int) $widget_id; ?>-recaptcha-response" value="" />
+            <input type="hidden" name="g-recaptcha-response" id="<?php echo esc_attr($widget_id); ?>-recaptcha-response" value="" />
         <?php elseif ($captcha_type == "hcaptcha") : ?>
             <?php if (function_exists('HCaptcha\Helpers\HCaptcha::form_display')) : ?>
                 <div class="form-group newsletters-fieldholder newsletters-captcha-wrapper">
@@ -80,21 +81,21 @@
                         'name'   => 'hcaptcha_wpmailinglist_nonce',
                         'id'     => [
                             'source'  => ['wp-mailinglist'],
-                            'form_id' => $widget_id,
+                            'form_id' => esc_attr($widget_id),
                         ],
                     ];
                     HCaptcha\Helpers\HCaptcha::form_display($args);
                     ?>
                     <?php if (!empty($errors['captcha_code'])) : ?>
-                        <div id="newsletters-<?php echo (int) $widget_id; ?>-captcha-error" class="newsletters-field-error alert alert-danger">
-                            <i class="fa fa-exclamation-triangle"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
+                        <div id="newsletters-<?php echo esc_attr($widget_id); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
+                            <i class="fa-solid fa-triangle-exclamation"></i> <?php echo wp_unslash($errors['captcha_code']); ?>
                         </div>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
         <?php elseif ( $captcha_type == 'turnstile' ) : ?>
             <div
-                id="newsletters-<?php echo $widget_id; ?>-turnstile-challenge"
+                id="newsletters-<?php echo esc_attr($widget_id); ?>-turnstile-challenge"
                 class="newsletters-turnstile-challenge"
                 data-sitekey="<?php echo esc_attr( $this->get_option( 'turnstile_sitekey' ) ); ?>"
                 data-theme="light"
@@ -104,29 +105,29 @@
 
             <input type="hidden"
                 name="cf-turnstile-response"
-                id="newsletters-<?php echo $widget_id; ?>-turnstile-response"
+                id="newsletters-<?php echo esc_attr($widget_id); ?>-turnstile-response"
                 value=""/>
 
         <?php endif; ?>
 
         <?php if (!empty($errors['captcha_code']) && !empty($form_styling['fielderrors'])) : ?>
 			<div id="newsletters-<?php echo esc_html( $number); ?>-captcha-error" class="newsletters-field-error alert alert-danger">
-				<i class="fa fa-exclamation-triangle"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
+				<i class="fa-solid fa-triangle-exclamation"></i> <?php echo wp_kses_post( wp_unslash($errors['captcha_code'])) ?>
 			</div>
 		<?php endif; ?>
     <?php endif; ?>
     
     <div class="newslettername-wrapper">
-    	<input type="text" name="newslettername" value="" id="<?php echo (int) $widget_id; ?>newslettername" class="newslettername" />
+    	<input type="text" name="newslettername" value="" id="<?php echo esc_attr($widget_id); ?>newslettername" class="newslettername" />
     </div>
-	
-	<div id="<?php echo (int) $widget_id; ?>-submit" class="newsletters_submit">
+
+	<div id="<?php echo esc_attr($widget_id); ?>-submit" class="newsletters_submit">
 		<span id="newsletters_buttonwrap">
-			<button value="1" type="submit" class="button" name="subscribe" id="<?php echo (int) $widget_id; ?>-button">
+			<button value="1" type="submit" class="button" name="subscribe" id="<?php echo esc_attr($widget_id); ?>-button">
 				<?php echo esc_attr(wp_unslash(__($instance['button']))); ?>
-				
-				<span id="<?php echo (int) $widget_id; ?>-loading" class="newsletters-loading-wrapper" style="display:none;">
-					<i class="fa fa-refresh fa-spin fa-fw"></i>
+
+				<span id="<?php echo esc_attr($widget_id); ?>-loading" class="newsletters-loading-wrapper" style="display:none;">
+					<i class="fa-solid fa-arrows-rotate fa-spin fa-fw"></i>
 				</span>
 			</button>
 		</span>
@@ -147,31 +148,31 @@ jQuery(document).ready(function($) {
 
     <?php if ($captcha_type == "recaptcha3") : ?>
         // Handle reCAPTCHA v3 for both AJAX and non-AJAX submissions
-        $('#<?php echo (int) $widget_id; ?>-form').on('submit', function(e) {
+        $('#<?php echo esc_js($widget_id); ?>-form').on('submit', function(e) {
             e.preventDefault();
             var $form = $(this);
 
             grecaptcha.ready(function() {
                 grecaptcha.execute('<?php echo esc_js($this->get_option('recaptcha3_publickey')); ?>', {action: 'subscribe'}).then(function(token) {
-                    $('#<?php echo (int) $widget_id; ?>-recaptcha-response').val(token);
+                    $('#<?php echo esc_js($widget_id); ?>-recaptcha-response').val(token);
 
                     <?php if (!empty($ajax) && $ajax == "Y") : ?>
                         // AJAX submission
-                        $('#<?php echo (int) $widget_id; ?>-loading').show();
-                        $('#<?php echo (int) $widget_id; ?>-button').button('disable');
-                        $('#<?php echo (int) $widget_id; ?>-form .newsletters-fieldholder :input').attr('readonly', true);
+                        $('#<?php echo esc_js($widget_id); ?>-loading').show();
+                        $('#<?php echo esc_js($widget_id); ?>-button').button('disable');
+                        $('#<?php echo esc_js($widget_id); ?>-form .newsletters-fieldholder :input').attr('readonly', true);
                         $('div.newsletters-field-error', $form).slideUp();
                         $form.find('.newsletters_fielderror').removeClass('newsletters_fielderror');
 
                         $.ajax({
-                            url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
+                            url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo esc_js($widget_id); ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
                             data: $form.serialize(),
                             type: "POST",
                             cache: false,
                             success: function(response) {
-                                $('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
+                                $('#<?php echo esc_js($widget_id); ?>-wrapper').html(response);
                                 <?php if (!empty($scroll)) : ?>
-                                    wpml_scroll($('#<?php echo (int) $widget_id; ?>'));
+                                    wpml_scroll($('#<?php echo esc_js($widget_id); ?>'));
                                 <?php endif; ?>
                             }
                         });
@@ -184,22 +185,22 @@ jQuery(document).ready(function($) {
         });
     <?php elseif (!empty($ajax) && $ajax == "Y") : ?>
         // Existing AJAX logic for non-reCAPTCHA v3 cases
-        $('#<?php echo (int) $widget_id; ?>-form').submit(function() {
-            $('#<?php echo (int) $widget_id; ?>-loading').show();
-            $('#<?php echo (int) $widget_id; ?>-button').button('disable');
-            $('#<?php echo (int) $widget_id; ?>-form .newsletters-fieldholder :input').attr('readonly', true);
+        $('#<?php echo esc_js($widget_id); ?>-form').submit(function() {
+            $('#<?php echo esc_js($widget_id); ?>-loading').show();
+            $('#<?php echo esc_js($widget_id); ?>-button').button('disable');
+            $('#<?php echo esc_js($widget_id); ?>-form .newsletters-fieldholder :input').attr('readonly', true);
             $('div.newsletters-field-error', this).slideUp();
             $(this).find('.newsletters_fielderror').removeClass('newsletters_fielderror');
 
             $.ajax({
-                url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo (int) $widget_id; ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
+                url: newsletters_ajaxurl + 'action=wpmlsubscribe&widget=<?php echo $widget; ?>&widget_id=<?php echo esc_js($widget_id); ?>&number=<?php echo $number; ?>&security=<?php echo wp_create_nonce('subscribe'); ?>',
                 data: $(this).serialize(),
                 type: "POST",
                 cache: false,
                 success: function(response) {
-                    $('#<?php echo (int) $widget_id; ?>-wrapper').html(response);
+                    $('#<?php echo esc_js($widget_id); ?>-wrapper').html(response);
                     <?php if (!empty($scroll)) : ?>
-                        wpml_scroll($('#<?php echo (int) $widget_id; ?>'));
+                        wpml_scroll($('#<?php echo esc_js($widget_id); ?>'));
                     <?php endif; ?>
                 }
             });

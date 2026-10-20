@@ -4,7 +4,7 @@ Donate link: https://tribulant.com
 Tags: newsletters, email, bulk email, mailing list, subscribers, newsletter, opt-in, subscribe, marketing, auto newsletter, automatic newsletter, autoresponder, campaign, email, email alerts, email subscription, emailing, follow up, newsletter signup, newsletter widget, newsletters, post notification, subscription, bounce, latest posts, insert posts into newsletter
 Requires at least: 3.8
 Tested up to: 7.1
-Stable tag: 4.18.1
+Stable tag: 4.18.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -236,6 +236,11 @@ If you downloaded it from the WordPress.org website:
 == Changelog ==
 
 See all <a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/31/#doc6">releases and full changelogs</a> in our docs.
+
+= 4.18.2 =
+* SECURITY: Hardened subscriber lookup, activation, deletion, and unsubscribe queries with prepared statements and normalized subscriber IDs.
+* SECURITY: Fixed unauthenticated PHP object injection through the database update notice dismissal by requiring administrator access and a nonce, validating the version, and preventing a second unserialize of the stored value. Reported by Ananda Dhakal (Patchstack).
+* SECURITY: Fixed unauthenticated SQL injection through subscriber profile management by rejecting client-supplied subscriber IDs and preparing subscriber update queries. Reported by zickzick2 (Sejong University).
 
 = 4.18.1 =
 * FIX: Admin activation notification emails now respect the "Activation Emails" setting (Configuration > Subscription). When set to "single", only one notification is sent after all lists are activated. When set to "multiple", a separate notification is sent for each list activation.

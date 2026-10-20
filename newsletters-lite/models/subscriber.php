@@ -350,8 +350,8 @@ if (!class_exists('wpmlSubscriber')) {
 			global $wpdb, $SubscribersList;
 
 			if (!empty($subscriber_id)) {
-				$subscriber_id = esc_sql($subscriber_id);
-				$query = "SELECT * FROM `" . $wpdb -> prefix . "" . $this -> table . "` WHERE `id` = '" . esc_sql($subscriber_id) . "' LIMIT 1";
+				$subscriber_id = (int) $subscriber_id;
+				$query = $wpdb -> prepare("SELECT * FROM `" . $wpdb -> prefix . $this -> table . "` WHERE `id` = %d LIMIT 1", $subscriber_id);
 
 				$query_hash = md5($query);
 				if ($ob_subscriber = $this -> get_cache($query_hash)) {
@@ -990,6 +990,9 @@ if (!class_exists('wpmlSubscriber')) {
 
 			$data = (empty($data[$this -> model])) ? $data : $data[$this -> model];
 			$r = wp_parse_args($data, $defaults);
+			if (isset($r['id'])) {
+				$r['id'] = (int) $r['id'];
+			}
 			//$this -> data = array($this -> model => (object) $r);
 			$this -> data = (object) $r;
 			extract($r, EXTR_SKIP);
@@ -1291,7 +1294,7 @@ if (!class_exists('wpmlSubscriber')) {
 						$c++;
 					}
 
-					$query .= " WHERE `id` = '" . $id . "';";
+					$query .= $wpdb -> prepare(" WHERE `id` = %d;", (int) $id);
 					$this -> table_fields['created'] = true;
 				} else {
 					$query1 = "INSERT INTO `" . $wpdb -> prefix . "" . $this -> table . "` (";
@@ -1718,7 +1721,7 @@ if (!class_exists('wpmlSubscriber')) {
 			if (!empty($id) && !empty($email)) {
 				if ($subscriber = $this -> get($id)) {
 					if ($subscriber -> active == "N") {
-						if ($wpdb -> query("UPDATE `" . $wpdb -> prefix . "" . $this -> table . "` SET `active` = 'Y' WHERE `id` = '" . $id . "' AND `email` = '" . $email . "' LIMIT 1")) {
+						if ($wpdb -> query($wpdb -> prepare("UPDATE `" . $wpdb -> prefix . $this -> table . "` SET `active` = 'Y' WHERE `id` = %d AND `email` = %s LIMIT 1", (int) $id, $email))) {
 							return true;
 						}
 					}
@@ -1739,13 +1742,14 @@ if (!class_exists('wpmlSubscriber')) {
 			global $wpdb, $SubscribersList;
 
 			if (!empty($subscriber_id)) {
-				$wp_user_id = (int) $wpdb->get_var("SELECT user_id FROM `" . $wpdb -> prefix . "" . $this -> table . "` WHERE `id` = '" . $subscriber_id . "'");
-				if ($wpdb -> query("DELETE FROM `" . $wpdb -> prefix . "" . $this -> table . "` WHERE `id` = '" . $subscriber_id . "' LIMIT 1")) {
+				$subscriber_id = (int) $subscriber_id;
+				$wp_user_id = (int) $wpdb -> get_var($wpdb -> prepare("SELECT user_id FROM `" . $wpdb -> prefix . $this -> table . "` WHERE `id` = %d", $subscriber_id));
+				if ($wpdb -> query($wpdb -> prepare("DELETE FROM `" . $wpdb -> prefix . $this -> table . "` WHERE `id` = %d LIMIT 1", $subscriber_id))) {
 					$this -> Order() -> delete_all(array('subscriber_id' => $subscriber_id));
 					$SubscribersList -> delete_all(array('subscriber_id' => $subscriber_id));
 					$this -> SubscribersOption() -> delete_all(array('subscriber_id' => $subscriber_id));
 
-					$wpdb -> query("DELETE FROM " . $wpdb -> prefix . $this -> Autoresponderemail() -> table . " WHERE `subscriber_id` = '" . $subscriber_id . "'");
+					$wpdb -> query($wpdb -> prepare("DELETE FROM `" . $wpdb -> prefix . $this -> Autoresponderemail() -> table . "` WHERE `subscriber_id` = %d", $subscriber_id));
 
 					if ($this->get_option('unsubscribewpuserdelete') == 'Y' && is_numeric($wp_user_id) && $wp_user_id > 0) {
 						wp_delete_user($wp_user_id);
@@ -1792,7 +1796,7 @@ if (!class_exists('wpmlSubscriber')) {
 		{
 			global $wpdb;
 
-			if ($wpdb -> query("DELETE FROM `" . $wpdb -> prefix . "" . $this -> table . "` WHERE `id` = '" . $id . "' AND `email` = '" . esc_sql($email) . "' LIMIT 1")) {
+			if ($wpdb -> query($wpdb -> prepare("DELETE FROM `" . $wpdb -> prefix . $this -> table . "` WHERE `id` = %d AND `email` = %s LIMIT 1", (int) $id, $email))) {
 				return true;
 			}
 

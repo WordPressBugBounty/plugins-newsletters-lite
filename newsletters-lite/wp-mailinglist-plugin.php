@@ -8,7 +8,7 @@ if (!class_exists('wpMailPlugin')) {
 		var $name = 'Newsletters';
 		var $plugin_base;
 		var $pre = 'wpml';
-		var $version = '4.18.1';
+		var $version = '4.18.2';
 		var $dbversion = '1.2.3';
 		var $debugging = false;			//set to "true" to turn on debugging  
 		var $debug_level = 2; 			//set to 1 for only database errors and var dump; 2 for PHP errors as well
@@ -5030,6 +5030,7 @@ function qp_scheduling() {
 					$_POST = $oldpost;
 					unset($_POST['action']);
 					unset($_POST['subscriber_id']);
+					unset($_POST['id']);
 
 					if (!empty($_POST)) {
 						$emailfield = $Field -> email_field();
@@ -5044,6 +5045,7 @@ function qp_scheduling() {
 						$_POST['list_id'] = $lists;
 
 						$_POST = $data = $Field -> validate_optin($_POST, 'management');
+						$data['id'] = (int) $subscriber -> id;
 						if (!empty($Field -> errors)) {
                             $errors = array_merge((array) $errors, (array) $Field -> errors);
 						}
@@ -12026,7 +12028,7 @@ function qp_scheduling() {
 			} */
 
 			if ($option = get_option($this -> pre . $name)) {
-				if (maybe_unserialize($option) !== false) {
+				if ($name !== 'hidedbupdate' && maybe_unserialize($option) !== false) {
 					$option = maybe_unserialize($option);
 				}
 

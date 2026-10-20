@@ -3,7 +3,7 @@
 /*
 Plugin Name: Newsletters
 Plugin URI: https://tribulant.com/plugins/view/1/
-Version: 4.18.1
+Version: 4.18.2
 Description: This newsletter software by Tribulant allows users to subscribe to multiple mailing lists on your WordPress website. Send newsletters manually or from posts, manage newsletter templates, view a complete history with tracking, import/export subscribers, accept paid subscriptions and much more. Remove limits by buying PRO. Once purchased, to avoid future issues, remove this version and install and use the paid version in its stead. No data will be lost.
 Author: Tribulant
 Author URI: https://tribulant.com
@@ -643,10 +643,10 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                     $hidemessage_submitserial = $this -> get_option('hidemessage_submitserial');
                     // Submit Serial
                     if   ((empty($hidemessage_submitserial)) && !is_array($serial_validation_status) && !$serial_validation_status && (empty($page) || $page != $this -> sections -> submitserial)) {
-                        $message = sprintf(__('To activate Newsletters PRO, please submit a serial key, else %s', 'wp-mailinglist'), '<a href="' . admin_url('admin.php?page=' . $this -> sections -> welcome . '&newsletters_method=hidemessage&message=submitserial') . '">' . __('continue using Newsletters LITE', 'wp-mailinglist') . '</a>');
+                        $message = sprintf(__('To activate Newsletters PRO, please submit a serial key, else %s', 'wp-mailinglist'), '<a href="' . wp_nonce_url(admin_url('admin.php?page=' . $this -> sections -> welcome . '&newsletters_method=hidemessage&message=submitserial'), 'newsletters_hidemessage') . '">' . __('continue using Newsletters LITE', 'wp-mailinglist') . '</a>');
                         $message .= ' <a class="button button-primary" id="' . $this -> pre . 'submitseriallink" href="' . admin_url('admin.php') . '?page=' . $this -> sections -> submitserial . '">' . __('Submit Serial Key', 'wp-mailinglist') . '</a>';
                         $message .= ' <a class="button button-secondary" href="' . admin_url('admin.php?page=' . $this -> sections -> lite_upgrade) . '">' . __('Upgrade to PRO', 'wp-mailinglist') . '</a>';
-                        $message .= ' <a style="text-decoration:none;" href="' . admin_url('admin.php?page=' . $this -> sections -> welcome . '&newsletters_method=hidemessage&message=submitserial') . '" class=""><i class="fa fa-times"></i></a>';
+                        $message .= ' <a style="text-decoration:none;" href="' . wp_nonce_url(admin_url('admin.php?page=' . $this -> sections -> welcome . '&newsletters_method=hidemessage&message=submitserial'), 'newsletters_hidemessage') . '" class=""><i class="fa fa-times"></i></a>';
                         $this -> render_message($message, false, true, 'submitserial');
 
                         ?>
@@ -677,7 +677,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
                             if (apply_filters('newsletters_whitelabel', true)) {
                                 $message .= '<p>';
-                                $message .= '<a href="' . $Html -> retainquery(array('newsletters_method' => "hidemessage", 'message' => "disablewpcron")) . '" class="button button-default"><i class="fa fa-check"></i> ' . __('Yes I know, hide this message', 'wp-mailinglist') . '</a> ';
+                                $message .= '<a href="' . wp_nonce_url($Html -> retainquery(array('newsletters_method' => "hidemessage", 'message' => "disablewpcron")), 'newsletters_hidemessage') . '" class="button button-default"><i class="fa fa-check"></i> ' . __('Yes I know, hide this message', 'wp-mailinglist') . '</a> ';
                                 $message .= '<a href="https://tribulant.com/docs/wordpress-mailing-list-plugin/11164" target="_blank" class="button button-primary"><i class="fa fa-question-circle"></i> ' . __('No, how can I fix it?', 'wp-mailinglist') . '</a>';
                                 $message .= '</p>';
                             }
@@ -689,12 +689,15 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
 
                     // Database update required?
                     $hidedbupdate = $this -> get_option('hidedbupdate');
+                    if (!is_string($hidedbupdate) || !preg_match('/^[0-9]+(?:\.[0-9]+)*$/', $hidedbupdate)) {
+                        $hidedbupdate = false;
+                    }
                     $showmessage_dbupdate = $this -> get_option('showmessage_dbupdate');
                     if (!empty($showmessage_dbupdate)) {
                         if (empty($hidedbupdate) || (!empty($hidedbupdate) && version_compare($this -> dbversion, $hidedbupdate, '>'))) {
                             $message = sprintf(__('Newsletters requires a database update to continue %s. Make a database backup before running this.', 'wp-mailinglist'), '<a class="button" href="' . $Html -> retainquery('newsletters_method=dbupdate') . '">' . __('do it now', 'wp-mailinglist') . '</a>');
                             $message .= $Html -> help(__('Depending on your current database, this may take some time. If it times out for any reason, please refresh.', 'wp-mailinglist'));
-                            $message .= ' <a class="button button-secondary" href="' . $Html -> retainquery('newsletters_method=hidemessage&message=dbupdate&version=' . $this -> dbversion) . '"><i class="fa fa-times"></i> ' . __('Hide', 'wp-mailinglist') . '</a>';
+                            $message .= ' <a class="button button-secondary" href="' . wp_nonce_url($Html -> retainquery('newsletters_method=hidemessage&message=dbupdate&version=' . $this -> dbversion), 'newsletters_hidemessage') . '"><i class="fa fa-times"></i> ' . __('Hide', 'wp-mailinglist') . '</a>';
                             $this -> render_error($message, false, true, 'dbupdate');
                         }
                     }
@@ -749,7 +752,7 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             if (empty($hidemessage_queue_status) && !empty($queue_count)) {
                                 if (!empty($queue_status) && $queue_status == "pause") {
                                     $message = sprintf(__('The %s is currently paused, please unpause it to send out emails.', 'wp-mailinglist'), '<a href="' . admin_url('admin.php?page=' . $this -> sections -> queue) . '">' . __('email queue', 'wp-mailinglist') . '</a>');
-                                    $message .= ' <a class="button button-secondary" href="' . admin_url('admin.php?page=' . $this -> sections -> welcome . '&newsletters_method=hidemessage&message=queue_status') . '" class=""><i class="fa fa-times fa-fw"></i>' . __('Hide', 'wp-mailinglist') . '</a>';
+                                    $message .= ' <a class="button button-secondary" href="' . wp_nonce_url(admin_url('admin.php?page=' . $this -> sections -> welcome . '&newsletters_method=hidemessage&message=queue_status'), 'newsletters_hidemessage') . '" class=""><i class="fa fa-times fa-fw"></i>' . __('Hide', 'wp-mailinglist') . '</a>';
                                     $this -> render_error($message, false, true, 'queue_status');
                                 }
                             }
@@ -1352,10 +1355,15 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                             }
                             break;
                         case 'hidemessage'					:
-                            if (!empty($_GET['message'])) {
-                                $message = sanitize_text_field(wp_unslash($_GET['message']));
+                            if (!current_user_can('manage_options')) {
+                                break;
+                            }
 
-                                switch ($_GET['message']) {
+                            check_admin_referer('newsletters_hidemessage');
+                            $message = isset($_GET['message']) && is_string($_GET['message']) ? sanitize_text_field(wp_unslash($_GET['message'])) : '';
+                            if ($message !== '') {
+
+                                switch ($message) {
                                     case 'submitserial'				:
                                         $this -> update_option('hidemessage_submitserial', true);
                                         break;
@@ -1363,8 +1371,11 @@ require_once(NEWSLETTERS_DIR . DS . 'wp-mailinglist-plugin.php');
                                         $this -> update_option('hidemessage_ratereview', true);
                                         break;
                                     case 'dbupdate'					:
-                                        $this -> delete_option('showmessage_dbupdate');
-                                        $this -> update_option('hidedbupdate', sanitize_text_field(wp_unslash($_GET['version'])));
+                                        $version = isset($_GET['version']) && is_string($_GET['version']) ? sanitize_text_field(wp_unslash($_GET['version'])) : '';
+                                        if (preg_match('/^[0-9]+(?:\.[0-9]+)*$/', $version)) {
+                                            $this -> delete_option('showmessage_dbupdate');
+                                            $this -> update_option('hidedbupdate', $version);
+                                        }
                                         break;
                                     case 'queue_status'				:
                                         $this -> update_option('hidemessage_queue_status', true);
